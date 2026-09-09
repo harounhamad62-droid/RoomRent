@@ -1301,8 +1301,9 @@ function funguaKodi(roomNumber) {
 /* =========================================================
    22. CREATE BOOKING
 ========================================================= */
+async function tengenezaBooking(roomNumber) {
 
-function tengenezaBooking(roomNumber) {
+try {
 
     const room =
         rooms.find(
@@ -1310,30 +1311,40 @@ function tengenezaBooking(roomNumber) {
         );
 
 
-    if (!room) return;
+    if (!room) {
+
+        alert("❌ Chumba hakijapatikana.");
+
+        return;
+
+    }
 
 
     const name =
-        document.getElementById("bookingName")
+        document
+        .getElementById("bookingName")
         ?.value
         .trim();
 
 
     const phone =
-        document.getElementById("bookingPhone")
+        document
+        .getElementById("bookingPhone")
         ?.value
         .trim();
 
 
     const referralCode =
-        document.getElementById("referralCode")
+        document
+        .getElementById("referralCode")
         ?.value
         .trim()
         .toUpperCase();
 
 
     const paymentMethod =
-        document.getElementById("paymentMethod")
+        document
+        .getElementById("paymentMethod")
         ?.value;
 
 
@@ -1385,13 +1396,6 @@ function tengenezaBooking(roomNumber) {
             name,
             phone,
             referralCode
-        );
-
-
-    const bookings =
-        getJSON(
-            "roomrentBookings",
-            []
         );
 
 
@@ -1453,6 +1457,41 @@ function tengenezaBooking(roomNumber) {
     };
 
 
+    /* =================================================
+       SAVE BOOKING FIREBASE
+    ================================================= */
+
+    await setDoc(
+
+        doc(
+            db,
+            "bookings",
+            bookingNumber
+        ),
+
+        {
+
+            ...booking,
+
+            createdAt:
+                serverTimestamp()
+
+        }
+
+    );
+
+
+    /* =================================================
+       LOCAL BACKUP
+    ================================================= */
+
+    const bookings =
+        getJSON(
+            "roomrentBookings",
+            []
+        );
+
+
     bookings.push(booking);
 
 
@@ -1461,6 +1500,10 @@ function tengenezaBooking(roomNumber) {
         bookings
     );
 
+
+    /* =================================================
+       NOTIFICATION
+    ================================================= */
 
     addNotification(
 
@@ -1473,12 +1516,34 @@ function tengenezaBooking(roomNumber) {
     );
 
 
-    funguaPaymentRequest(booking);
+    alert(
+        `✅ Booking ${bookingNumber} imeundwa.`
+    );
+
+
+    funguaPaymentRequest(
+        booking
+    );
 
 }
 
+catch (error) {
 
-/* =========================================================
+    console.error(
+        "BOOKING FIREBASE ERROR:",
+        error
+    );
+
+
+    alert(
+        "❌ Imeshindikana kuhifadhi booking Firebase. Tafadhali jaribu tena."
+    );
+
+}
+
+}
+
+    =====================================================
    23. PAYMENT REQUEST
 ========================================================= */
 
@@ -1614,12 +1679,14 @@ function funguaPaymentRequest(booking) {
 
 /* =========================================================
    24. SEND PAYMENT REQUEST
-========================================================= */
+=========================================================
+async function tumaPaymentRequest(bookingNumber) {
 
-function tumaPaymentRequest(bookingNumber) {
+try {
 
     const transactionNumber =
-        document.getElementById(
+        document
+        .getElementById(
             "transactionNumber"
         )
         ?.value
@@ -1655,7 +1722,7 @@ function tumaPaymentRequest(bookingNumber) {
     if (!booking) {
 
         alert(
-            "Booking haijapatikana."
+            "❌ Booking haijapatikana."
         );
 
         return;
@@ -1668,6 +1735,21 @@ function tumaPaymentRequest(bookingNumber) {
             booking.paymentMethod
         );
 
+
+    if (!paymentDetails) {
+
+        alert(
+            "❌ Taarifa za njia ya malipo hazijapatikana."
+        );
+
+        return;
+
+    }
+
+
+    /* =================================================
+       UPDATE BOOKING DATA
+    ================================================= */
 
     booking.transactionNumber =
         transactionNumber;
@@ -1693,11 +1775,59 @@ function tumaPaymentRequest(bookingNumber) {
         new Date().toISOString();
 
 
-    setJSON(
-        "roomrentBookings",
-        bookings
+    /* =================================================
+       UPDATE FIREBASE
+    ================================================= */
+
+    await updateDoc(
+
+        doc(
+            db,
+            "bookings",
+            bookingNumber
+        ),
+
+        {
+
+            transactionNumber:
+                transactionNumber,
+
+            receiverName:
+                paymentDetails.name,
+
+            receiverPhone:
+                paymentDetails.phone,
+
+            paymentStatus:
+                "Waiting Confirmation",
+
+            status:
+                "Payment Submitted",
+
+            paymentRequestedAt:
+                serverTimestamp()
+
+        }
+
     );
 
+
+    /* =================================================
+       LOCAL BACKUP
+    ================================================= */
+
+    setJSON(
+
+        "roomrentBookings",
+
+        bookings
+
+    );
+
+
+    /* =================================================
+       NOTIFICATION
+    ================================================= */
 
     addNotification(
 
@@ -1710,12 +1840,33 @@ function tumaPaymentRequest(bookingNumber) {
     );
 
 
-    showPaymentWaiting(booking);
+    alert(
+        "✅ Taarifa ya malipo imetumwa kwa RoomRent."
+    );
+
+
+    showPaymentWaiting(
+        booking
+    );
 
 }
 
+catch (error) {
 
-/* =========================================================
+    console.error(
+        "PAYMENT FIREBASE ERROR:",
+        error
+    );
+
+
+    alert(
+        "❌ Imeshindikana kutuma taarifa ya malipo Firebase. Tafadhali jaribu tena."
+    );
+
+}
+
+}
+    
    25. PAYMENT WAITING
 ========================================================= */
 

@@ -117,6 +117,257 @@ onAuthStateChanged(
     }
 );
 /* =========================================================
+   PHONE AUTHENTICATION
+========================================================= */
+
+let confirmationResult = null;
+let recaptchaVerifier = null;
+
+
+function showLoginMessage(message) {
+
+    const element =
+        document.getElementById("loginMessage");
+
+    if (element) {
+
+        element.textContent = message;
+
+    }
+
+}
+
+
+function formatTanzaniaPhone(phone) {
+
+    phone =
+        String(phone || "")
+        .trim()
+        .replace(/\s+/g, "");
+
+
+    if (phone.startsWith("+255")) {
+
+        return phone;
+
+    }
+
+
+    if (phone.startsWith("255")) {
+
+        return "+" + phone;
+
+    }
+
+
+    if (phone.startsWith("0")) {
+
+        return "+255" + phone.substring(1);
+
+    }
+
+
+    return "+255" + phone;
+
+}
+
+
+function setupRecaptcha() {
+
+    if (recaptchaVerifier) {
+
+        return;
+
+    }
+
+
+    recaptchaVerifier =
+        new RecaptchaVerifier(
+            auth,
+            "recaptcha-container",
+            {
+                size: "normal"
+            }
+        );
+
+
+    recaptchaVerifier.render();
+
+}
+
+
+async function tumaOTP() {
+
+    try {
+
+        const phoneInput =
+            document.getElementById("loginPhone");
+
+
+        const phone =
+            formatTanzaniaPhone(
+                phoneInput?.value
+            );
+
+
+        if (!phone || phone.length < 12) {
+
+            showLoginMessage(
+                "⚠️ Tafadhali ingiza namba sahihi."
+            );
+
+            return;
+
+        }
+
+
+        setupRecaptcha();
+
+
+        showLoginMessage(
+            "⏳ Inatuma OTP..."
+        );
+
+
+        confirmationResult =
+            await signInWithPhoneNumber(
+                auth,
+                phone,
+                recaptchaVerifier
+            );
+
+
+        document
+            .getElementById("otpSection")
+            .style.display = "block";
+
+
+        showLoginMessage(
+            "✅ OTP imetumwa kwenye simu yako."
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        showLoginMessage(
+            "❌ Imeshindikana kutuma OTP. Jaribu tena."
+        );
+
+    }
+
+}
+
+
+async function thibitishaOTP() {
+
+    try {
+
+        const code =
+            document
+            .getElementById("otpCode")
+            ?.value
+            .trim();
+
+
+        if (!confirmationResult) {
+
+            showLoginMessage(
+                "⚠️ Tafadhali tuma OTP kwanza."
+            );
+
+            return;
+
+        }
+
+
+        if (!code) {
+
+            showLoginMessage(
+                "⚠️ Ingiza OTP."
+            );
+
+            return;
+
+        }
+
+
+        showLoginMessage(
+            "⏳ Inathibitisha..."
+        );
+
+
+        const result =
+            await confirmationResult.confirm(code);
+
+
+        const user =
+            result.user;
+
+
+        currentUser = user;
+
+
+        await setDoc(
+
+            doc(
+                db,
+                "users",
+                user.uid
+            ),
+
+            {
+
+                phone:
+                    user.phoneNumber || "",
+
+                uid:
+                    user.uid,
+
+                updatedAt:
+                    serverTimestamp()
+
+            },
+
+            {
+                merge: true
+            }
+
+        );
+
+
+        document
+            .getElementById(
+                "phoneLoginSection"
+            )
+            .style.display = "none";
+
+
+        showLoginMessage(
+            "✅ Umefanikiwa kuingia RoomRent!"
+        );
+
+
+        alert(
+            "🎉 Karibu RoomRent!"
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        showLoginMessage(
+            "❌ OTP sio sahihi au muda wake umeisha."
+        );
+
+    }
+
+}
+/* =========================================================
    1. ROOM DATA
 ========================================================= */
 
@@ -3415,7 +3666,26 @@ document.addEventListener(
                 funguaTaarifa;
 
         }
+const sendOtpBtn =
+    document.getElementById("sendOtpBtn");
 
+if (sendOtpBtn) {
+
+    sendOtpBtn.onclick =
+        tumaOTP;
+
+}
+
+/* PHONE OTP BUTTON */
+const verifyOtpBtn =
+    document.getElementById("verifyOtpBtn");
+
+if (verifyOtpBtn) {
+
+    verifyOtpBtn.onclick =
+        thibitishaOTP;
+
+           }
     }
 
 );

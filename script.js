@@ -3318,71 +3318,184 @@ async function onyeshaAdminBookings() {
 }
 
 
-
 /* =========================================================
-   35. CONFIRM BOOKING
+   35. CONFIRM BOOKING - FIREBASE
 ========================================================= */
 
-function adminConfirmBooking(bookingNumber) {
+async function adminConfirmBooking(bookingNumber) {
 
-    const bookings =
-        getJSON(
-            "roomrentBookings",
-            []
+    if (!isAdminLoggedIn()) {
+
+        funguaAdminLogin();
+
+        return;
+
+    }
+
+
+    try {
+
+        const bookingRef =
+            doc(
+                db,
+                "bookings",
+                bookingNumber
+            );
+
+
+        const bookingSnapshot =
+            await getDoc(
+                bookingRef
+            );
+
+
+        if (!bookingSnapshot.exists()) {
+
+            alert(
+                "❌ Booking haijapatikana Firebase."
+            );
+
+            return;
+
+        }
+
+
+        const booking = {
+
+            id:
+                bookingSnapshot.id,
+
+            ...bookingSnapshot.data()
+
+        };
+
+
+        if (
+            booking.status ===
+            "Confirmed"
+        ) {
+
+            alert(
+                "⚠️ Booking hii tayari imethibitishwa."
+            );
+
+            return;
+
+        }
+
+
+        /* =================================================
+           UPDATE FIREBASE
+        ================================================= */
+
+        await updateDoc(
+
+            bookingRef,
+
+            {
+
+                status:
+                    "Confirmed",
+
+                paymentStatus:
+                    "Paid",
+
+                confirmedAt:
+                    serverTimestamp()
+
+            }
+
         );
 
 
-    const booking =
-        bookings.find(
-            b => b.bookingNumber === bookingNumber
+        /* =================================================
+           UPDATE LOCAL BACKUP
+        ================================================= */
+
+        const bookings =
+            getJSON(
+                "roomrentBookings",
+                []
+            );
+
+
+        const localBooking =
+            bookings.find(
+                b =>
+                    b.bookingNumber ===
+                    bookingNumber
+            );
+
+
+        if (localBooking) {
+
+            localBooking.status =
+                "Confirmed";
+
+            localBooking.paymentStatus =
+                "Paid";
+
+            localBooking.confirmedAt =
+                new Date().toISOString();
+
+
+            setJSON(
+                "roomrentBookings",
+                bookings
+            );
+
+        }
+
+
+        /* =================================================
+           COMMISSION
+        ================================================= */
+
+        processBookingCommissions(
+            booking
         );
 
 
-    if (!booking) return;
+        /* =================================================
+           NOTIFICATION
+        ================================================= */
+
+        addNotification(
+
+            booking.phone,
+
+            "Malipo Yamethibitishwa ✅",
+
+            `Malipo ya ${formatMoney(booking.price)} yamethibitishwa.`
+
+        );
 
 
-    booking.status =
-        "Confirmed";
+        alert(
+            "✅ Malipo yamethibitishwa Firebase!"
+        );
 
 
-    booking.paymentStatus =
-        "Paid";
+        onyeshaAdminBookings();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "ADMIN CONFIRM FIREBASE ERROR:",
+            error
+        );
 
 
-    booking.confirmedAt =
-        new Date().toISOString();
+        alert(
+            "❌ Imeshindikana kuthibitisha malipo Firebase."
+        );
 
-
-    processBookingCommissions(
-        booking
-    );
-
-
-    setJSON(
-        "roomrentBookings",
-        bookings
-    );
-
-
-    addNotification(
-
-        booking.phone,
-
-        "Malipo Yamethibitishwa ✅",
-
-        `Malipo ya ${formatMoney(booking.price)} yamethibitishwa.`
-
-    );
-
-
-    alert(
-        "✅ Malipo na commissions yamethibitishwa!"
-    );
-
-
-    onyeshaAdminBookings();
+    }
 
 }
+
 
 
 /* =========================================================

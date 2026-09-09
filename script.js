@@ -1960,117 +1960,291 @@ function showPaymentWaiting(booking) {
 
 }
 
-
 /* =========================================================
-   26. BOOKINGS
+   26. MY BOOKINGS - FIREBASE
 ========================================================= */
 
-function onyeshaBookingZangu() {
-
-    const phone =
-        prompt(
-            "📱 Ingiza namba yako ya simu:"
-        );
-
-
-    if (!phone) return;
-
-
-    const bookings =
-        getJSON(
-            "roomrentBookings",
-            []
-        )
-        .filter(
-            b => b.phone === phone
-        );
-
+async function onyeshaBookingZangu() {
 
     const section =
-        document.getElementById(
-            "taarifaSection"
-        );
-
+        document.getElementById("taarifaSection");
 
     if (!section) return;
 
+    if (!currentUser) {
 
-    section.style.display =
-        "block";
+        section.innerHTML = `
+            <div class="booking-card">
+                <h3>🔐 Ingia kwanza</h3>
+                <p>
+                    Tafadhali ingia kwenye akaunti yako
+                    ili kuona bookings zako.
+                </p>
+                <button
+                    class="endeleaBtn"
+                    onclick="funguaLogin()"
+                >
+                    🔐 Ingia
+                </button>
+            </div>
+        `;
 
+        return;
+    }
 
     section.innerHTML = `
-
         <h2>📋 Booking Zangu</h2>
+        <p>⏳ Inapakia bookings kutoka Firebase...</p>
+    `;
 
+    try {
 
-        ${
-            !bookings.length
+        /*
+         * Tunatumia phone ya Firebase Auth
+         * kutafuta bookings za mtumiaji.
+         */
 
-            ? `
-                <p>
-                    Hakuna booking iliyopatikana.
-                </p>
-            `
+        const phone =
+            currentUser.phoneNumber;
 
-            : bookings.map(b => `
+        if (!phone) {
 
+            section.innerHTML = `
                 <div class="booking-card">
-
-                    <h3>
-                        ${b.bookingNumber}
-                    </h3>
-
-
                     <p>
-                        🏠 Chumba:
-                        ${b.roomNumber}
+                        ❌ Namba ya simu ya akaunti
+                        haijapatikana.
                     </p>
+                </div>
+            `;
 
+            return;
 
-                    <p>
-                        💰 ${formatMoney(b.price)}
-                    </p>
+        }
 
+        const bookingsQuery =
+            query(
+                collection(db, "bookings"),
+                where("phone", "==", phone)
+            );
 
-                    <p>
-                        📌 ${b.status}
-                    </p>
+        const snapshot =
+            await getDocs(
+                bookingsQuery
+            );
 
+        const bookings =
+            snapshot.docs.map(
+                item => ({
+                    id: item.id,
+                    ...item.data()
+                })
+            );
 
-                    <p>
-                        💳 ${b.paymentStatus}
-                    </p>
+        bookings.sort((a, b) => {
 
+            const dateA =
+                a.createdAt?.toDate
+                ? a.createdAt.toDate()
+                : new Date(a.createdAt || 0);
 
-                    ${
-                        b.transactionNumber
+            const dateB =
+                b.createdAt?.toDate
+                ? b.createdAt.toDate()
+                : new Date(b.createdAt || 0);
 
-                        ? `
+            return dateB - dateA;
+
+        });
+
+        section.innerHTML = `
+            <h2>📋 Booking Zangu</h2>
+
+            <button
+                class="endeleaBtn"
+                onclick="funguaAccount()"
+            >
+                ⬅️ Rudi Account
+            </button>
+
+            <br><br>
+
+            <p>
+                📊 Jumla ya Bookings:
+                <strong>${bookings.length}</strong>
+            </p>
+
+            ${
+                bookings.length === 0
+                ? `
+                    <div class="booking-card">
+                        <p>
+                            📭 Huna booking yoyote bado.
+                        </p>
+                    </div>
+                `
+                : bookings.map(
+                    b => `
+                        <div class="booking-card">
+
+                            <h3>
+                                📋
+                                ${b.bookingNumber || b.id}
+                            </h3>
+
+                            <p>
+                                🏠 Chumba:
+                                <strong>
+                                    ${b.roomNumber || "-"}
+                                </strong>
+                            </p>
+
+                            <p>
+                                💰 Bei:
+                                <strong>
+                                    ${formatMoney(b.price)}
+                                </strong>
+                            </p>
+
+                            <p>
+                                💳 Njia ya Malipo:
+                                <strong>
+                                    ${b.paymentMethod || "-"}
+                                </strong>
+                            </p>
+
                             <p>
                                 📝 Transaction:
                                 <strong>
-                                    ${b.transactionNumber}
+                                    ${
+                                        b.transactionNumber
+                                        || "Bado haijatumwa"
+                                    }
                                 </strong>
                             </p>
-                        `
 
-                        : ""
-                    }
+                            <p>
+                                📌 Booking:
+                                <strong>
+                                    ${b.status || "-"}
+                                </strong>
+                            </p>
 
-                </div>
+                            <p>
+                                💰 Payment:
+                                <strong>
+                                    ${b.paymentStatus || "-"}
+                                </strong>
+                            </p>
 
-            `).join("")
-        }
+                            <p>
+                                📅 Tarehe:
+                                ${
+                                    formatDate(
+                                        b.createdAt?.toDate
+                                        ? b.createdAt.toDate()
+                                        : b.createdAt
+                                    )
+                                }
+                            </p>
 
-    `;
+                            ${
+                                b.status ===
+                                "Pending Payment"
+                                ? `
+                                    <button
+                                        class="kodiBtn"
+                                        onclick="
+                                            funguaPaymentRequest(
+                                                ${JSON.stringify(b)}
+                                            )
+                                        "
+                                    >
+                                        💳 Lipa Sasa
+                                    </button>
+                                `
+                                : ""
+                            }
 
+                            ${
+                                b.status ===
+                                "Payment Submitted"
+                                ? `
+                                    <p>
+                                        ⏳ Malipo yako
+                                        yanasubiri
+                                        uthibitisho wa Admin.
+                                    </p>
+                                `
+                                : ""
+                            }
 
-    section.scrollIntoView({
-        behavior: "smooth"
-    });
+                            ${
+                                b.status ===
+                                "Confirmed"
+                                ? `
+                                    <p>
+                                        ✅ Booking yako
+                                        imethibitishwa.
+                                    </p>
+                                `
+                                : ""
+                            }
 
-}
+                            ${
+                                b.status ===
+                                "Cancelled"
+                                ? `
+                                    <p>
+                                        ❌ Booking hii
+                                        imeghairiwa.
+                                    </p>
+                                `
+                                : ""
+                            }
+
+                        </div>
+                    `
+                ).join("")
+            }
+        `;
+
+    }
+    catch (error) {
+
+        console.error(
+            "MY BOOKINGS FIREBASE ERROR:",
+            error
+        );
+
+        section.innerHTML = `
+            <h2>📋 Booking Zangu</h2>
+
+            <button
+                class="endeleaBtn"
+                onclick="funguaAccount()"
+            >
+                ⬅️ Rudi Account
+            </button>
+
+            <div class="booking-card">
+
+                <p>
+                    ❌ Imeshindikana kupakia
+                    bookings kutoka Firebase.
+                </p>
+
+                <p>
+                    Tafadhali jaribu tena.
+                </p>
+
+            </div>
+        `;
+
+    }
+
+           }
+
 
 
 /* =========================================================

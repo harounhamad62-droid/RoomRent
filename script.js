@@ -3496,58 +3496,157 @@ async function adminConfirmBooking(bookingNumber) {
 
 }
 
-
-
 /* =========================================================
-   36. CANCEL BOOKING
+   36. CANCEL BOOKING - FIREBASE
 ========================================================= */
 
-function adminCancelBooking(bookingNumber) {
+async function adminCancelBooking(bookingNumber) {
 
-    const bookings =
-        getJSON(
-            "roomrentBookings",
-            []
+    if (!isAdminLoggedIn()) {
+
+        funguaAdminLogin();
+
+        return;
+
+    }
+
+    try {
+
+        const bookingRef =
+            doc(
+                db,
+                "bookings",
+                bookingNumber
+            );
+
+        const bookingSnapshot =
+            await getDoc(
+                bookingRef
+            );
+
+        if (!bookingSnapshot.exists()) {
+
+            alert(
+                "❌ Booking haijapatikana Firebase."
+            );
+
+            return;
+
+        }
+
+        const booking = {
+
+            id:
+                bookingSnapshot.id,
+
+            ...bookingSnapshot.data()
+
+        };
+
+        if (
+            booking.status ===
+            "Cancelled"
+        ) {
+
+            alert(
+                "⚠️ Booking hii tayari imeghairiwa."
+            );
+
+            return;
+
+        }
+
+        const confirmCancel =
+            confirm(
+                `Una uhakika unataka kufuta Booking ${bookingNumber}?`
+            );
+
+        if (!confirmCancel) {
+
+            return;
+
+        }
+
+        /* UPDATE FIREBASE */
+
+        await updateDoc(
+            bookingRef,
+            {
+                status:
+                    "Cancelled",
+
+                paymentStatus:
+                    "Cancelled",
+
+                cancelledAt:
+                    serverTimestamp()
+            }
         );
 
+        /* UPDATE LOCAL BACKUP */
 
-    const booking =
-        bookings.find(
-            b => b.bookingNumber === bookingNumber
+        const bookings =
+            getJSON(
+                "roomrentBookings",
+                []
+            );
+
+        const localBooking =
+            bookings.find(
+                b =>
+                    b.bookingNumber ===
+                    bookingNumber
+            );
+
+        if (localBooking) {
+
+            localBooking.status =
+                "Cancelled";
+
+            localBooking.paymentStatus =
+                "Cancelled";
+
+            localBooking.cancelledAt =
+                new Date().toISOString();
+
+            setJSON(
+                "roomrentBookings",
+                bookings
+            );
+
+        }
+
+        /* NOTIFICATION */
+
+        addNotification(
+            booking.phone,
+            "Booking Imeghairiwa ❌",
+            `Booking ${bookingNumber} imeghairiwa na Admin.`
         );
 
+        alert(
+            "✅ Booking imeghairiwa Firebase."
+        );
 
-    if (!booking) return;
+        onyeshaAdminBookings();
 
+    }
+    catch (error) {
 
-    booking.status =
-        "Cancelled";
+        console.error(
+            "ADMIN CANCEL FIREBASE ERROR:",
+            error
+        );
 
+        alert(
+            "❌ Imeshindikana kughairi booking Firebase."
+        );
 
-    booking.paymentStatus =
-        "Cancelled";
+    }
 
-
-    setJSON(
-        "roomrentBookings",
-        bookings
-    );
-
-
-    addNotification(
-
-        booking.phone,
-
-        "Booking Imefutwa",
-
-        `Booking ${booking.bookingNumber} imefutwa.`
-
-    );
+       }
 
 
-    onyeshaAdminBookings();
-
-}
 
 
 /* =========================================================

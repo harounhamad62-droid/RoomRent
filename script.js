@@ -2,7 +2,120 @@
    ROOMRENT - SCRIPT KAMILI
    ========================================================= */
 
+/* =========================================================
+   ROOMRENT + FIREBASE
+========================================================= */
 
+// FIREBASE IMPORTS
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+
+import {
+    getAuth,
+    RecaptchaVerifier,
+    signInWithPhoneNumber,
+    onAuthStateChanged,
+    signOut
+}
+from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+
+import {
+    getFirestore,
+    collection,
+    doc,
+    setDoc,
+    getDoc,
+    addDoc,
+    getDocs,
+    updateDoc,
+    query,
+    where,
+    serverTimestamp
+}
+from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+
+
+/* =========================================================
+   FIREBASE CONFIG
+========================================================= */
+
+const firebaseConfig = {
+
+    apiKey: "AIzaSyBlLpRr_zx1ru9acHQ_qHNnZp9f6kv12yA",
+
+    authDomain:
+        "roomrent-4b63b.firebaseapp.com",
+
+    projectId:
+        "roomrent-4b63b",
+
+    storageBucket:
+        "roomrent-4b63b.firebasestorage.app",
+
+    messagingSenderId:
+        "585995801987",
+
+    appId:
+        "1:585995801987:web:04d246393e90deac6ed2b6",
+
+    measurementId:
+        "G-7NVWKMJJ17"
+
+};
+
+
+/* =========================================================
+   INITIALIZE FIREBASE
+========================================================= */
+
+const app =
+    initializeApp(firebaseConfig);
+
+
+const auth =
+    getAuth(app);
+
+
+const db =
+    getFirestore(app);
+
+
+/* =========================================================
+   CURRENT USER
+========================================================= */
+
+let currentUser = null;
+
+
+onAuthStateChanged(
+    auth,
+    (user) => {
+
+        if (user) {
+
+            currentUser = user;
+
+            console.log(
+                "RoomRent User:",
+                user.uid
+            );
+
+        }
+
+        else {
+
+            currentUser = null;
+
+            console.log(
+                "Hakuna user aliyeingia."
+            );
+
+        }
+
+    }
+);
 /* =========================================================
    1. ROOM DATA
 ========================================================= */
@@ -86,9 +199,9 @@ const rooms = [
 ========================================================= */
 
 const ADMIN_COMMISSION = {
-    A: 20,
-    B: 10,
-    C: 5
+    A: 40,
+    B: 30,
+    C: 30
 };
 
 const USER_COMMISSION = {

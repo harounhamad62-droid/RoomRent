@@ -1542,11 +1542,9 @@ catch (error) {
 }
 
 }
-
-    =====================================================
+/* =========================================================
    23. PAYMENT REQUEST
 ========================================================= */
-
 function funguaPaymentRequest(booking) {
 
     const section =
@@ -1676,15 +1674,10 @@ function funguaPaymentRequest(booking) {
 
 }
 
-
-/* =========================================================
+ /* =========================================================
    24. SEND PAYMENT REQUEST
-=========================================================
-async function tumaPaymentRequest(bookingNumber) {
-
-try {
-
-    const transactionNumber =
+========================================================= */
+async function tumaPaymentRequest(bookingNumber) {async const transactionNumber =
         document
         .getElementById(
             "transactionNumber"
@@ -3001,13 +2994,11 @@ function funguaAdmin() {
     });
 
 }
-
-
 /* =========================================================
-   34. ADMIN BOOKINGS
+   34. ADMIN BOOKINGS - FIREBASE
 ========================================================= */
 
-function onyeshaAdminBookings() {
+async function onyeshaAdminBookings() {
 
     if (!isAdminLoggedIn()) {
 
@@ -3017,18 +3008,12 @@ function onyeshaAdminBookings() {
 
     }
 
-
-    const bookings =
-        getJSON(
-            "roomrentBookings",
-            []
-        );
-
-
     const section =
         document.getElementById(
             "taarifaSection"
         );
+
+    if (!section) return;
 
 
     section.innerHTML = `
@@ -3037,147 +3022,301 @@ function onyeshaAdminBookings() {
             📋 Manage Bookings
         </h2>
 
-
-        <button
-            class="endeleaBtn"
-            onclick="funguaAdmin()"
-        >
-            ⬅️ Rudi Admin
-        </button>
-
-
-        <br><br>
-
-
-        ${
-            !bookings.length
-
-            ? "<p>Hakuna booking bado.</p>"
-
-            : bookings.map(b => `
-
-                <div class="booking-card">
-
-                    <h3>
-                        ${b.bookingNumber}
-                    </h3>
-
-
-                    <p>
-                        👤 ${b.name}
-                    </p>
-
-
-                    <p>
-                        📱 ${b.phone}
-                    </p>
-
-
-                    <p>
-                        🏠 Chumba:
-                        ${b.roomNumber}
-                    </p>
-
-
-                    <p>
-                        💰 ${formatMoney(b.price)}
-                    </p>
-
-
-                    <p>
-                        💳 ${b.paymentMethod}
-                    </p>
-
-
-                    <p>
-                        👤 Mpokeaji:
-                        <strong>
-                            ${b.receiverName || "-"}
-                        </strong>
-                    </p>
-
-
-                    <p>
-                        📱 Namba ya Kulipia:
-                        <strong>
-                            ${b.receiverPhone || "-"}
-                        </strong>
-                    </p>
-
-
-                    <p>
-                        📝 Transaction Number:
-                        <strong>
-                            ${b.transactionNumber || "Bado haijatumwa"}
-                        </strong>
-                    </p>
-
-
-                    <p>
-                        📅 Tarehe ya Kutuma:
-                        ${formatDate(b.paymentRequestedAt)}
-                    </p>
-
-
-                    <p>
-                        🔑 Referral:
-                        ${b.usedReferralCode || "Hakuna"}
-                    </p>
-
-
-                    <p>
-                        📌 Booking:
-                        <strong>
-                            ${b.status}
-                        </strong>
-                    </p>
-
-
-                    <p>
-                        💰 Payment:
-                        <strong>
-                            ${b.paymentStatus}
-                        </strong>
-                    </p>
-
-
-                    ${
-                        b.status !== "Confirmed"
-
-                        ? `
-
-                            <button
-                                class="thibitishaBtn"
-                                onclick="adminConfirmBooking('${b.bookingNumber}')"
-                            >
-                                ✅ Confirm Payment
-                            </button>
-
-
-                            <button
-                                class="kodiBtn"
-                                onclick="adminCancelBooking('${b.bookingNumber}')"
-                            >
-                                ❌ Cancel
-                            </button>
-
-                        `
-
-                        : `
-                            <p>
-                                ✅ Malipo yamethibitishwa
-                            </p>
-                        `
-                    }
-
-                </div>
-
-            `).join("")
-        }
+        <p>
+            ⏳ Inapakia bookings kutoka Firebase...
+        </p>
 
     `;
 
+
+    try {
+
+        const bookingsSnapshot =
+            await getDocs(
+                collection(
+                    db,
+                    "bookings"
+                )
+            );
+
+
+        const bookings =
+            bookingsSnapshot.docs.map(
+                item => {
+
+                    return {
+
+                        id:
+                            item.id,
+
+                        ...item.data()
+
+                    };
+
+                }
+            );
+
+
+        /* =================================================
+           SORT BOOKINGS - MPYA KWANZA
+        ================================================= */
+
+        bookings.sort(
+            (a, b) => {
+
+                const dateA =
+                    a.createdAt?.toDate
+                    ? a.createdAt.toDate()
+                    : new Date(
+                        a.createdAt || 0
+                    );
+
+                const dateB =
+                    b.createdAt?.toDate
+                    ? b.createdAt.toDate()
+                    : new Date(
+                        b.createdAt || 0
+                    );
+
+                return dateB - dateA;
+
+            }
+        );
+
+
+        section.innerHTML = `
+
+            <h2>
+                📋 Manage Bookings
+            </h2>
+
+
+            <button
+                class="endeleaBtn"
+                onclick="funguaAdmin()"
+            >
+                ⬅️ Rudi Admin
+            </button>
+
+
+            <br><br>
+
+
+            <p>
+                📊 Jumla ya Bookings:
+                <strong>
+                    ${bookings.length}
+                </strong>
+            </p>
+
+
+            ${
+                !bookings.length
+
+                ? `
+                    <div class="booking-card">
+
+                        <p>
+                            Hakuna booking bado.
+                        </p>
+
+                    </div>
+                `
+
+                : bookings.map(
+                    b => `
+
+                    <div class="booking-card">
+
+                        <h3>
+                            📋 ${b.bookingNumber || b.id}
+                        </h3>
+
+
+                        <p>
+                            👤 ${b.name || "-"}
+                        </p>
+
+
+                        <p>
+                            📱 ${b.phone || "-"}
+                        </p>
+
+
+                        <p>
+                            🏠 Chumba:
+                            ${b.roomNumber || "-"}
+                        </p>
+
+
+                        <p>
+                            💰
+                            ${formatMoney(b.price)}
+                        </p>
+
+
+                        <p>
+                            💳
+                            ${b.paymentMethod || "-"}
+                        </p>
+
+
+                        <p>
+                            👤 Mpokeaji:
+                            <strong>
+                                ${b.receiverName || "-"}
+                            </strong>
+                        </p>
+
+
+                        <p>
+                            📱 Namba ya Kulipia:
+                            <strong>
+                                ${b.receiverPhone || "-"}
+                            </strong>
+                        </p>
+
+
+                        <p>
+                            📝 Transaction Number:
+                            <strong>
+                                ${
+                                    b.transactionNumber
+                                    || "Bado haijatumwa"
+                                }
+                            </strong>
+                        </p>
+
+
+                        <p>
+                            📅 Tarehe ya Booking:
+                            ${
+                                formatDate(
+                                    b.createdAt?.toDate
+                                    ? b.createdAt.toDate()
+                                    : b.createdAt
+                                )
+                            }
+                        </p>
+
+
+                        <p>
+                            📅 Tarehe ya Kutuma:
+                            ${
+                                formatDate(
+                                    b.paymentRequestedAt?.toDate
+                                    ? b.paymentRequestedAt.toDate()
+                                    : b.paymentRequestedAt
+                                )
+                            }
+                        </p>
+
+
+                        <p>
+                            🔑 Referral:
+                            ${b.usedReferralCode || "Hakuna"}
+                        </p>
+
+
+                        <p>
+                            📌 Booking:
+                            <strong>
+                                ${b.status || "-"}
+                            </strong>
+                        </p>
+
+
+                        <p>
+                            💰 Payment:
+                            <strong>
+                                ${b.paymentStatus || "-"}
+                            </strong>
+                        </p>
+
+
+                        ${
+                            b.status !== "Confirmed"
+
+                            ? `
+
+                                <button
+                                    class="thibitishaBtn"
+                                    onclick="adminConfirmBooking('${b.bookingNumber || b.id}')"
+                                >
+                                    ✅ Confirm Payment
+                                </button>
+
+
+                                <button
+                                    class="kodiBtn"
+                                    onclick="adminCancelBooking('${b.bookingNumber || b.id}')"
+                                >
+                                    ❌ Cancel
+                                </button>
+
+                            `
+
+                            : `
+
+                                <p>
+                                    ✅ Malipo yamethibitishwa
+                                </p>
+
+                            `
+                        }
+
+                    </div>
+
+                    `
+                ).join("")
+            }
+
+        `;
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "ADMIN FIREBASE BOOKINGS ERROR:",
+            error
+        );
+
+
+        section.innerHTML = `
+
+            <h2>
+                📋 Manage Bookings
+            </h2>
+
+
+            <button
+                class="endeleaBtn"
+                onclick="funguaAdmin()"
+            >
+                ⬅️ Rudi Admin
+            </button>
+
+
+            <div class="booking-card">
+
+                <p>
+                    ❌ Imeshindikana kupakia
+                    bookings kutoka Firebase.
+                </p>
+
+                <p>
+                    Tafadhali jaribu tena.
+                </p>
+
+            </div>
+
+        `;
+
+    }
+
 }
+
 
 
 /* =========================================================

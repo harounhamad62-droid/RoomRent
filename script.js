@@ -2397,272 +2397,394 @@ function funguaAccount() {
 
 
 /* =========================================================
-   28. MY REFERRALS
+   28. MY REFERRAL - FIREBASE
 ========================================================= */
 
-function onyeshaMyReferral(phone) {
-
-    fixUsersReferralCodes();
-
-
-    const user =
-        findUserByPhone(phone);
-
-
-    if (!user) return;
-
-
-    const users =
-        getUsers();
-
-
-    const levelA =
-        users.filter(
-            u => u.referredBy === user.referralCode
-        );
-
-
-    const levelB = [];
-
-    const levelC = [];
-
-
-    levelA.forEach(userA => {
-
-        const children =
-            users.filter(
-                u =>
-                    u.referredBy ===
-                    userA.referralCode
-            );
-
-        levelB.push(...children);
-
-
-        children.forEach(userB => {
-
-            const grandchildren =
-                users.filter(
-                    u =>
-                        u.referredBy ===
-                        userB.referralCode
-                );
-
-            levelC.push(...grandchildren);
-
-        });
-
-    });
-
+async function onyeshaMyReferral(phone) {
 
     const section =
-        document.getElementById(
-            "taarifaSection"
-        );
+        document.getElementById("taarifaSection");
 
+    if (!section) return;
+
+    if (!currentUser) {
+
+        section.innerHTML = `
+            <div class="booking-card">
+                <h3>🔐 Ingia kwanza</h3>
+                <p>Tafadhali ingia ili kuona referral yako.</p>
+            </div>
+        `;
+
+        return;
+    }
 
     section.innerHTML = `
-
-        <h2>🤝 Referral Zangu</h2>
-
-
-        <button
-            class="endeleaBtn"
-            onclick="funguaAccount()"
-        >
-            ⬅️ Rudi Account
-        </button>
-
-
-        <div class="booking-card">
-
-            <p>
-                🔑 Referral Code Yako:
-                <strong>
-                    ${user.referralCode}
-                </strong>
-            </p>
-
-
-            <p>
-                🅰️ Level A:
-                <strong>
-                    ${levelA.length}
-                </strong>
-            </p>
-
-
-            <p>
-                🅱️ Level B:
-                <strong>
-                    ${levelB.length}
-                </strong>
-            </p>
-
-
-            <p>
-                🅲 Level C:
-                <strong>
-                    ${levelC.length}
-                </strong>
-            </p>
-
-        </div>
-
-
-        <h3>🅰️ Level A</h3>
-
-        ${
-            levelA.length
-
-            ? levelA.map(u => `
-
-                <div class="booking-card">
-                    👤 ${u.name}
-                    <br>
-                    📱 ${u.phone}
-                </div>
-
-            `).join("")
-
-            : "<p>Hakuna referral Level A bado.</p>"
-        }
-
-
-        <h3>🅱️ Level B</h3>
-
-        ${
-            levelB.length
-
-            ? levelB.map(u => `
-
-                <div class="booking-card">
-                    👤 ${u.name}
-                    <br>
-                    📱 ${u.phone}
-                </div>
-
-            `).join("")
-
-            : "<p>Hakuna referral Level B bado.</p>"
-        }
-
-
-        <h3>🅲 Level C</h3>
-
-        ${
-            levelC.length
-
-            ? levelC.map(u => `
-
-                <div class="booking-card">
-                    👤 ${u.name}
-                    <br>
-                    📱 ${u.phone}
-                </div>
-
-            `).join("")
-
-            : "<p>Hakuna referral Level C bado.</p>"
-        }
-
+        <h2>🔗 Referral Yangu</h2>
+        <p>⏳ Inapakia taarifa...</p>
     `;
 
-}
+    try {
+
+        const userQuery =
+            query(
+                collection(db, "users"),
+                where("phone", "==", phone)
+            );
+
+        const snapshot =
+            await getDocs(userQuery);
+
+        if (snapshot.empty) {
+
+            section.innerHTML = `
+                <div class="booking-card">
+                    <p>
+                        ❌ Akaunti yako haijapatikana
+                        Firebase.
+                    </p>
+                </div>
+            `;
+
+            return;
+        }
+
+        const user =
+            snapshot.docs[0].data();
+
+        const referralCode =
+            user.referralCode || "Bado haijapatikana";
+
+        const referralQuery =
+            query(
+                collection(db, "users"),
+                where("referredBy", "==", referralCode)
+            );
+
+        const referralSnapshot =
+            await getDocs(referralQuery);
+
+        const referrals =
+            referralSnapshot.docs.map(
+                item => ({
+                    id: item.id,
+                    ...item.data()
+                })
+            );
+
+        section.innerHTML = `
+            <h2>🔗 Referral Yangu</h2>
+
+            <button
+                class="endeleaBtn"
+                onclick="funguaAccount()"
+            >
+                ⬅️ Rudi Account
+            </button>
+
+            <br><br>
+
+            <div class="booking-card">
+
+                <h3>🔑 Referral Code Yako</h3>
+
+                <p>
+                    <strong>
+                        ${referralCode}
+                    </strong>
+                </p>
+
+                <button
+                    class="kodiBtn"
+                    onclick="
+                        navigator.clipboard.writeText(
+                            '${referralCode}'
+                        );
+                        alert('✅ Referral Code imenakiliwa.');
+                    "
+                >
+                    📋 Copy Code
+                </button>
+
+            </div>
+
+            <div class="booking-card">
+
+                <h3>👥 Waliotumia Code Yako</h3>
+
+                <p>
+                    Jumla:
+                    <strong>
+                        ${referrals.length}
+                    </strong>
+                </p>
+
+                ${
+                    referrals.length === 0
+                    ? `
+                        <p>
+                            Hakuna mtumiaji
+                            aliyetumia code yako bado.
+                        </p>
+                    `
+                    : referrals.map(
+                        r => `
+                            <div>
+                                <p>
+                                    👤
+                                    ${r.name || "-"}
+                                </p>
+
+                                <p>
+                                    📱
+                                    ${r.phone || "-"}
+                                </p>
+
+                                <hr>
+                            </div>
+                        `
+                    ).join("")
+                }
+
+            </div>
+        `;
+
+    }
+    catch (error) {
+
+        console.error(
+            "MY REFERRAL FIREBASE ERROR:",
+            error
+        );
+
+        section.innerHTML = `
+            <div class="booking-card">
+                <p>
+                    ❌ Imeshindikana kupakia
+                    referral kutoka Firebase.
+                </p>
+            </div>
+        `;
+
+    }
+
+   }
+
 
 
 /* =========================================================
-   29. USER COMMISSIONS
+   29. MY COMMISSIONS - FIREBASE
 ========================================================= */
 
-function onyeshaMyCommissions(phone) {
-
-    const commissions =
-        getCommissions()
-        .filter(
-            c => c.phone === phone
-        );
-
-
-    const total =
-        commissions.reduce(
-            (sum, c) =>
-                sum + Number(c.amount || 0),
-            0
-        );
-
+async function onyeshaMyCommissions(phone) {
 
     const section =
-        document.getElementById(
-            "taarifaSection"
-        );
+        document.getElementById("taarifaSection");
 
+    if (!section) return;
+
+    if (!currentUser) {
+
+        section.innerHTML = `
+            <div class="booking-card">
+                <h3>🔐 Ingia kwanza</h3>
+                <p>
+                    Tafadhali ingia ili kuona commissions zako.
+                </p>
+            </div>
+        `;
+
+        return;
+    }
 
     section.innerHTML = `
-
-        <h2>💰 Commission Zangu</h2>
-
-
-        <button
-            class="endeleaBtn"
-            onclick="funguaAccount()"
-        >
-            ⬅️ Rudi Account
-        </button>
-
-
-        <div class="booking-card">
-
-            <h3>
-                💰 Total:
-                ${formatMoney(total)}
-            </h3>
-
-        </div>
-
-
-        ${
-            !commissions.length
-
-            ? "<p>Bado hujapata commission.</p>"
-
-            : commissions.map(c => `
-
-                <div class="booking-card">
-
-                    <p>
-                        🅰️🅱️🅲 Level:
-                        <strong>
-                            ${c.level}
-                        </strong>
-                    </p>
-
-
-                    <p>
-                        📊 Asilimia:
-                        ${c.percent}%
-                    </p>
-
-
-                    <p>
-                        💰 Commission:
-                        <strong>
-                            ${formatMoney(c.amount)}
-                        </strong>
-                    </p>
-
-
-                    <p>
-                        📋 Booking:
-                        ${c.bookingNumber}
-                    </p>
-
-                </div>
-
-            `).join("")
-        }
-
+        <h2>💰 Commissions Zangu</h2>
+        <p>⏳ Inapakia commissions kutoka Firebase...</p>
     `;
+
+    try {
+
+        const commissionsQuery =
+            query(
+                collection(db, "commissions"),
+                where("phone", "==", phone)
+            );
+
+        const snapshot =
+            await getDocs(commissionsQuery);
+
+        const commissions =
+            snapshot.docs.map(
+                item => ({
+                    id: item.id,
+                    ...item.data()
+                })
+            );
+
+        let totalCommission = 0;
+
+        let levelA = 0;
+        let levelB = 0;
+        let levelC = 0;
+
+        commissions.forEach(c => {
+
+            const amount =
+                Number(c.amount || 0);
+
+            totalCommission += amount;
+
+            if (c.level === "A") {
+                levelA += amount;
+            }
+
+            if (c.level === "B") {
+                levelB += amount;
+            }
+
+            if (c.level === "C") {
+                levelC += amount;
+            }
+
+        });
+
+        section.innerHTML = `
+            <h2>💰 Commissions Zangu</h2>
+
+            <button
+                class="endeleaBtn"
+                onclick="funguaAccount()"
+            >
+                ⬅️ Rudi Account
+            </button>
+
+            <br><br>
+
+            <div class="booking-card">
+
+                <h3>💰 Jumla ya Commission</h3>
+
+                <p>
+                    <strong>
+                        ${formatMoney(totalCommission)}
+                    </strong>
+                </p>
+
+            </div>
+
+            <div class="booking-card">
+
+                <h3>📊 Commission kwa Level</h3>
+
+                <p>
+                    🅰️ Level A:
+                    <strong>
+                        ${formatMoney(levelA)}
+                    </strong>
+                </p>
+
+                <p>
+                    🅱️ Level B:
+                    <strong>
+                        ${formatMoney(levelB)}
+                    </strong>
+                </p>
+
+                <p>
+                    ©️ Level C:
+                    <strong>
+                        ${formatMoney(levelC)}
+                    </strong>
+                </p>
+
+            </div>
+
+            <div class="booking-card">
+
+                <h3>📋 Historia ya Commissions</h3>
+
+                ${
+                    commissions.length === 0
+                    ? `
+                        <p>
+                            📭 Bado huna commission.
+                        </p>
+                    `
+                    : commissions.map(
+                        c => `
+
+                            <div>
+
+                                <p>
+                                    💰 Commission:
+                                    <strong>
+                                        ${formatMoney(c.amount)}
+                                    </strong>
+                                </p>
+
+                                <p>
+                                    📊 Level:
+                                    <strong>
+                                        ${c.level || "-"}
+                                    </strong>
+                                </p>
+
+                                <p>
+                                    📋 Booking:
+                                    ${c.bookingNumber || "-"}
+                                </p>
+
+                                <p>
+                                    📌 Status:
+                                    ${c.status || "Completed"}
+                                </p>
+
+                                <p>
+                                    📅 Tarehe:
+                                    ${
+                                        formatDate(
+                                            c.createdAt?.toDate
+                                            ? c.createdAt.toDate()
+                                            : c.createdAt
+                                        )
+                                    }
+                                </p>
+
+                                <hr>
+
+                            </div>
+
+                        `
+                    ).join("")
+                }
+
+            </div>
+        `;
+
+    }
+    catch (error) {
+
+        console.error(
+            "MY COMMISSIONS FIREBASE ERROR:",
+            error
+        );
+
+        section.innerHTML = `
+            <div class="booking-card">
+
+                <p>
+                    ❌ Imeshindikana kupakia
+                    commissions kutoka Firebase.
+                </p>
+
+                <p>
+                    Tafadhali jaribu tena.
+                </p>
+
+            </div>
+        `;
+
+    }
 
 }
 
@@ -2745,194 +2867,439 @@ function onyeshaNotifications(phone) {
 
 
 /* =========================================================
-   31. PROCESS COMMISSIONS
+   31. PROCESS BOOKING COMMISSIONS - FIREBASE
 ========================================================= */
 
-function processBookingCommissions(booking) {
+async function processBookingCommissions(booking) {
 
-    if (booking.commissionProcessed) {
+    try {
 
-        return;
+        if (!booking) {
+            console.error(
+                "❌ Booking haipo."
+            );
+            return;
+        }
 
-    }
+        if (
+            booking.commissionProcessed === true
+        ) {
 
-
-    fixUsersReferralCodes();
-
-
-    const user =
-        findUserByPhone(
-            booking.phone
-        );
-
-
-    if (!user) {
-
-        return;
-
-    }
-
-
-    const levels =
-        getReferralLevels(user);
-
-
-    const commissions =
-        getCommissions();
-
-
-    const adminCommissions =
-        getAdminCommissions();
-
-
-    ["A", "B", "C"].forEach(level => {
-
-        const referrer =
-            levels[level];
-
-
-        if (!referrer) {
+            console.log(
+                "⚠️ Commission tayari imeprocessiwa."
+            );
 
             return;
 
         }
 
+        const userPhone =
+            booking.phone;
 
-        if (!referrer.isAdmin) {
+        if (!userPhone) {
 
-            const userPercent =
-                USER_COMMISSION[level];
+            console.error(
+                "❌ Namba ya mtumiaji haipo."
+            );
 
+            return;
 
-            const userAmount =
+        }
 
-                Number(booking.price) *
-                userPercent /
-                100;
+        /*
+         * Tafuta user kwenye Firebase
+         */
 
+        const userQuery =
+            query(
+                collection(db, "users"),
+                where("phone", "==", userPhone)
+            );
 
-            commissions.push({
+        const userSnapshot =
+            await getDocs(userQuery);
 
-                id:
-                    "COM" +
-                    Date.now() +
-                    Math.floor(Math.random() * 10000),
+        if (userSnapshot.empty) {
 
-                bookingNumber:
-                    booking.bookingNumber,
+            console.error(
+                "❌ User hajapatikana Firebase."
+            );
 
-                phone:
-                    referrer.phone,
+            return;
 
-                userName:
-                    referrer.name,
+        }
 
-                level,
+        const userDoc =
+            userSnapshot.docs[0];
 
-                percent:
-                    userPercent,
+        const user =
+            userDoc.data();
 
-                amount:
-                    userAmount,
+        /*
+         * Referral code iliyotumika
+         */
 
-                type:
-                    "User Commission",
+        const usedReferralCode =
+            booking.usedReferralCode || "";
 
-                createdAt:
-                    new Date().toISOString()
+        if (!usedReferralCode) {
 
-            });
+            console.log(
+                "ℹ️ Hakuna referral. Hakuna commission."
+            );
 
+            await updateDoc(
+                doc(
+                    db,
+                    "bookings",
+                    booking.bookingNumber
+                ),
+                {
+                    commissionProcessed: true
+                }
+            );
 
-            const users =
-                getUsers();
+            return;
 
+        }
 
-            const targetUser =
-                users.find(
-                    u => u.phone === referrer.phone
-                );
+        /*
+         * Tafuta referrer
+         */
 
+        const referrerQuery =
+            query(
+                collection(db, "users"),
+                where(
+                    "referralCode",
+                    "==",
+                    usedReferralCode
+                )
+            );
 
-            if (targetUser) {
+        const referrerSnapshot =
+            await getDocs(
+                referrerQuery
+            );
 
-                targetUser.totalCommission =
+        if (referrerSnapshot.empty) {
 
-                    Number(
-                        targetUser.totalCommission || 0
-                    )
+            console.error(
+                "❌ Referrer hajapatikana."
+            );
 
-                    +
+            return;
 
-                    userAmount;
+        }
 
-            }
+        const referrerDoc =
+            referrerSnapshot.docs[0];
 
+        const referrer =
+            referrerDoc.data();
 
-            saveUsers(users);
+        /*
+         * LEVEL A
+         */
 
+        const commissionA =
+            Number(booking.price || 0)
+            *
+            USER_COMMISSION.A
+            / 100;
 
-            addNotification(
+        if (commissionA > 0) {
 
-                referrer.phone,
+            await addDoc(
+                collection(
+                    db,
+                    "commissions"
+                ),
+                {
+                    userId:
+                        referrerDoc.id,
 
-                "Commission Mpya 💰",
+                    phone:
+                        referrer.phone || "",
 
-                `Umepata ${userPercent}% commission ya ${formatMoney(userAmount)} kwenye Level ${level}.`
+                    name:
+                        referrer.name || "",
 
+                    level:
+                        "A",
+
+                    amount:
+                        commissionA,
+
+                    bookingNumber:
+                        booking.bookingNumber,
+
+                    roomNumber:
+                        booking.roomNumber,
+
+                    status:
+                        "Completed",
+
+                    createdAt:
+                        serverTimestamp()
+                }
             );
 
         }
 
+        /*
+         * LEVEL B
+         */
 
-        const adminPercent =
-            ADMIN_COMMISSION[level];
+        let levelBReferrer = null;
 
+        if (referrer.referredBy) {
 
-        const adminAmount =
+            const levelBQuery =
+                query(
+                    collection(db, "users"),
+                    where(
+                        "referralCode",
+                        "==",
+                        referrer.referredBy
+                    )
+                );
 
-            Number(booking.price) *
-            adminPercent /
-            100;
+            const levelBSnapshot =
+                await getDocs(
+                    levelBQuery
+                );
 
+            if (
+                !levelBSnapshot.empty
+            ) {
 
-        adminCommissions.push({
+                levelBReferrer =
+                    levelBSnapshot.docs[0];
 
-            id:
-                "ADMCOM" +
-                Date.now() +
-                Math.floor(Math.random() * 10000),
+            }
 
-            bookingNumber:
-                booking.bookingNumber,
+        }
 
-            level,
+        if (levelBReferrer) {
 
-            percent:
-                adminPercent,
+            const levelBUser =
+                levelBReferrer.data();
 
-            amount:
-                adminAmount,
+            const commissionB =
+                Number(booking.price || 0)
+                *
+                USER_COMMISSION.B
+                / 100;
 
-            createdAt:
-                new Date().toISOString()
+            if (commissionB > 0) {
 
-        });
+                await addDoc(
+                    collection(
+                        db,
+                        "commissions"
+                    ),
+                    {
+                        userId:
+                            levelBReferrer.id,
 
-    });
+                        phone:
+                            levelBUser.phone || "",
 
+                        name:
+                            levelBUser.name || "",
 
-    saveCommissions(commissions);
+                        level:
+                            "B",
 
-    saveAdminCommissions(
-        adminCommissions
-    );
+                        amount:
+                            commissionB,
 
+                        bookingNumber:
+                            booking.bookingNumber,
 
-    booking.commissionProcessed =
-        true;
+                        roomNumber:
+                            booking.roomNumber,
 
-}
+                        status:
+                            "Completed",
+
+                        createdAt:
+                            serverTimestamp()
+                    }
+                );
+
+            }
+
+        }
+
+        /*
+         * LEVEL C
+         */
+
+        let levelCReferrer = null;
+
+        if (
+            levelBReferrer
+        ) {
+
+            const levelBUser =
+                levelBReferrer.data();
+
+            if (
+                levelBUser.referredBy
+            ) {
+
+                const levelCQuery =
+                    query(
+                        collection(db, "users"),
+                        where(
+                            "referralCode",
+                            "==",
+                            levelBUser.referredBy
+                        )
+                    );
+
+                const levelCSnapshot =
+                    await getDocs(
+                        levelCQuery
+                    );
+
+                if (
+                    !levelCSnapshot.empty
+                ) {
+
+                    levelCReferrer =
+                        levelCSnapshot.docs[0];
+
+                }
+
+            }
+
+        }
+
+        if (levelCReferrer) {
+
+            const levelCUser =
+                levelCReferrer.data();
+
+            const commissionC =
+                Number(booking.price || 0)
+                *
+                USER_COMMISSION.C
+                / 100;
+
+            if (commissionC > 0) {
+
+                await addDoc(
+                    collection(
+                        db,
+                        "commissions"
+                    ),
+                    {
+                        userId:
+                            levelCReferrer.id,
+
+                        phone:
+                            levelCUser.phone || "",
+
+                        name:
+                            levelCUser.name || "",
+
+                        level:
+                            "C",
+
+                        amount:
+                            commissionC,
+
+                        bookingNumber:
+                            booking.bookingNumber,
+
+                        roomNumber:
+                            booking.roomNumber,
+
+                        status:
+                            "Completed",
+
+                        createdAt:
+                            serverTimestamp()
+                    }
+                );
+
+            }
+
+        }
+
+        /*
+         * MARK BOOKING AS PROCESSED
+         */
+
+        await updateDoc(
+            doc(
+                db,
+                "bookings",
+                booking.bookingNumber
+            ),
+            {
+                commissionProcessed:
+                    true,
+
+                commissionProcessedAt:
+                    serverTimestamp()
+            }
+        );
+
+        /*
+         * LOCAL BACKUP
+         */
+
+        const bookings =
+            getJSON(
+                "roomrentBookings",
+                []
+            );
+
+        const localBooking =
+            bookings.find(
+                b =>
+                    b.bookingNumber ===
+                    booking.bookingNumber
+            );
+
+        if (localBooking) {
+
+            localBooking.commissionProcessed =
+                true;
+
+            localBooking.commissionProcessedAt =
+                new Date().toISOString();
+
+            setJSON(
+                "roomrentBookings",
+                bookings
+            );
+
+        }
+
+        console.log(
+            "✅ Commissions zimehifadhiwa Firebase."
+        );
+
+    }
+    catch (error) {
+
+        console.error(
+            "COMMISSION FIREBASE ERROR:",
+            error
+        );
+
+        alert(
+            "⚠️ Booking imethibitishwa lakini commissions hazikuweza kuhifadhiwa Firebase."
+        );
+
+    }
+
+           }  
 
 
 /* =========================================================
@@ -3887,9 +4254,9 @@ function onyeshaAdminCommissions() {
 
             <h3>👑 Admin Commission</h3>
 
-            <p>🅰️ Level A: 20%</p>
-            <p>🅱️ Level B: 10%</p>
-            <p>🅲 Level C: 5%</p>
+            <p>🅰️ Level A: 40%</p>
+            <p>🅱️ Level B: 30%</p>
+            <p>🅲 Level C: 30%</p>
 
             <p>
                 💰 Total:

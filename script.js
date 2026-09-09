@@ -2821,7 +2821,93 @@ async function addNotification(phone, title, message) {
     }
 
            }
+/* =========================================================
+   31. SHOW USER NOTIFICATIONS
+========================================================= */
 
+async function onyeshaNotifications(phone) {
+
+    try {
+
+        const notificationsQuery = query(
+            collection(db, "notifications"),
+            where("phone", "==", phone)
+        );
+
+        const snapshot =
+            await getDocs(
+                notificationsQuery
+            );
+
+        if (snapshot.empty) {
+
+            alert(
+                "🔔 Huna taarifa mpya kwa sasa."
+            );
+
+            return;
+
+        }
+
+        const notifications = [];
+
+        snapshot.forEach((docSnap) => {
+
+            const data = docSnap.data();
+
+            notifications.push({
+                id: docSnap.id,
+                title: data.title || "Taarifa",
+                message: data.message || "",
+                createdAt:
+                    data.createdAt
+                        ? data.createdAt.toDate()
+                        : new Date()
+            });
+
+        });
+
+        notifications.sort(
+            (a, b) =>
+                b.createdAt - a.createdAt
+        );
+
+        let message =
+            "🔔 TAARIFA ZANGU\n\n";
+
+        notifications.forEach(
+            (notification, index) => {
+
+                message +=
+                    `${index + 1}. ${notification.title}\n`;
+
+                message +=
+                    `${notification.message}\n`;
+
+                message +=
+                    `📅 ${formatDate(notification.createdAt)}\n\n`;
+
+            }
+        );
+
+        alert(message);
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "NOTIFICATIONS FIREBASE ERROR:",
+            error
+        );
+
+        alert(
+            "❌ Imeshindikana kupakia taarifa. Tafadhali jaribu tena."
+        );
+
+    }
+
+   }
 
 /* =========================================================
    31. PROCESS BOOKING COMMISSIONS - FIREBASE

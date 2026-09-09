@@ -1674,194 +1674,163 @@ function funguaPaymentRequest(booking) {
 
 }
 
- /* =========================================================
+/* =========================================================
    24. SEND PAYMENT REQUEST
 ========================================================= */
-async function tumaPaymentRequest(bookingNumber) {async const transactionNumber =
-        document
-        .getElementById(
-            "transactionNumber"
-        )
-        ?.value
-        .trim();
 
+async function tumaPaymentRequest(bookingNumber) {
 
-    if (!transactionNumber) {
+    try {
 
-        alert(
-            "⚠️ Tafadhali ingiza namba ya muamala."
-        );
+        const transactionNumber =
+            document
+            .getElementById("transactionNumber")
+            ?.value
+            .trim();
 
-        return;
+        if (!transactionNumber) {
 
-    }
+            alert(
+                "⚠️ Tafadhali ingiza namba ya muamala."
+            );
 
-
-    const bookings =
-        getJSON(
-            "roomrentBookings",
-            []
-        );
-
-
-    const booking =
-        bookings.find(
-            b =>
-                b.bookingNumber ===
-                bookingNumber
-        );
-
-
-    if (!booking) {
-
-        alert(
-            "❌ Booking haijapatikana."
-        );
-
-        return;
-
-    }
-
-
-    const paymentDetails =
-        getPaymentDetails(
-            booking.paymentMethod
-        );
-
-
-    if (!paymentDetails) {
-
-        alert(
-            "❌ Taarifa za njia ya malipo hazijapatikana."
-        );
-
-        return;
-
-    }
-
-
-    /* =================================================
-       UPDATE BOOKING DATA
-    ================================================= */
-
-    booking.transactionNumber =
-        transactionNumber;
-
-
-    booking.receiverName =
-        paymentDetails.name;
-
-
-    booking.receiverPhone =
-        paymentDetails.phone;
-
-
-    booking.paymentStatus =
-        "Waiting Confirmation";
-
-
-    booking.status =
-        "Payment Submitted";
-
-
-    booking.paymentRequestedAt =
-        new Date().toISOString();
-
-
-    /* =================================================
-       UPDATE FIREBASE
-    ================================================= */
-
-    await updateDoc(
-
-        doc(
-            db,
-            "bookings",
-            bookingNumber
-        ),
-
-        {
-
-            transactionNumber:
-                transactionNumber,
-
-            receiverName:
-                paymentDetails.name,
-
-            receiverPhone:
-                paymentDetails.phone,
-
-            paymentStatus:
-                "Waiting Confirmation",
-
-            status:
-                "Payment Submitted",
-
-            paymentRequestedAt:
-                serverTimestamp()
+            return;
 
         }
 
-    );
+        const bookings =
+            getJSON(
+                "roomrentBookings",
+                []
+            );
 
+        const booking =
+            bookings.find(
+                b =>
+                    b.bookingNumber ===
+                    bookingNumber
+            );
 
-    /* =================================================
-       LOCAL BACKUP
-    ================================================= */
+        if (!booking) {
 
-    setJSON(
+            alert(
+                "❌ Booking haijapatikana."
+            );
 
-        "roomrentBookings",
+            return;
 
-        bookings
+        }
 
-    );
+        const paymentDetails =
+            getPaymentDetails(
+                booking.paymentMethod
+            );
 
+        if (!paymentDetails) {
 
-    /* =================================================
-       NOTIFICATION
-    ================================================= */
+            alert(
+                "❌ Taarifa za njia ya malipo hazijapatikana."
+            );
 
-    addNotification(
+            return;
 
-        booking.phone,
+        }
 
-        "Malipo Yametumwa ⏳",
+        booking.transactionNumber =
+            transactionNumber;
 
-        `Tumepokea taarifa yako ya malipo ya ${formatMoney(booking.price)}. Admin atakagua muamala wako.`
+        booking.receiverName =
+            paymentDetails.name;
 
-    );
+        booking.receiverPhone =
+            paymentDetails.phone;
 
+        booking.paymentStatus =
+            "Waiting Confirmation";
 
-    alert(
-        "✅ Taarifa ya malipo imetumwa kwa RoomRent."
-    );
+        booking.status =
+            "Payment Submitted";
 
+        booking.paymentRequestedAt =
+            new Date().toISOString();
 
-    showPaymentWaiting(
-        booking
-    );
+        await updateDoc(
 
-}
+            doc(
+                db,
+                "bookings",
+                bookingNumber
+            ),
 
-catch (error) {
+            {
 
-    console.error(
-        "PAYMENT FIREBASE ERROR:",
-        error
-    );
+                transactionNumber:
+                    transactionNumber,
 
+                receiverName:
+                    paymentDetails.name,
 
-    alert(
-        "❌ Imeshindikana kutuma taarifa ya malipo Firebase. Tafadhali jaribu tena."
-    );
+                receiverPhone:
+                    paymentDetails.phone,
 
-}
+                paymentStatus:
+                    "Waiting Confirmation",
+
+                status:
+                    "Payment Submitted",
+
+                paymentRequestedAt:
+                    serverTimestamp()
+
+            }
+
+        );
+
+        setJSON(
+            "roomrentBookings",
+            bookings
+        );
+
+        await addNotification(
+
+            booking.phone,
+
+            "Malipo Yametumwa ⏳",
+
+            `Tumepokea taarifa yako ya malipo ya ${formatMoney(booking.price)}. Admin atakagua muamala wako.`
+
+        );
+
+        alert(
+            "✅ Taarifa ya malipo imetumwa kwa RoomRent."
+        );
+
+        showPaymentWaiting(
+            booking
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "PAYMENT FIREBASE ERROR:",
+            error
+        );
+
+        alert(
+            "❌ Imeshindikana kutuma taarifa ya malipo Firebase. Tafadhali jaribu tena."
+        );
+
+    }
 
 }
     
+
+
+/* =========================================================
    25. PAYMENT WAITING
-========================================================= */
+========================================================= */    
 
 function showPaymentWaiting(booking) {
 
@@ -2790,80 +2759,68 @@ async function onyeshaMyCommissions(phone) {
 
 
 /* =========================================================
-   30. NOTIFICATIONS
+   30. ADD NOTIFICATION - FIREBASE
 ========================================================= */
 
-function funguaTaarifa() {
+async function addNotification(phone, title, message) {
 
-    const phone =
-        prompt(
-            "📱 Ingiza namba yako ya simu:"
-        );
+    try {
 
-
-    if (!phone) return;
-
-
-    onyeshaNotifications(phone);
-
-}
-
-
-function onyeshaNotifications(phone) {
-
-    const notifications =
-        getNotifications()
-        .filter(
-            n => n.phone === phone
-        );
-
-
-    const section =
-        document.getElementById(
-            "taarifaSection"
-        );
-
-
-    section.style.display =
-        "block";
-
-
-    section.innerHTML = `
-
-        <h2>🔔 Taarifa Zangu</h2>
-
-
-        ${
-            !notifications.length
-
-            ? "<p>Hakuna taarifa bado.</p>"
-
-            : notifications.map(n => `
-
-                <div class="booking-card">
-
-                    <h3>
-                        ${n.title}
-                    </h3>
-
-
-                    <p>
-                        ${n.message}
-                    </p>
-
-
-                    <small>
-                        ${formatDate(n.createdAt)}
-                    </small>
-
-                </div>
-
-            `).join("")
+        if (!phone) {
+            console.error("❌ Phone haipo.");
+            return;
         }
 
-    `;
+        await addDoc(
+            collection(db, "notifications"),
+            {
+                phone: phone,
+                title: title || "",
+                message: message || "",
+                read: false,
+                createdAt: serverTimestamp()
+            }
+        );
 
-}
+        console.log(
+            "✅ Notification imehifadhiwa Firebase."
+        );
+
+    }
+    catch (error) {
+
+        console.error(
+            "NOTIFICATION FIREBASE ERROR:",
+            error
+        );
+
+        /*
+         * Backup ya localStorage
+         */
+
+        const notifications =
+            getJSON(
+                "roomrentNotifications",
+                []
+            );
+
+        notifications.push({
+            phone: phone,
+            title: title || "",
+            message: message || "",
+            read: false,
+            createdAt:
+                new Date().toISOString()
+        });
+
+        setJSON(
+            "roomrentNotifications",
+            notifications
+        );
+
+    }
+
+           }
 
 
 /* =========================================================

@@ -114,7 +114,64 @@
 
     </header>
 
+<!-- ==============================
+     PHONE LOGIN
+============================== -->
 
+<section
+    id="phoneLoginSection"
+    class="phone-login-section"
+>
+
+    <div class="booking-card">
+
+        <h2>📱 Ingia RoomRent</h2>
+
+        <p>
+            Ingiza namba yako ya simu kuthibitisha
+            account yako kwa OTP.
+        </p>
+
+        <input
+            type="tel"
+            id="loginPhone"
+            placeholder="Mfano: 0712345678"
+        >
+
+        <div id="recaptcha-container"></div>
+
+        <button
+            class="endeleaBtn"
+            id="sendOtpBtn"
+        >
+            📩 Tuma OTP
+        </button>
+
+        <div
+            id="otpSection"
+            style="display:none;"
+        >
+
+            <input
+                type="text"
+                id="otpCode"
+                placeholder="Ingiza OTP"
+            >
+
+            <button
+                class="thibitishaBtn"
+                id="verifyOtpBtn"
+            >
+                ✅ Thibitisha OTP
+            </button>
+
+        </div>
+
+        <p id="loginMessage"></p>
+
+    </div>
+
+            </section>
 
     <!-- ==============================
          MAIN CONTENT

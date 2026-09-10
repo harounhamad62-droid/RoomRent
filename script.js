@@ -4775,7 +4775,301 @@ if (verifyOtpBtn) {
     }
 
 );
+/* =========================================================
+   ROOMRENT FINANCIAL SAFETY SYSTEM
+   ========================================================= */
 
+const FINANCIAL_KEY = "roomrentFinancialData";
+
+function getFinancialData() {
+    const defaultData = {
+        totalCapital: 0,
+        totalRevenue: 0,
+        totalExpenses: 0,
+        reserveFund: 0,
+        customerLiability: 0,
+        referralLiability: 0,
+        totalWithdrawals: 0,
+        availableCash: 0,
+        netProfit: 0,
+        lastUpdated: null
+    };
+
+    try {
+        const saved = localStorage.getItem(FINANCIAL_KEY);
+
+        if (!saved) {
+            return defaultData;
+        }
+
+        return {
+            ...defaultData,
+            ...JSON.parse(saved)
+        };
+
+    } catch (error) {
+        console.error("Financial data error:", error);
+        return defaultData;
+    }
+}
+
+
+function saveFinancialData(data) {
+    data.lastUpdated = new Date().toISOString();
+
+    localStorage.setItem(
+        FINANCIAL_KEY,
+        JSON.stringify(data)
+    );
+
+    return data;
+}
+
+
+/* =========================================================
+   HESABU FINANCIAL ZA ROOMRENT
+   ========================================================= */
+
+function calculateRoomRentFinancials() {
+
+    const bookings = getBookings() || [];
+
+    let totalCapital = 0;
+    let customerLiability = 0;
+
+    bookings.forEach(booking => {
+
+        if (
+            booking.paymentStatus === "Imelipwa" ||
+            booking.bookingStatus === "Imethibitishwa" ||
+            booking.bookingStatus === "Inasubiri Uthibitisho wa Admin"
+        ) {
+
+            const capital = Number(booking.price || 0);
+
+            totalCapital += capital;
+
+            const dailyProfit = Number(
+                booking.dailyProfit || 0
+            );
+
+            const totalDays = Number(
+                booking.totalDays || 0
+            );
+
+            const expectedProfit =
+                dailyProfit * totalDays;
+
+            customerLiability +=
+                capital + expectedProfit;
+        }
+
+    });
+
+
+    const data = getFinancialData();
+
+    const totalRevenue =
+        Number(data.totalRevenue || 0);
+
+    const totalExpenses =
+        Number(data.totalExpenses || 0);
+
+    const reserveFund =
+        Number(data.reserveFund || 0);
+
+    const referralLiability =
+        Number(data.referralLiability || 0);
+
+    const totalWithdrawals =
+        Number(data.totalWithdrawals || 0);
+
+
+    const netProfit =
+        totalRevenue -
+        totalExpenses;
+
+
+    const availableCash =
+        totalCapital +
+        totalRevenue -
+        totalExpenses -
+        reserveFund -
+        totalWithdrawals;
+
+
+    const financialResult = {
+
+        totalCapital,
+
+        totalRevenue,
+
+        totalExpenses,
+
+        reserveFund,
+
+        customerLiability,
+
+        referralLiability,
+
+        totalWithdrawals,
+
+        availableCash,
+
+        netProfit,
+
+        lastUpdated:
+            new Date().toISOString()
+    };
+
+
+    saveFinancialData(financialResult);
+
+    return financialResult;
+}
+
+
+/* =========================================================
+   FINANCIAL SAFETY CHECK
+   ========================================================= */
+
+function checkFinancialSafety() {
+
+    const data =
+        calculateRoomRentFinancials();
+
+
+    const totalLiability =
+        data.customerLiability +
+        data.referralLiability;
+
+
+    const safeBalance =
+        data.availableCash -
+        totalLiability;
+
+
+    let status = "";
+
+    let warning = "";
+
+
+    if (safeBalance < 0) {
+
+        status = "DANGER";
+
+        warning =
+            "⚠️ HATARI: RoomRent ina majukumu makubwa kuliko fedha zinazopatikana!";
+
+    }
+
+    else if (
+        safeBalance <
+        data.availableCash * 0.15
+    ) {
+
+        status = "WARNING";
+
+        warning =
+            "🟡 TAHADHARI: Safe balance iko chini. Ongeza Reserve Fund.";
+
+    }
+
+    else {
+
+        status = "SAFE";
+
+        warning =
+            "🟢 RoomRent Financial Status iko salama.";
+
+    }
+
+
+    return {
+
+        ...data,
+
+        totalLiability,
+
+        safeBalance,
+
+        status,
+
+        warning
+    };
+}
+
+
+/* =========================================================
+   FINANCIAL REPORT
+   ========================================================= */
+
+function getFinancialReport() {
+
+    const financial =
+        checkFinancialSafety();
+
+
+    return {
+
+        totalCapital:
+            financial.totalCapital,
+
+        totalRevenue:
+            financial.totalRevenue,
+
+        totalExpenses:
+            financial.totalExpenses,
+
+        reserveFund:
+            financial.reserveFund,
+
+        customerLiability:
+            financial.customerLiability,
+
+        referralLiability:
+            financial.referralLiability,
+
+        totalWithdrawals:
+            financial.totalWithdrawals,
+
+        availableCash:
+            financial.availableCash,
+
+        netProfit:
+            financial.netProfit,
+
+        totalLiability:
+            financial.totalLiability,
+
+        safeBalance:
+            financial.safeBalance,
+
+        status:
+            financial.status,
+
+        warning:
+            financial.warning
+    };
+}
+
+
+/* =========================================================
+   INITIALIZE FINANCIAL SYSTEM
+   ========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        console.log(
+            "💰 RoomRent Financial System Started"
+        );
+
+        calculateRoomRentFinancials();
+
+    }
+);
 
 /* =========================================================
    MWISHO WA ROOMRENT SCRIPT

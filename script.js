@@ -1,925 +1,401 @@
 /* =========================================================
-   ROOMRENT - FIREBASE FULL SCRIPT
-   SYSTEM A
+   ROOMRENT - SCRIPT.JS
+   FINAL INTEGRATED VERSION
+   =========================================================
 
-   USERS:
-   Level A = 5%
-   Level B = 2%
-   Level C = 1%
+   MFUMO:
+   1. Firebase + Firestore
+   2. Account / Signup / Login
+   3. Rooms + Booking
+   4. Payment
+   5. Booking Zangu + Notifications
+   6. Profit Dashboard
+   7. Admin Dashboard
+   8. Wallet + Withdrawal
+   9. Referral System
+   10. Final Integration
 
-   ADMIN:
-   Admin commission kwenye KILA booking iliyothibitishwa.
-
-   WITHDRAWAL:
-   Fee = 8%
+   IMPORTANT:
+   - Hakuna localStorage kwa data ya RoomRent
+   - Data inahifadhiwa Firestore
+   - Firebase Authentication hutumika Login/Signup
 ========================================================= */
 
 
 /* =========================================================
-   1. FIREBASE IMPORTS
+   1. FIREBASE + FIRESTORE CORE
 ========================================================= */
 
-import {
-    initializeApp
-} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+let auth = null;
+let db = null;
 
-import {
-    getAuth,
-    RecaptchaVerifier,
-    signInWithPhoneNumber,
-    onAuthStateChanged,
-    signOut
-} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+let roomrentCurrentUser = null;
+let roomrentUserProfile = null;
 
-import {
-    getFirestore,
-    collection,
-    doc,
-    setDoc,
-    getDoc,
-    addDoc,
-    getDocs,
-    updateDoc,
-    query,
-    where,
-    orderBy,
-    serverTimestamp,
-    runTransaction
-} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
+/* ---------------------------------------------------------
+   ANZISHA FIREBASE
+--------------------------------------------------------- */
 
-/* =========================================================
-   2. FIREBASE CONFIG
-========================================================= */
+function anzishaFirebase() {
 
-const firebaseConfig = {
+    try {
 
-    apiKey: "AIzaSyBlLpRr_zx1ru9acHQ_qHNnZp9f6kv12yA",
+        if (
+            typeof firebase === "undefined"
+        ) {
 
-    authDomain:
-        "roomrent-4b63b.firebaseapp.com",
-
-    projectId:
-        "roomrent-4b63b",
-
-    storageBucket:
-        "roomrent-4b63b.firebasestorage.app",
-
-    messagingSenderId:
-        "585995801987",
-
-    appId:
-        "1:585995801987:web:04d246393e90deac6ed2b6",
-
-    measurementId:
-        "G-7NVWKMJJ17"
-};
-
-
-/* =========================================================
-   3. INITIALIZE FIREBASE
-========================================================= */
-
-const app =
-    initializeApp(firebaseConfig);
-
-const auth =
-    getAuth(app);
-
-const db =
-    getFirestore(app);
-
-
-/* =========================================================
-   4. ADMIN SETTINGS
-
-   WEKA FIREBASE AUTH UID YA ADMIN HAPA
-
-   Example:
-   const ADMIN_UID = "xxxxxxxxxxxxx";
-========================================================= */
-
-const ADMIN_UID = "WEKA_ADMIN_UID_HAPA";
-
-
-/* =========================================================
-   5. SYSTEM SETTINGS
-========================================================= */
-
-const USER_COMMISSION = {
-
-    A: 5,
-    B: 2,
-    C: 1
-
-};
-
-
-/*
-   SYSTEM A
-
-   Admin anapata commission kwenye
-   kila booking iliyothibitishwa.
-*/
-
-const ADMIN_COMMISSION_PERCENT = 20;
-
-
-/*
-   WITHDRAWAL FEE
-*/
-
-const WITHDRAWAL_FEE_PERCENT = 8;
-
-
-/*
-   ADMIN REFERRAL
-*/
-
-const ADMIN_REFERRAL_CODE =
-    "RRADMIN";
-
-
-const ADMIN_REFERRAL_NAME =
-    "RoomRent Admin";
-
-
-/* =========================================================
-   6. PAYMENT SETTINGS
-========================================================= */
-
-const PAYMENT_SETTINGS = {
-
-    airtel: {
-
-        name:
-            "HARUNA ISSA HAMAD",
-
-        phone:
-            "0667872515"
-
-    },
-
-    mixx: {
-
-        name:
-            "HARUNA ISSA HAMAD",
-
-        phone:
-            "0651590936"
-
-    }
-
-};
-
-
-/* =========================================================
-   7. ROOM DATA
-========================================================= */
-
-const rooms = [
-
-    {
-        number: "0023",
-        price: 30000,
-        profit: 1200,
-        days: 40,
-
-        description:
-            "Chumba cha kuanzia kwa mfumo wa RoomRent."
-    },
-
-    {
-        number: "0024",
-        price: 70000,
-        profit: 2800,
-        days: 35,
-
-        description:
-            "Chumba chenye nafasi nzuri na mpango wa RoomRent."
-    },
-
-    {
-        number: "0025",
-        price: 140000,
-        profit: 5600,
-        days: 35,
-
-        description:
-            "Chumba cha kiwango cha kati kwa mpango wa RoomRent."
-    },
-
-    {
-        number: "0026",
-        price: 210000,
-        profit: 8400,
-        days: 35,
-
-        description:
-            "Chumba chenye mpango mzuri wa RoomRent."
-    },
-
-    {
-        number: "0027",
-        price: 280000,
-        profit: 11200,
-        days: 35,
-
-        description:
-            "Chumba cha kiwango cha juu kwa RoomRent."
-    },
-
-    {
-        number: "0028",
-        price: 350000,
-        profit: 14000,
-        days: 35,
-
-        description:
-            "Chumba chenye mpango mkubwa wa mapato."
-    },
-
-    {
-        number: "0029",
-        price: 420000,
-        profit: 16800,
-        days: 35,
-
-        description:
-            "Chumba cha kiwango cha juu zaidi."
-    },
-
-    {
-        number: "0030",
-        price: 490000,
-        profit: 19600,
-        days: 35,
-
-        description:
-            "Chumba chenye mpango mkubwa wa RoomRent."
-    },
-
-    {
-        number: "0031",
-        price: 560000,
-        profit: 22400,
-        days: 35,
-
-        description:
-            "Chumba cha kiwango cha juu."
-    },
-
-    {
-        number: "0032",
-        price: 630000,
-        profit: 25200,
-        days: 35,
-
-        description:
-            "Chumba cha juu zaidi katika orodha."
-    }
-
-];
-
-
-/* =========================================================
-   8. CURRENT USER
-========================================================= */
-
-let currentUser = null;
-
-let confirmationResult = null;
-
-let recaptchaVerifier = null;
-
-
-/* =========================================================
-   9. AUTH STATE
-========================================================= */
-
-onAuthStateChanged(
-    auth,
-
-    async (user) => {
-
-        currentUser = user || null;
-
-
-        if (user) {
-
-            console.log(
-                "RoomRent User UID:",
-                user.uid
+            console.error(
+                "Firebase SDK haijapatikana."
             );
 
-
-            console.log(
-                "RoomRent Phone:",
-                user.phoneNumber
-            );
-
-
-            await ensureFirebaseUser(user);
+            return false;
 
         }
 
-        else {
 
-            console.log(
-                "Hakuna user aliyeingia."
-            );
+        if (
+            firebase.apps &&
+            firebase.apps.length === 0
+        ) {
 
-        }
+            /*
+             * Firebase yako inatarajiwa kuwa
+             * initialized kwenye HTML/config.
+             *
+             * Kama firebaseConfig ipo HTML,
+             * unaweza kuiacha hapo.
+             */
 
-    }
+            if (
+                typeof firebaseConfig !==
+                "undefined"
+            ) {
 
-);
+                firebase.initializeApp(
+                    firebaseConfig
+                );
 
+            } else {
 
-/* =========================================================
-   10. ENSURE USER
-========================================================= */
+                console.error(
+                    "Firebase haija-initialize."
+                );
 
-async function ensureFirebaseUser(user) {
-
-    if (!user) return;
-
-
-    const userRef =
-        doc(
-            db,
-            "users",
-            user.uid
-        );
-
-
-    const userSnap =
-        await getDoc(userRef);
-
-
-    if (!userSnap.exists()) {
-
-        await setDoc(
-            userRef,
-
-            {
-
-                uid:
-                    user.uid,
-
-                phone:
-                    user.phoneNumber || "",
-
-                name:
-                    "",
-
-                referralCode:
-                    "",
-
-                referredBy:
-                    "",
-
-                totalCommission:
-                    0,
-
-                totalWithdrawn:
-                    0,
-
-                pendingWithdrawal:
-                    0,
-
-                availableBalance:
-                    0,
-
-                createdAt:
-                    serverTimestamp(),
-
-                updatedAt:
-                    serverTimestamp()
+                return false;
 
             }
 
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   11. FORMAT MONEY
-========================================================= */
-
-function formatMoney(amount) {
-
-    return Number(
-        amount || 0
-    ).toLocaleString(
-        "sw-TZ"
-    ) + " TSh";
-
-}
-
-
-/* =========================================================
-   12. FORMAT DATE
-========================================================= */
-
-function formatDate(date) {
-
-    if (!date) {
-
-        return "-";
-
-    }
-
-
-    try {
-
-        if (
-            date.seconds
-        ) {
-
-            return new Date(
-                date.seconds * 1000
-            ).toLocaleString(
-                "sw-TZ"
-            );
-
         }
 
 
-        return new Date(
-            date
-        ).toLocaleString(
-            "sw-TZ"
+        auth = firebase.auth();
+        db = firebase.firestore();
+
+        return true;
+
+
+    } catch (error) {
+
+        console.error(
+            "Firebase initialization error:",
+            error
         );
-
-    }
-
-    catch {
-
-        return "-";
-
-    }
-
-}
-
-
-/* =========================================================
-   13. PHONE FORMAT
-========================================================= */
-
-function formatTanzaniaPhone(phone) {
-
-    phone =
-        String(
-            phone || ""
-        )
-        .trim()
-        .replace(
-            /\s+/g,
-            ""
-        );
-
-
-    if (
-        phone.startsWith("+255")
-    ) {
-
-        return phone;
-
-    }
-
-
-    if (
-        phone.startsWith("255")
-    ) {
-
-        return "+" + phone;
-
-    }
-
-
-    if (
-        phone.startsWith("0")
-    ) {
-
-        return (
-            "+255" +
-            phone.substring(1)
-        );
-
-    }
-
-
-    return (
-        "+255" + phone
-    );
-
-}
-
-
-/* =========================================================
-   14. LOGIN MESSAGE
-========================================================= */
-
-function showLoginMessage(message) {
-
-    const element =
-        document.getElementById(
-            "loginMessage"
-        );
-
-
-    if (element) {
-
-        element.textContent =
-            message;
-
-    }
-
-}
-
-
-/* =========================================================
-   15. SETUP RECAPTCHA
-========================================================= */
-
-async function setupRecaptcha() {
-
-    if (
-        recaptchaVerifier
-    ) {
-
-        return;
-
-    }
-
-
-    const container =
-        document.getElementById(
-            "recaptcha-container"
-        );
-
-
-    if (!container) {
-
-        throw new Error(
-            "recaptcha-container haipo kwenye HTML."
-        );
-
-    }
-
-
-    recaptchaVerifier =
-        new RecaptchaVerifier(
-
-            auth,
-
-            "recaptcha-container",
-
-            {
-
-                size:
-                    "normal"
-
-            }
-
-        );
-
-
-    await recaptchaVerifier.render();
-
-}
-
-
-/* =========================================================
-   16. SEND OTP
-========================================================= */
-
-async function tumaOTP() {
-
-    try {
-
-        const phoneInput =
-            document.getElementById(
-                "loginPhone"
-            );
-
-
-        if (!phoneInput) {
-
-            showLoginMessage(
-                "⚠️ Sehemu ya namba ya simu haijapatikana."
-            );
-
-            return;
-
-        }
-
-
-        const phone =
-            formatTanzaniaPhone(
-                phoneInput.value
-            );
-
-
-        if (
-            phone.length < 12
-        ) {
-
-            showLoginMessage(
-                "⚠️ Ingiza namba sahihi."
-            );
-
-            return;
-
-        }
-
-
-        await setupRecaptcha();
-
-
-        showLoginMessage(
-            "⏳ Inatuma OTP..."
-        );
-
-
-        confirmationResult =
-            await signInWithPhoneNumber(
-
-                auth,
-
-                phone,
-
-                recaptchaVerifier
-
-            );
-
-
-        const otpSection =
-            document.getElementById(
-                "otpSection"
-            );
-
-
-        if (otpSection) {
-
-            otpSection.style.display =
-                "block";
-
-        }
-
-
-        showLoginMessage(
-            "✅ OTP imetumwa kwenye simu yako."
-        );
-
-    }
-
-    catch (error) {
-
-        console.error(error);
-
-
-        showLoginMessage(
-            "❌ Imeshindikana kutuma OTP: " +
-            error.message
-        );
-
-
-        if (recaptchaVerifier) {
-
-            recaptchaVerifier.clear();
-
-            recaptchaVerifier =
-                null;
-
-        }
-
-    }
-
-}
-
-
-/* =========================================================
-   17. VERIFY OTP
-========================================================= */
-
-async function thibitishaOTP() {
-
-    try {
-
-        const otpInput =
-            document.getElementById(
-                "otpCode"
-            );
-
-
-        const code =
-            otpInput
-                ?.value
-                .trim();
-
-
-        if (
-            !confirmationResult
-        ) {
-
-            showLoginMessage(
-                "⚠️ Tafadhali tuma OTP kwanza."
-            );
-
-            return;
-
-        }
-
-
-        if (!code) {
-
-            showLoginMessage(
-                "⚠️ Ingiza OTP."
-            );
-
-            return;
-
-        }
-
-
-        showLoginMessage(
-            "⏳ Inathibitisha..."
-        );
-
-
-        const result =
-            await confirmationResult.confirm(
-                code
-            );
-
-
-        currentUser =
-            result.user;
-
-
-        await ensureFirebaseUser(
-            result.user
-        );
-
-
-        const phoneSection =
-            document.getElementById(
-                "phoneLoginSection"
-            );
-
-
-        if (phoneSection) {
-
-            phoneSection.style.display =
-                "none";
-
-        }
-
-
-        showLoginMessage(
-            "✅ Umefanikiwa kuingia RoomRent!"
-        );
-
-
-        alert(
-            "🎉 Karibu RoomRent!"
-        );
-
-    }
-
-    catch (error) {
-
-        console.error(error);
-
-
-        showLoginMessage(
-            "❌ OTP sio sahihi au muda wake umeisha."
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   18. CHECK LOGIN
-========================================================= */
-
-function requireLogin() {
-
-    if (!currentUser) {
-
-        alert(
-            "⚠️ Tafadhali ingia kwa namba yako ya simu kwanza."
-        );
-
-        const section =
-            document.getElementById(
-                "phoneLoginSection"
-            );
-
-
-        if (section) {
-
-            section.style.display =
-                "block";
-
-            section.scrollIntoView({
-
-                behavior:
-                    "smooth"
-
-            });
-
-        }
 
         return false;
 
     }
 
+}
+
+
+/* ---------------------------------------------------------
+   HAKIKISHA FIREBASE
+--------------------------------------------------------- */
+
+function hakikishaFirebase() {
+
+    if (!auth || !db) {
+
+        const success =
+            anzishaFirebase();
+
+        if (!success) {
+
+            alert(
+                "❌ Firebase haijaandaliwa vizuri."
+            );
+
+            return false;
+
+        }
+
+    }
 
     return true;
 
 }
 
 
-/* =========================================================
-   19. GET CURRENT USER DATA
-========================================================= */
+/* ---------------------------------------------------------
+   FIREBASE ERROR
+--------------------------------------------------------- */
 
-async function getCurrentUserData() {
+function ujumbeWaFirebaseError(error) {
 
-    if (!currentUser) {
+    const code =
+        error?.code || "";
 
-        return null;
+    const messages = {
 
-    }
+        "auth/email-already-in-use":
+            "❌ Email hii tayari imesajiliwa.",
 
+        "auth/invalid-email":
+            "❌ Email si sahihi.",
 
-    const snap =
-        await getDoc(
+        "auth/weak-password":
+            "❌ Password ni dhaifu. Tumia angalau herufi 6.",
 
-            doc(
-                db,
-                "users",
-                currentUser.uid
-            )
+        "auth/user-not-found":
+            "❌ Account haijapatikana.",
 
-        );
+        "auth/wrong-password":
+            "❌ Password si sahihi.",
 
+        "auth/invalid-credential":
+            "❌ Email au password si sahihi.",
 
-    if (!snap.exists()) {
+        "auth/too-many-requests":
+            "⚠️ Umejaribu mara nyingi. Subiri kidogo.",
 
-        return null;
+        "auth/network-request-failed":
+            "❌ Hakuna internet au connection imekatika.",
 
-    }
+        "auth/billing-not-enabled":
+            "❌ Firebase Billing haijawezeshwa.",
 
-
-    return {
-
-        id:
-            snap.id,
-
-        ...snap.data()
+        "permission-denied":
+            "❌ Huna ruhusa ya kufanya kitendo hiki."
 
     };
+
+    return (
+        messages[code] ||
+        error?.message ||
+        "❌ Kumetokea kosa."
+    );
 
 }
 
 
-/* =========================================================
-   20. GENERATE REFERRAL CODE
-========================================================= */
+/* ---------------------------------------------------------
+   CURRENT USER
+--------------------------------------------------------- */
 
-function generateReferralCode(name) {
+function fuatiliaMtumiaji() {
 
-    let cleanName =
-        String(
-            name || "USER"
-        )
-        .replace(
-            /[^a-zA-Z]/g,
-            ""
-        )
-        .toUpperCase()
-        .substring(
-            0,
-            5
+    if (!hakikishaFirebase()) {
+        return;
+    }
+
+
+    auth.onAuthStateChanged(
+        async function(user) {
+
+            roomrentCurrentUser =
+                user || null;
+
+
+            if (user) {
+
+                await pakuaUserProfile(
+                    user.uid
+                );
+
+            } else {
+
+                roomrentUserProfile =
+                    null;
+
+            }
+
+
+            await kamaMtumiajiAmebadilika();
+
+        }
+    );
+
+}
+
+
+/* ---------------------------------------------------------
+   USER PROFILE
+--------------------------------------------------------- */
+
+async function pakuaUserProfile(uid) {
+
+    if (!db || !uid) {
+        return null;
+    }
+
+
+    try {
+
+        const snap =
+            await db
+                .collection("users")
+                .doc(uid)
+                .get();
+
+
+        if (!snap.exists) {
+
+            roomrentUserProfile =
+                null;
+
+            return null;
+
+        }
+
+
+        roomrentUserProfile = {
+
+            uid: uid,
+
+            ...snap.data()
+
+        };
+
+
+        return roomrentUserProfile;
+
+
+    } catch (error) {
+
+        console.error(
+            "Kosa kupakia profile:",
+            error
         );
 
-
-    if (!cleanName) {
-
-        cleanName =
-            "USER";
+        return null;
 
     }
 
+}
+
+
+/* ---------------------------------------------------------
+   HIFADHI USER PROFILE
+--------------------------------------------------------- */
+
+async function hifadhiUserProfile(
+    uid,
+    data
+) {
+
+    if (!db || !uid) {
+        return false;
+    }
+
+
+    try {
+
+        await db
+            .collection("users")
+            .doc(uid)
+            .set(
+                data,
+                {
+                    merge: true
+                }
+            );
+
+
+        roomrentUserProfile = {
+
+            ...(roomrentUserProfile || {}),
+
+            uid: uid,
+
+            ...data
+
+        };
+
+
+        return true;
+
+
+    } catch (error) {
+
+        console.error(
+            "Kosa kuhifadhi profile:",
+            error
+        );
+
+        return false;
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   ID
+--------------------------------------------------------- */
+
+function tengenezaID() {
+
+    return (
+        Date.now().toString(36) +
+        Math.random()
+            .toString(36)
+            .substring(2, 8)
+    );
+
+}
+
+
+/* ---------------------------------------------------------
+   FEDHA
+--------------------------------------------------------- */
+
+function fedha(amount) {
+
+    const number =
+        Number(amount || 0);
+
+
+    return (
+        number.toLocaleString(
+            "en-TZ"
+        ) +
+        " TSh"
+    );
+
+}
+
+
+/* ---------------------------------------------------------
+   TAREHE
+--------------------------------------------------------- */
+
+function tareheLeo() {
+
+    return new Date()
+        .toISOString()
+        .split("T")[0];
+
+}
+
+
+/* ---------------------------------------------------------
+   BOOKING NUMBER
+--------------------------------------------------------- */
+
+function tengenezaBookingNumber(
+    roomNumber
+) {
 
     const random =
         Math.floor(
@@ -929,149 +405,867 @@ function generateReferralCode(name) {
 
 
     return (
-        cleanName +
+        "RR-" +
+        roomNumber +
+        "-" +
         random
     );
 
 }
 
 
+/* ---------------------------------------------------------
+   LOGIN CHECK
+--------------------------------------------------------- */
+
+function mtumiajiAmeingia() {
+
+    return !!roomrentCurrentUser;
+
+}
+
+
+function hakikishaAmeingia() {
+
+    if (!mtumiajiAmeingia()) {
+
+        alert(
+            "⚠️ Tafadhali ingia kwenye Account kwanza."
+        );
+
+        return false;
+
+    }
+
+    return true;
+
+}
+
+
+/* ---------------------------------------------------------
+   CURRENT USER DATA
+--------------------------------------------------------- */
+
+function pataCurrentUserProfile() {
+
+    return roomrentUserProfile;
+
+}
+
+
+function pataJinaLaUser() {
+
+    return (
+        roomrentUserProfile?.jina ||
+        roomrentCurrentUser?.displayName ||
+        "User"
+    );
+
+}
+
+
+function pataSimuYaUser() {
+
+    return (
+        roomrentUserProfile?.simu ||
+        ""
+    );
+
+}
+
+
+/* ---------------------------------------------------------
+   USER STATE
+--------------------------------------------------------- */
+
+async function kamaMtumiajiAmebadilika() {
+
+    updateAccountUI();
+    jazaProfileForm();
+
+    unganishaRoomRentButtons();
+    unganishaAdminButton();
+    unganishaReferralButton();
+
+    if (roomrentCurrentUser) {
+
+        updateNotificationBadge();
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   ESCAPE HTML
+--------------------------------------------------------- */
+
+function escapeHTML(value) {
+
+    return String(
+        value ?? ""
+    )
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
 /* =========================================================
-   21. FIND USER BY REFERRAL CODE
+   2. ACCOUNT / SIGNUP / LOGIN
 ========================================================= */
 
-async function findUserByReferralCode(code) {
 
-    if (!code) {
+/* ---------------------------------------------------------
+   SIGNUP
+--------------------------------------------------------- */
 
-        return null;
+async function sajiliAccount() {
+
+    if (!hakikishaFirebase()) {
+        return;
+    }
+
+
+    const jina =
+        document
+            .getElementById("signupJina")
+            ?.value
+            .trim();
+
+
+    const email =
+        document
+            .getElementById("signupEmail")
+            ?.value
+            .trim();
+
+
+    const simu =
+        document
+            .getElementById("signupSimu")
+            ?.value
+            .trim();
+
+
+    const password =
+        document
+            .getElementById("signupPassword")
+            ?.value;
+
+
+    if (!jina) {
+
+        alert(
+            "❌ Weka jina."
+        );
+
+        return;
 
     }
 
 
-    code =
-        String(code)
-        .trim()
-        .toUpperCase();
+    if (!email) {
+
+        alert(
+            "❌ Weka email."
+        );
+
+        return;
+
+    }
+
+
+    if (!simuNiSahihi(simu)) {
+
+        alert(
+            "❌ Weka namba sahihi ya Tanzania."
+        );
+
+        return;
+
+    }
 
 
     if (
-        code ===
-        ADMIN_REFERRAL_CODE
+        !password ||
+        password.length < 6
     ) {
 
-        return {
+        alert(
+            "❌ Password iwe na angalau herufi 6."
+        );
 
-            id:
-                "ADMIN",
+        return;
+
+    }
+
+
+    try {
+
+        const referralCode =
+            pataReferralCodeKwenyeURL();
+
+
+        const credential =
+            await auth
+                .createUserWithEmailAndPassword(
+                    email,
+                    password
+                );
+
+
+        const user =
+            credential.user;
+
+
+        await user.updateProfile({
+
+            displayName:
+                jina
+
+        });
+
+
+        const profile = {
 
             uid:
-                "ADMIN",
+                user.uid,
 
-            name:
-                ADMIN_REFERRAL_NAME,
+            jina:
+                jina,
+
+            email:
+                email,
+
+            simu:
+                simu,
+
+            role:
+                "user",
+
+            accountStatus:
+                "active",
+
+            balance:
+                0,
+
+            totalEarned:
+                0,
+
+            totalWithdrawn:
+                0,
 
             referralCode:
-                ADMIN_REFERRAL_CODE,
+                null,
 
-            isAdmin:
-                true
+            referredBy:
+                null,
+
+            referredByCode:
+                null,
+
+            referralLevel:
+                null,
+
+            levelBReferrer:
+                null,
+
+            levelCReferrer:
+                null,
+
+            createdAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp(),
+
+            updatedAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp()
 
         };
 
+
+        await db
+            .collection("users")
+            .doc(user.uid)
+            .set(profile);
+
+
+        roomrentCurrentUser =
+            user;
+
+
+        await pakuaUserProfile(
+            user.uid
+        );
+
+
+        /*
+         * REFERRAL
+         */
+
+        if (referralCode) {
+
+            await hifadhiReferralWakatiWaSignup(
+                user.uid,
+                referralCode
+            );
+
+            await pakuaUserProfile(
+                user.uid
+            );
+
+        }
+
+
+        alert(
+            "✅ Account yako imetengenezwa vizuri."
+        );
+
+
+        updateAccountUI();
+
+
+    } catch (error) {
+
+        console.error(
+            "Signup error:",
+            error
+        );
+
+        alert(
+            ujumbeWaFirebaseError(
+                error
+            )
+        );
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   LOGIN
+--------------------------------------------------------- */
+
+async function ingiaAccount() {
+
+    if (!hakikishaFirebase()) {
+        return;
     }
 
 
-    const usersQuery =
-        query(
+    const email =
+        document
+            .getElementById("loginEmail")
+            ?.value
+            .trim();
 
-            collection(
-                db,
-                "users"
-            ),
 
-            where(
-                "referralCode",
-                "==",
-                code
+    const password =
+        document
+            .getElementById("loginPassword")
+            ?.value;
+
+
+    if (!email || !password) {
+
+        alert(
+            "❌ Weka email na password."
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        const credential =
+            await auth
+                .signInWithEmailAndPassword(
+                    email,
+                    password
+                );
+
+
+        roomrentCurrentUser =
+            credential.user;
+
+
+        await pakuaUserProfile(
+            credential.user.uid
+        );
+
+
+        alert(
+            "✅ Umeingia kwenye RoomRent."
+        );
+
+
+        updateAccountUI();
+        updateNotificationBadge();
+
+
+    } catch (error) {
+
+        console.error(
+            "Login error:",
+            error
+        );
+
+        alert(
+            ujumbeWaFirebaseError(
+                error
             )
+        );
 
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   LOGOUT
+--------------------------------------------------------- */
+
+async function tokaAccount() {
+
+    try {
+
+        await auth.signOut();
+
+        roomrentCurrentUser =
+            null;
+
+        roomrentUserProfile =
+            null;
+
+        alert(
+            "✅ Umetoka kwenye Account."
         );
 
 
-    const result =
-        await getDocs(
-            usersQuery
+        updateAccountUI();
+
+
+    } catch (error) {
+
+        console.error(
+            error
         );
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   UPDATE PROFILE
+--------------------------------------------------------- */
+
+async function sasishaProfile() {
+
+    if (!hakikishaAmeingia()) {
+        return;
+    }
+
+
+    const jina =
+        document
+            .getElementById("profileJina")
+            ?.value
+            .trim();
+
+
+    const simu =
+        document
+            .getElementById("profileSimu")
+            ?.value
+            .trim();
+
+
+    if (!jina) {
+
+        alert(
+            "❌ Weka jina."
+        );
+
+        return;
+
+    }
 
 
     if (
-        result.empty
+        simu &&
+        !simuNiSahihi(simu)
     ) {
 
-        return null;
+        alert(
+            "❌ Namba ya simu si sahihi."
+        );
+
+        return;
 
     }
 
 
-    const first =
-        result.docs[0];
+    try {
+
+        await hifadhiUserProfile(
+
+            roomrentCurrentUser.uid,
+
+            {
+
+                jina:
+                    jina,
+
+                simu:
+                    simu,
+
+                updatedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
+
+            }
+
+        );
 
 
-    return {
+        await roomrentCurrentUser
+            .updateProfile({
 
-        id:
-            first.id,
+                displayName:
+                    jina
 
-        ...first.data()
+            });
 
-    };
+
+        alert(
+            "✅ Profile imesasishwa."
+        );
+
+
+        updateAccountUI();
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+        alert(
+            "❌ Imeshindikana kusasisha profile."
+        );
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   PASSWORD RESET
+--------------------------------------------------------- */
+
+async function tumaPasswordReset() {
+
+    if (!hakikishaFirebase()) {
+        return;
+    }
+
+
+    const email =
+        document
+            .getElementById("loginEmail")
+            ?.value
+            .trim();
+
+
+    if (!email) {
+
+        alert(
+            "❌ Weka email kwanza."
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        await auth
+            .sendPasswordResetEmail(
+                email
+            );
+
+
+        alert(
+            "✅ Password reset imetumwa kwenye email yako."
+        );
+
+
+    } catch (error) {
+
+        alert(
+            ujumbeWaFirebaseError(
+                error
+            )
+        );
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   PROFILE FORM
+--------------------------------------------------------- */
+
+function jazaProfileForm() {
+
+    const jinaInput =
+        document.getElementById(
+            "profileJina"
+        );
+
+
+    const simuInput =
+        document.getElementById(
+            "profileSimu"
+        );
+
+
+    if (jinaInput) {
+
+        jinaInput.value =
+            pataJinaLaUser();
+
+    }
+
+
+    if (simuInput) {
+
+        simuInput.value =
+            pataSimuYaUser();
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   ACCOUNT BUTTON
+--------------------------------------------------------- */
+
+function updateAccountUI() {
+
+    const button =
+        document.getElementById(
+            "accountBtn"
+        );
+
+
+    if (!button) {
+        return;
+    }
+
+
+    if (roomrentCurrentUser) {
+
+        button.textContent =
+            "👤 " +
+            pataJinaLaUser();
+
+    } else {
+
+        button.textContent =
+            "👤 Account";
+
+    }
+
+}
+
+
+function funguaAccount() {
+
+    if (!roomrentCurrentUser) {
+
+        alert(
+            "⚠️ Tafadhali ingia au fungua Account."
+        );
+
+        return;
+
+    }
+
+
+    onyeshaProfile();
+
+}
+
+
+function onyeshaProfile() {
+
+    if (!hakikishaAmeingia()) {
+        return;
+    }
+
+
+    const profile =
+        roomrentUserProfile || {};
+
+
+    alert(
+
+        "👤 ACCOUNT\n\n" +
+
+        "Jina: " +
+        (
+            profile.jina ||
+            ""
+        ) +
+
+        "\nEmail: " +
+        (
+            profile.email ||
+            roomrentCurrentUser.email ||
+            ""
+        ) +
+
+        "\nSimu: " +
+        (
+            profile.simu ||
+            ""
+        ) +
+
+        "\nRole: " +
+        (
+            profile.role ||
+            "user"
+        )
+
+    );
 
 }
 
 
 /* =========================================================
-   22. GET USER BY UID
+   3. ROOMS + BOOKING
 ========================================================= */
 
-async function getUserByUid(uid) {
+const vyumba = [
 
-    const snap =
-        await getDoc(
+    {
+        room: "0023",
+        price: 30000,
+        profit: 1200,
+        days: 40
+    },
 
-            doc(
-                db,
-                "users",
-                uid
-            )
+    {
+        room: "0024",
+        price: 70000,
+        profit: 2800,
+        days: 35
+    },
 
-        );
+    {
+        room: "0025",
+        price: 140000,
+        profit: 5600,
+        days: 35
+    },
 
+    {
+        room: "0026",
+        price: 210000,
+        profit: 8400,
+        days: 35
+    },
 
-    if (
-        !snap.exists()
-    ) {
+    {
+        room: "0027",
+        price: 280000,
+        profit: 11200,
+        days: 35
+    },
 
-        return null;
+    {
+        room: "0028",
+        price: 350000,
+        profit: 14000,
+        days: 35
+    },
 
+    {
+        room: "0029",
+        price: 420000,
+        profit: 16800,
+        days: 35
+    },
+
+    {
+        room: "0030",
+        price: 490000,
+        profit: 19600,
+        days: 35
+    },
+
+    {
+        room: "0031",
+        price: 560000,
+        profit: 22400,
+        days: 35
+    },
+
+    {
+        room: "0032",
+        price: 630000,
+        profit: 25200,
+        days: 35
     }
 
+];
 
-    return {
 
-        id:
-            snap.id,
+function pataChumba(roomNumber) {
 
-        ...snap.data()
-
-    };
+    return vyumba.find(
+        room =>
+            room.room ===
+            String(roomNumber)
+    );
 
 }
 
 
-/* =========================================================
-   23. DISPLAY ROOMS
-========================================================= */
+/* ---------------------------------------------------------
+   DISPLAY ROOMS
+--------------------------------------------------------- */
 
 function onyeshaVyumba() {
 
@@ -1082,6 +1276,125 @@ function onyeshaVyumba() {
 
 
     if (!container) {
+        return;
+    }
+
+
+    let html = `
+
+        <h2>🏠 Vyumba vya RoomRent</h2>
+
+        <div class="rooms-container">
+
+    `;
+
+
+    vyumba.forEach(room => {
+
+        const totalProfit =
+            room.profit *
+            room.days;
+
+
+        html += `
+
+            <div class="room-card">
+
+                <h3>
+                    🏠 Chumba ${room.room}
+                </h3>
+
+                <p>
+                    💰 Bei:
+                    <strong>
+                        ${fedha(room.price)}
+                    </strong>
+                </p>
+
+                <p>
+                    💵 Faida kwa siku:
+                    <strong>
+                        ${fedha(room.profit)}
+                    </strong>
+                </p>
+
+                <p>
+                    📅 Muda:
+                    <strong>
+                        ${room.days} siku
+                    </strong>
+                </p>
+
+                <p>
+                    📈 Faida yote:
+                    <strong>
+                        ${fedha(totalProfit)}
+                    </strong>
+                </p>
+
+                <button
+                    onclick="funguaBooking('${room.room}')"
+                >
+                    📝 Kodi Chumba
+                </button>
+
+            </div>
+
+        `;
+
+    });
+
+
+    html += `
+
+        </div>
+
+    `;
+
+
+    container.innerHTML =
+        html;
+
+}
+
+
+/* ---------------------------------------------------------
+   OPEN BOOKING
+--------------------------------------------------------- */
+
+function funguaBooking(roomNumber) {
+
+    if (!hakikishaAmeingia()) {
+        return;
+    }
+
+
+    const room =
+        pataChumba(roomNumber);
+
+
+    if (!room) {
+
+        alert(
+            "❌ Chumba hakijapatikana."
+        );
+
+        return;
+
+    }
+
+
+    const container =
+        document.getElementById(
+            "fomuKodi"
+        );
+
+
+    if (!container) {
+
+        alert(
+            "❌ Fomu ya booking haijapatikana."
+        );
 
         return;
 
@@ -1090,733 +1403,787 @@ function onyeshaVyumba() {
 
     container.innerHTML = `
 
-        <h2>🏠 Vyumba vya RoomRent</h2>
+        <div class="booking-form">
 
-        <p>
-            Chagua chumba unachotaka.
-        </p>
+            <h2>
+                📝 Booking Chumba ${room.room}
+            </h2>
 
-        <div id="roomList"></div>
+
+            <p>
+                Bei:
+                <strong>
+                    ${fedha(room.price)}
+                </strong>
+            </p>
+
+
+            <p>
+                Faida kwa siku:
+                <strong>
+                    ${fedha(room.profit)}
+                </strong>
+            </p>
+
+
+            <p>
+                Muda:
+                <strong>
+                    ${room.days} siku
+                </strong>
+            </p>
+
+
+            <label>
+                Jina
+            </label>
+
+            <input
+                type="text"
+                id="bookingJina"
+                value="${escapeHTML(
+                    pataJinaLaUser()
+                )}"
+            />
+
+
+            <label>
+                Simu
+            </label>
+
+            <input
+                type="tel"
+                id="bookingSimu"
+                value="${escapeHTML(
+                    pataSimuYaUser()
+                )}"
+                placeholder="07XXXXXXXX"
+            />
+
+
+            <label>
+                Tarehe ya kuanza
+            </label>
+
+            <input
+                type="date"
+                id="bookingStartDate"
+                min="${tareheLeo()}"
+            />
+
+
+            <br><br>
+
+
+            <button
+                onclick="tumaBooking('${room.room}')"
+            >
+                ✅ Thibitisha Booking
+            </button>
+
+
+            <button
+                onclick="fungaBookingForm()"
+            >
+                ❌ Funga
+            </button>
+
+        </div>
 
     `;
 
 
-    const roomList =
+    container.scrollIntoView({
+        behavior: "smooth"
+    });
+
+}
+
+
+function fungaBookingForm() {
+
+    const container =
         document.getElementById(
-            "roomList"
+            "fomuKodi"
         );
 
 
-    rooms.forEach(
-        room => {
+    if (container) {
 
-            const card =
-                document.createElement(
-                    "div"
-                );
+        container.innerHTML = "";
 
+    }
 
-            card.className =
-                "chumba room-card";
+}
 
 
-            card.innerHTML = `
+/* ---------------------------------------------------------
+   SEND BOOKING
+--------------------------------------------------------- */
 
-                <div class="room-info">
+async function tumaBooking(
+    roomNumber
+) {
 
-                    <h3>
-                        🏠 Chumba ${room.number}
-                    </h3>
-
-                    <p>
-                        ${room.description}
-                    </p>
-
-                    <p>
-                        <strong>
-                            Bei:
-                        </strong>
-
-                        ${formatMoney(room.price)}
-                    </p>
-
-                    <p>
-                        <strong>
-                            Faida kwa siku:
-                        </strong>
-
-                        ${formatMoney(room.profit)}
-                    </p>
-
-                    <p>
-                        <strong>
-                            Muda:
-                        </strong>
-
-                        ${room.days} siku
-                    </p>
-
-                    <button
-                        class="kodiBtn"
-                        onclick="funguaKodi('${room.number}')"
-                    >
-
-                        🏠 Kodi Chumba
-
-                    </button>
-
-                </div>
-
-            `;
+    if (!hakikishaAmeingia()) {
+        return;
+    }
 
 
-            roomList.appendChild(
-                card
-            );
+    const room =
+        pataChumba(roomNumber);
 
-        }
 
+    if (!room) {
+
+        alert(
+            "❌ Chumba hakijapatikana."
+        );
+
+        return;
+
+    }
+
+
+    const jina =
+        document
+            .getElementById(
+                "bookingJina"
+            )
+            ?.value
+            .trim();
+
+
+    const simu =
+        document
+            .getElementById(
+                "bookingSimu"
+            )
+            ?.value
+            .trim();
+
+
+    const startDate =
+        document
+            .getElementById(
+                "bookingStartDate"
+            )
+            ?.value;
+
+
+    if (!jina) {
+
+        alert(
+            "❌ Weka jina."
+        );
+
+        return;
+
+    }
+
+
+    if (!simuNiSahihi(simu)) {
+
+        alert(
+            "❌ Weka namba sahihi ya Tanzania."
+        );
+
+        return;
+
+    }
+
+
+    if (!startDate) {
+
+        alert(
+            "❌ Chagua tarehe ya kuanza."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        startDate <
+        tareheLeo()
+    ) {
+
+        alert(
+            "❌ Tarehe haiwezi kuwa imepita."
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        const booking = {
+
+            bookingNumber:
+                tengenezaBookingNumber(
+                    room.room
+                ),
+
+            userId:
+                roomrentCurrentUser.uid,
+
+            jina:
+                jina,
+
+            simu:
+                simu,
+
+            roomNumber:
+                room.room,
+
+            price:
+                room.price,
+
+            dailyProfit:
+                room.profit,
+
+            totalDays:
+                room.days,
+
+            startDate:
+                startDate,
+
+            paymentStatus:
+                "Haijalipwa",
+
+            bookingStatus:
+                "Inasubiri",
+
+            notificationRead:
+                false,
+
+            paymentMethod:
+                null,
+
+            paymentPhone:
+                null,
+
+            paymentDate:
+                null,
+
+            createdAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp(),
+
+            updatedAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp()
+
+        };
+
+
+        const ref =
+            await db
+                .collection("bookings")
+                .add(booking);
+
+
+        await ref.update({
+
+            bookingId:
+                ref.id
+
+        });
+
+
+        await hifadhiUserProfile(
+
+            roomrentCurrentUser.uid,
+
+            {
+
+                jina:
+                    jina,
+
+                simu:
+                    simu
+
+            }
+
+        );
+
+
+        await tengenezaNotification(
+
+            roomrentCurrentUser.uid,
+
+            {
+
+                title:
+                    "📝 Booking Imetumwa",
+
+                message:
+                    `Booking ${booking.bookingNumber} ya chumba ${room.room} imetumwa.`,
+
+                type:
+                    "booking_created",
+
+                bookingId:
+                    ref.id
+
+            }
+
+        );
+
+
+        alert(
+            "✅ Booking yako imetumwa."
+        );
+
+
+        fungaBookingForm();
+
+
+        await onyeshaBookingZangu();
+
+
+    } catch (error) {
+
+        console.error(
+            "Booking error:",
+            error
+        );
+
+        alert(
+            "❌ Imeshindikana kutengeneza booking."
+        );
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   USER BOOKINGS
+--------------------------------------------------------- */
+
+async function pataBookingsZaUser() {
+
+    if (!hakikishaAmeingia()) {
+        return [];
+    }
+
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("bookings")
+                .where(
+                    "userId",
+                    "==",
+                    roomrentCurrentUser.uid
+                )
+                .get();
+
+
+        const bookings = [];
+
+
+        snapshot.forEach(doc => {
+
+            bookings.push({
+
+                id: doc.id,
+
+                ...doc.data()
+
+            });
+
+        });
+
+
+        bookings.sort(
+            (a, b) => {
+
+                const aTime =
+                    a.createdAt?.toMillis
+                        ? a.createdAt.toMillis()
+                        : 0;
+
+                const bTime =
+                    b.createdAt?.toMillis
+                        ? b.createdAt.toMillis()
+                        : 0;
+
+                return bTime - aTime;
+
+            }
+        );
+
+
+        return bookings;
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+        return [];
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   DAYS
+--------------------------------------------------------- */
+
+function hesabuSiku(
+    startDate
+) {
+
+    if (!startDate) {
+        return 0;
+    }
+
+
+    const start =
+        new Date(
+            startDate +
+            "T00:00:00"
+        );
+
+
+    const now =
+        new Date();
+
+
+    const difference =
+        now.getTime() -
+        start.getTime();
+
+
+    return Math.floor(
+        difference /
+        (
+            1000 *
+            60 *
+            60 *
+            24
+        )
+    );
+
+}
+
+
+function hesabuFaidaTarajiwa(
+    dailyProfit,
+    totalDays
+) {
+
+    return (
+        Number(dailyProfit || 0) *
+        Number(totalDays || 0)
+    );
+
+}
+
+
+function bookingStatusText(
+    booking
+) {
+
+    if (
+        booking.bookingStatus ===
+        "Imethibitishwa"
+    ) {
+
+        return (
+            "✅ Booking yako imethibitishwa"
+        );
+
+    }
+
+
+    if (
+        booking.paymentStatus ===
+        "Imelipwa"
+    ) {
+
+        return (
+            "💳 Malipo yamepokelewa"
+        );
+
+    }
+
+
+    if (
+        booking.bookingStatus ===
+        "Imekataliwa"
+    ) {
+
+        return (
+            "❌ Booking imekataliwa"
+        );
+
+    }
+
+
+    return (
+        "⏳ Booking inasubiri malipo"
     );
 
 }
 
 
 /* =========================================================
-   24. OPEN BOOKING FORM
+   4. PAYMENT
 ========================================================= */
 
-async function funguaKodi(roomNumber) {
+async function pataBookingKwaID(
+    bookingId
+) {
 
-    const room =
-        rooms.find(
-
-            r =>
-                r.number ===
-                roomNumber
-
-        );
-
-
-    if (!room) {
-
-        return;
-
+    if (!bookingId) {
+        return null;
     }
 
-
-    const section =
-        document.getElementById(
-            "fomuKodi"
-        );
-
-
-    if (!section) {
-
-        return;
-
-    }
-
-
-    let userName =
-        "";
-
-    let referral =
-        "";
-
-
-    if (currentUser) {
-
-        const user =
-            await getCurrentUserData();
-
-
-        if (user) {
-
-            userName =
-                user.name || "";
-
-            referral =
-                user.referredBy || "";
-
-        }
-
-    }
-
-
-    section.style.display =
-        "block";
-
-
-    section.innerHTML = `
-
-        <h2>
-            🏠 Kukodi Chumba ${room.number}
-        </h2>
-
-        <div class="booking-card">
-
-            <p>
-                💰 Bei:
-
-                <strong>
-                    ${formatMoney(room.price)}
-                </strong>
-            </p>
-
-            <p>
-                📈 Faida kwa siku:
-
-                <strong>
-                    ${formatMoney(room.profit)}
-                </strong>
-            </p>
-
-            <p>
-                📅 Muda:
-
-                <strong>
-                    ${room.days} siku
-                </strong>
-            </p>
-
-        </div>
-
-
-        <input
-            type="text"
-            id="bookingName"
-            placeholder="Jina lako kamili"
-            value="${userName}"
-        >
-
-
-        <input
-            type="text"
-            id="referralCode"
-            placeholder="Referral Code (si lazima)"
-            value="${referral}"
-        >
-
-
-        <select id="paymentMethod">
-
-            <option value="">
-                Chagua njia ya malipo
-            </option>
-
-            <option value="Airtel Money">
-                🔴 Airtel Money
-            </option>
-
-            <option value="MIXX BY YAS">
-                🔵 MIXX BY YAS
-            </option>
-
-        </select>
-
-
-        <button
-            class="endeleaBtn"
-            onclick="tengenezaBooking('${room.number}')"
-        >
-
-            💳 Endelea Kulipa
-
-        </button>
-
-    `;
-
-
-    section.scrollIntoView({
-
-        behavior:
-            "smooth"
-
-    });
-
-}
-
-
-/* =========================================================
-   25. CREATE BOOKING
-========================================================= */
-
-async function tengenezaBooking(roomNumber) {
 
     try {
 
-        if (!requireLogin()) {
+        const snap =
+            await db
+                .collection("bookings")
+                .doc(bookingId)
+                .get();
 
-            return;
 
+        if (!snap.exists) {
+            return null;
         }
 
 
-        const room =
-            rooms.find(
+        return {
 
-                r =>
-                    r.number ===
-                    roomNumber
+            id: snap.id,
 
-            );
-
-
-        if (!room) {
-
-            return;
-
-        }
-
-
-        const name =
-            document
-            .getElementById(
-                "bookingName"
-            )
-            ?.value
-            .trim();
-
-
-        const referralCode =
-            document
-            .getElementById(
-                "referralCode"
-            )
-            ?.value
-            .trim()
-            .toUpperCase();
-
-
-        const paymentMethod =
-            document
-            .getElementById(
-                "paymentMethod"
-            )
-            ?.value;
-
-
-        if (
-            !name ||
-            !paymentMethod
-        ) {
-
-            alert(
-                "⚠️ Tafadhali jaza taarifa zote."
-            );
-
-            return;
-
-        }
-
-
-        const userRef =
-            doc(
-                db,
-                "users",
-                currentUser.uid
-            );
-
-
-        const userSnap =
-            await getDoc(
-                userRef
-            );
-
-
-        let userData =
-            userSnap.data();
-
-
-        /*
-           FIRST TIME PROFILE
-        */
-
-        if (
-            !userData.name
-        ) {
-
-            let myReferralCode =
-                generateReferralCode(
-                    name
-                );
-
-
-            /*
-               Hakikisha referral code
-               haitumiki
-            */
-
-            let codeExists =
-                await findUserByReferralCode(
-                    myReferralCode
-                );
-
-
-            while (
-                codeExists
-            ) {
-
-                myReferralCode =
-                    generateReferralCode(
-                        name
-                    );
-
-
-                codeExists =
-                    await findUserByReferralCode(
-                        myReferralCode
-                    );
-
-            }
-
-
-            let referredBy =
-                "";
-
-
-            if (
-                referralCode
-            ) {
-
-                const referrer =
-                    await findUserByReferralCode(
-                        referralCode
-                    );
-
-
-                if (!referrer) {
-
-                    alert(
-                        "⚠️ Referral Code sio sahihi."
-                    );
-
-                    return;
-
-                }
-
-
-                referredBy =
-                    referrer.referralCode;
-
-            }
-
-
-            await updateDoc(
-
-                userRef,
-
-                {
-
-                    name,
-
-                    referralCode:
-                        myReferralCode,
-
-                    referredBy,
-
-                    updatedAt:
-                        serverTimestamp()
-
-                }
-
-            );
-
-
-            userData =
-                {
-
-                    ...userData,
-
-                    name,
-
-                    referralCode:
-                        myReferralCode,
-
-                    referredBy
-
-                };
-
-        }
-
-
-        /*
-           USER HAWEZI KUBADILISHA
-           REFERRER BAADA YA ACCOUNT
-        */
-
-        const bookingNumber =
-            "RR" +
-            Date.now()
-            .toString()
-            .slice(-10);
-
-
-        const bookingRef =
-            doc(
-
-                db,
-
-                "bookings",
-
-                bookingNumber
-
-            );
-
-
-        const booking = {
-
-            bookingNumber,
-
-            userId:
-                currentUser.uid,
-
-            name:
-                userData.name,
-
-            phone:
-                currentUser.phoneNumber || "",
-
-            roomNumber,
-
-            price:
-                room.price,
-
-            profit:
-                room.profit,
-
-            days:
-                room.days,
-
-            paymentMethod,
-
-            userReferralCode:
-                userData.referralCode,
-
-            usedReferralCode:
-                userData.referredBy || "",
-
-            paymentStatus:
-                "Waiting Payment",
-
-            status:
-                "Pending Payment",
-
-            transactionNumber:
-                "",
-
-            receiverName:
-                "",
-
-            receiverPhone:
-                "",
-
-            commissionProcessed:
-                false,
-
-            createdAt:
-                serverTimestamp()
+            ...snap.data()
 
         };
 
 
-        await setDoc(
+    } catch (error) {
 
-            bookingRef,
-
-            booking
-
+        console.error(
+            error
         );
 
+        return null;
 
-        await addNotification(
+    }
 
-            currentUser.uid,
-
-            "Booking Imeundwa 🏠",
-
-            `Booking ${bookingNumber} ya chumba ${roomNumber} imeundwa.`
-
-        );
+}
 
 
-        funguaPaymentRequest(
-            booking
+/* ---------------------------------------------------------
+   PHONE
+--------------------------------------------------------- */
+
+function simuNiSahihi(
+    simu
+) {
+
+    if (!simu) {
+        return false;
+    }
+
+
+    const clean =
+        simu
+            .replace(
+                /\s/g,
+                ""
+            );
+
+
+    return (
+        /^0[67]\d{8}$/.test(clean) ||
+        /^\+255[67]\d{8}$/.test(clean)
+    );
+
+}
+
+
+function rekebishaSimu(
+    simu
+) {
+
+    const clean =
+        String(simu || "")
+            .replace(
+                /\s/g,
+                ""
+            );
+
+
+    if (
+        clean.startsWith("0")
+    ) {
+
+        return (
+            "+255" +
+            clean.substring(1)
         );
 
     }
 
-    catch (error) {
 
-        console.error(error);
+    return clean;
 
+}
+
+
+/* ---------------------------------------------------------
+   OPEN PAYMENT
+--------------------------------------------------------- */
+
+async function funguaMalipo(
+    bookingId
+) {
+
+    if (!hakikishaAmeingia()) {
+        return;
+    }
+
+
+    const booking =
+        await pataBookingKwaID(
+            bookingId
+        );
+
+
+    if (!booking) {
 
         alert(
-            "❌ Booking imeshindikana: " +
-            error.message
+            "❌ Booking haijapatikana."
         );
 
-    }
-
-}
-
-
-/* =========================================================
-   26. GET PAYMENT DETAILS
-========================================================= */
-
-function getPaymentDetails(method) {
-
-    if (
-        method ===
-        "Airtel Money"
-    ) {
-
-        return PAYMENT_SETTINGS.airtel;
+        return;
 
     }
 
 
     if (
-        method ===
-        "MIXX BY YAS"
+        booking.userId !==
+        roomrentCurrentUser.uid
     ) {
 
-        return PAYMENT_SETTINGS.mixx;
+        alert(
+            "❌ Huna ruhusa ya booking hii."
+        );
+
+        return;
 
     }
 
 
-    return null;
+    if (
+        booking.paymentStatus ===
+        "Imelipwa"
+    ) {
 
-}
+        alert(
+            "ℹ️ Booking hii tayari imelipiwa."
+        );
+
+        return;
+
+    }
 
 
-/* =========================================================
-   27. PAYMENT PAGE
-========================================================= */
-
-function funguaPaymentRequest(booking) {
-
-    const section =
+    const container =
         document.getElementById(
             "fomuKodi"
         );
 
 
-    if (!section) {
-
+    if (!container) {
         return;
-
     }
 
 
-    const details =
-        getPaymentDetails(
-            booking.paymentMethod
-        );
+    container.innerHTML = `
 
+        <div class="payment-form">
 
-    if (!details) {
-
-        return;
-
-    }
-
-
-    section.innerHTML = `
-
-        <h2>
-            💳 Lipa RoomRent
-        </h2>
-
-
-        <div class="booking-card">
+            <h2>💳 Lipa Booking</h2>
 
             <p>
-                📋 Booking Number:
-
+                Booking:
                 <strong>
-                    ${booking.bookingNumber}
+                    ${escapeHTML(
+                        booking.bookingNumber
+                    )}
+                </strong>
+            </p>
+
+            <p>
+                Chumba:
+                <strong>
+                    ${escapeHTML(
+                        booking.roomNumber
+                    )}
+                </strong>
+            </p>
+
+            <p>
+                Kiasi:
+                <strong>
+                    ${fedha(
+                        booking.price
+                    )}
                 </strong>
             </p>
 
 
-            <p>
-                🏠 Chumba:
-
-                <strong>
-                    ${booking.roomNumber}
-                </strong>
-            </p>
-
-
-            <p>
-                💰 Kiasi:
-
-                <strong>
-                    ${formatMoney(booking.price)}
-                </strong>
-            </p>
-
-        </div>
-
-
-        <div class="booking-card">
-
-            <h3>
-                📱 ${booking.paymentMethod}
-            </h3>
-
-
-            <p>
-                👤 Mpokeaji:
-
-                <strong>
-                    ${details.name}
-                </strong>
-            </p>
-
-
-            <p>
-                📱 Namba ya kulipia:
-            </p>
-
-
-            <h2>
-                ${details.phone}
-            </h2>
-
-
-            <p>
-                ⚠️ Hakikisha jina la mpokeaji
-                kabla ya kutuma malipo.
-            </p>
-
-        </div>
-
-
-        <div class="booking-card">
-
-            <h3>
-                📝 Baada ya Kulipa
-            </h3>
-
+            <label>
+                Namba ya simu ya malipo
+            </label>
 
             <input
-                type="text"
-                id="transactionNumber"
-                placeholder="Transaction ID"
-            >
+                type="tel"
+                id="paymentPhone"
+                value="${escapeHTML(
+                    pataSimuYaUser()
+                )}"
+                placeholder="07XXXXXXXX"
+            />
+
+
+            <br><br>
 
 
             <button
-                class="thibitishaBtn"
-                onclick="tumaPaymentRequest('${booking.bookingNumber}')"
+                onclick="fanyaMalipo(
+                    '${booking.id}',
+                    'MIXX BY YAS'
+                )"
             >
+                💳 Lipa MIXX BY YAS
+            </button>
 
-                ✅ Nimetuma Malipo
 
+            <button
+                onclick="fanyaMalipo(
+                    '${booking.id}',
+                    'Airtel Money'
+                )"
+            >
+                💳 Lipa Airtel Money
             </button>
 
         </div>
@@ -1826,131 +2193,205 @@ function funguaPaymentRequest(booking) {
 }
 
 
-/* =========================================================
-   28. SEND PAYMENT REQUEST
-========================================================= */
+/* ---------------------------------------------------------
+   MAKE PAYMENT REQUEST
+--------------------------------------------------------- */
 
-async function tumaPaymentRequest(
-    bookingNumber
+async function fanyaMalipo(
+    bookingId,
+    paymentMethod
 ) {
 
-    try {
+    if (!hakikishaAmeingia()) {
+        return;
+    }
 
-        const transactionNumber =
-            document
+
+    const booking =
+        await pataBookingKwaID(
+            bookingId
+        );
+
+
+    if (!booking) {
+
+        alert(
+            "❌ Booking haijapatikana."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        booking.userId !==
+        roomrentCurrentUser.uid
+    ) {
+
+        alert(
+            "❌ Huna ruhusa."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        booking.paymentStatus ===
+        "Imelipwa"
+    ) {
+
+        alert(
+            "ℹ️ Malipo tayari yamepokelewa."
+        );
+
+        return;
+
+    }
+
+
+    const phone =
+        document
             .getElementById(
-                "transactionNumber"
+                "paymentPhone"
             )
             ?.value
             .trim();
 
 
-        if (
-            !transactionNumber
-        ) {
+    if (!simuNiSahihi(phone)) {
 
-            alert(
-                "⚠️ Ingiza Transaction Number."
-            );
+        alert(
+            "❌ Weka namba sahihi."
+        );
 
-            return;
+        return;
 
-        }
+    }
 
 
-        const bookingRef =
-            doc(
+    try {
 
-                db,
-
-                "bookings",
-
-                bookingNumber
-
-            );
+        const normalizedPhone =
+            rekebishaSimu(phone);
 
 
-        const bookingSnap =
-            await getDoc(
-                bookingRef
-            );
+        const payment = {
+
+            bookingId:
+                bookingId,
+
+            userId:
+                roomrentCurrentUser.uid,
+
+            bookingNumber:
+                booking.bookingNumber,
+
+            roomNumber:
+                booking.roomNumber,
+
+            amount:
+                booking.price,
+
+            paymentMethod:
+                paymentMethod,
+
+            paymentPhone:
+                normalizedPhone,
+
+            status:
+                "Inasubiri Uthibitisho",
+
+            createdAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp(),
+
+            updatedAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp()
+
+        };
 
 
-        if (
-            !bookingSnap.exists()
-        ) {
-
-            alert(
-                "Booking haijapatikana."
-            );
-
-            return;
-
-        }
+        const paymentRef =
+            await db
+                .collection("payments")
+                .add(payment);
 
 
-        const booking =
-            bookingSnap.data();
+        await db
+            .collection("bookings")
+            .doc(bookingId)
+            .update({
+
+                paymentStatus:
+                    "Imelipwa",
+
+                paymentMethod:
+                    paymentMethod,
+
+                paymentPhone:
+                    normalizedPhone,
+
+                paymentDate:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp(),
+
+                bookingStatus:
+                    "Inasubiri Uthibitisho wa Admin",
+
+                paymentId:
+                    paymentRef.id,
+
+                updatedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
+
+            });
 
 
-        const paymentDetails =
-            getPaymentDetails(
-                booking.paymentMethod
-            );
+        await tengenezaNotification(
 
-
-        await updateDoc(
-
-            bookingRef,
+            roomrentCurrentUser.uid,
 
             {
 
-                transactionNumber,
+                title:
+                    "💳 Malipo Yamepokelewa",
 
-                receiverName:
-                    paymentDetails.name,
+                message:
+                    `Malipo ya ${fedha(booking.price)} yamepokelewa na yanasubiri uthibitisho wa Admin.`,
 
-                receiverPhone:
-                    paymentDetails.phone,
+                type:
+                    "payment_received",
 
-                paymentStatus:
-                    "Waiting Confirmation",
-
-                status:
-                    "Payment Submitted",
-
-                paymentRequestedAt:
-                    serverTimestamp()
+                bookingId:
+                    bookingId
 
             }
 
         );
 
 
-        await addNotification(
-
-            booking.userId,
-
-            "Malipo Yamepokelewa ⏳",
-
-            `Tumepokea taarifa yako ya malipo ya ${formatMoney(booking.price)}. Admin atakagua.`
-
-        );
-
-
         alert(
-            "✅ Taarifa ya malipo imetumwa."
+            "✅ Ombi la malipo limetumwa."
         );
 
 
-        onyeshaBookingZangu();
+        await onyeshaBookingZangu();
 
-    }
 
-    catch (error) {
+    } catch (error) {
 
-        console.error(error);
-
+        console.error(
+            error
+        );
 
         alert(
             "❌ Imeshindikana kutuma malipo."
@@ -1961,49 +2402,804 @@ async function tumaPaymentRequest(
 }
 
 
-/* =========================================================
-   29. ADD NOTIFICATION
-========================================================= */
+/* ---------------------------------------------------------
+   DELETE UNPAID BOOKING
+--------------------------------------------------------- */
 
-async function addNotification(
-    userId,
-    title,
-    message
+async function futaBookingIsiyolipwa(
+    bookingId
 ) {
+
+    if (!hakikishaAmeingia()) {
+        return;
+    }
+
+
+    const booking =
+        await pataBookingKwaID(
+            bookingId
+        );
+
+
+    if (!booking) {
+        return;
+    }
+
+
+    if (
+        booking.userId !==
+        roomrentCurrentUser.uid
+    ) {
+
+        alert(
+            "❌ Huna ruhusa."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        booking.paymentStatus !==
+        "Haijalipwa"
+    ) {
+
+        alert(
+            "❌ Booking iliyolipiwa haiwezi kufutwa hapa."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !confirm(
+            "Una uhakika unataka kufuta booking?"
+        )
+    ) {
+
+        return;
+
+    }
+
 
     try {
 
-        await addDoc(
+        await db
+            .collection("bookings")
+            .doc(bookingId)
+            .delete();
 
-            collection(
-                db,
-                "notifications"
-            ),
 
-            {
+        alert(
+            "✅ Booking imefutwa."
+        );
 
-                userId,
 
-                title,
+        await onyeshaBookingZangu();
 
-                message,
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+        alert(
+            "❌ Imeshindikana kufuta booking."
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   5. BOOKING ZANGU + NOTIFICATIONS
+========================================================= */
+
+
+/* ---------------------------------------------------------
+   BOOKING ZANGU
+--------------------------------------------------------- */
+
+async function onyeshaBookingZangu() {
+
+    if (!hakikishaAmeingia()) {
+        return;
+    }
+
+
+    let container =
+        document.getElementById(
+            "bookingZanguSection"
+        );
+
+
+    if (!container) {
+
+        container =
+            document.getElementById(
+                "vyumba"
+            );
+
+    }
+
+
+    if (!container) {
+        return;
+    }
+
+
+    const bookings =
+        await pataBookingsZaUser();
+
+
+    let html = `
+
+        <div class="my-bookings">
+
+            <h2>📋 Booking Zangu</h2>
+
+    `;
+
+
+    if (
+        bookings.length === 0
+    ) {
+
+        html += `
+
+            <p>
+                Bado huna booking.
+            </p>
+
+        `;
+
+    }
+
+
+    bookings.forEach(
+        booking => {
+
+            html +=
+                tengenezaBookingCard(
+                    booking
+                );
+
+        }
+    );
+
+
+    html += `
+
+        </div>
+
+    `;
+
+
+    container.innerHTML =
+        html;
+
+}
+
+
+/* ---------------------------------------------------------
+   BOOKING CARD
+--------------------------------------------------------- */
+
+function tengenezaBookingCard(
+    booking
+) {
+
+    let actions = "";
+
+
+    if (
+        booking.paymentStatus ===
+        "Haijalipwa"
+    ) {
+
+        actions += `
+
+            <button
+                onclick="funguaMalipo(
+                    '${booking.id}'
+                )"
+            >
+                💳 Lipa
+            </button>
+
+            <button
+                onclick="futaBookingIsiyolipwa(
+                    '${booking.id}'
+                )"
+            >
+                🗑️ Futa
+            </button>
+
+        `;
+
+    }
+
+
+    if (
+        booking.paymentStatus ===
+            "Imelipwa" &&
+        booking.bookingStatus !==
+            "Imethibitishwa" &&
+        booking.bookingStatus !==
+            "Imekataliwa"
+    ) {
+
+        actions += `
+
+            <p>
+                ⏳ Inasubiri uthibitisho wa Admin.
+            </p>
+
+        `;
+
+    }
+
+
+    if (
+        booking.bookingStatus ===
+        "Imethibitishwa"
+    ) {
+
+        const daysElapsed =
+            Math.min(
+                Math.max(
+                    hesabuSiku(
+                        booking.startDate
+                    ),
+                    0
+                ),
+                Number(
+                    booking.totalDays || 0
+                )
+            );
+
+
+        const remaining =
+            Math.max(
+                Number(
+                    booking.totalDays || 0
+                ) -
+                daysElapsed,
+                0
+            );
+
+
+        const profit =
+            Number(
+                booking.dailyProfit || 0
+            ) *
+            daysElapsed;
+
+
+        actions += `
+
+            <p>
+                ⏱️ Siku zilizopita:
+                <strong>
+                    ${daysElapsed}
+                </strong>
+            </p>
+
+            <p>
+                ⏳ Siku zilizobaki:
+                <strong>
+                    ${remaining}
+                </strong>
+            </p>
+
+            <p>
+                💰 Faida iliyopatikana:
+                <strong>
+                    ${fedha(profit)}
+                </strong>
+            </p>
+
+        `;
+
+    }
+
+
+    return `
+
+        <div class="booking-card">
+
+            <h3>
+                🏠 Chumba
+                ${escapeHTML(
+                    booking.roomNumber
+                )}
+            </h3>
+
+
+            <p>
+                Booking:
+                <strong>
+                    ${escapeHTML(
+                        booking.bookingNumber
+                    )}
+                </strong>
+            </p>
+
+
+            <p>
+                Jina:
+                ${escapeHTML(
+                    booking.jina
+                )}
+            </p>
+
+
+            <p>
+                Simu:
+                ${escapeHTML(
+                    booking.simu
+                )}
+            </p>
+
+
+            <p>
+                Bei:
+                <strong>
+                    ${fedha(
+                        booking.price
+                    )}
+                </strong>
+            </p>
+
+
+            <p>
+                Faida kwa siku:
+                <strong>
+                    ${fedha(
+                        booking.dailyProfit
+                    )}
+                </strong>
+            </p>
+
+
+            <p>
+                Muda:
+                <strong>
+                    ${booking.totalDays}
+                    siku
+                </strong>
+            </p>
+
+
+            <p>
+                Tarehe ya kuanza:
+                ${escapeHTML(
+                    booking.startDate
+                )}
+            </p>
+
+
+            <p>
+                Payment:
+                <strong>
+                    ${escapeHTML(
+                        booking.paymentStatus
+                    )}
+                </strong>
+            </p>
+
+
+            <p>
+                Status:
+                <strong>
+                    ${escapeHTML(
+                        booking.bookingStatus
+                    )}
+                </strong>
+            </p>
+
+
+            <p>
+                ${bookingStatusText(
+                    booking
+                )}
+            </p>
+
+
+            <div class="booking-actions">
+
+                ${actions}
+
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+
+/* ---------------------------------------------------------
+   NOTIFICATION
+--------------------------------------------------------- */
+
+async function tengenezaNotification(
+    userId,
+    data
+) {
+
+    if (!db || !userId) {
+        return;
+    }
+
+
+    try {
+
+        await db
+            .collection("notifications")
+            .add({
+
+                userId:
+                    userId,
+
+                title:
+                    data.title ||
+                    "Taarifa",
+
+                message:
+                    data.message ||
+                    "",
+
+                type:
+                    data.type ||
+                    "general",
+
+                bookingId:
+                    data.bookingId ||
+                    null,
 
                 read:
                     false,
 
                 createdAt:
-                    serverTimestamp()
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
 
-            }
+            });
 
+
+    } catch (error) {
+
+        console.error(
+            "Notification error:",
+            error
         );
 
     }
 
-    catch (error) {
+}
+
+
+/* ---------------------------------------------------------
+   USER NOTIFICATIONS
+--------------------------------------------------------- */
+
+async function pataTaarifaZaUser() {
+
+    if (!hakikishaAmeingia()) {
+        return [];
+    }
+
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("notifications")
+                .where(
+                    "userId",
+                    "==",
+                    roomrentCurrentUser.uid
+                )
+                .get();
+
+
+        const notifications = [];
+
+
+        snapshot.forEach(doc => {
+
+            notifications.push({
+
+                id:
+                    doc.id,
+
+                ...doc.data()
+
+            });
+
+        });
+
+
+        notifications.sort(
+            (a, b) => {
+
+                const aTime =
+                    a.createdAt?.toMillis
+                        ? a.createdAt.toMillis()
+                        : 0;
+
+                const bTime =
+                    b.createdAt?.toMillis
+                        ? b.createdAt.toMillis()
+                        : 0;
+
+                return bTime - aTime;
+
+            }
+        );
+
+
+        return notifications;
+
+
+    } catch (error) {
 
         console.error(
-            "Notification Error:",
+            error
+        );
+
+        return [];
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   COUNT NOTIFICATIONS
+--------------------------------------------------------- */
+
+async function pataIdadiYaTaarifa() {
+
+    const notifications =
+        await pataTaarifaZaUser();
+
+
+    return notifications.filter(
+        item =>
+            item.read !== true
+    ).length;
+
+}
+
+
+async function updateNotificationBadge() {
+
+    const button =
+        document.getElementById(
+            "taarifaBtn"
+        );
+
+
+    if (!button) {
+        return;
+    }
+
+
+    if (!roomrentCurrentUser) {
+
+        button.textContent =
+            "🔔 Taarifa";
+
+        return;
+
+    }
+
+
+    const count =
+        await pataIdadiYaTaarifa();
+
+
+    button.textContent =
+        count > 0
+            ? `🔔 Taarifa (${count})`
+            : "🔔 Taarifa";
+
+}
+
+
+/* ---------------------------------------------------------
+   SHOW NOTIFICATIONS
+--------------------------------------------------------- */
+
+async function onyeshaTaarifa() {
+
+    if (!hakikishaAmeingia()) {
+        return;
+    }
+
+
+    const container =
+        document.getElementById(
+            "taarifaSection"
+        );
+
+
+    if (!container) {
+
+        alert(
+            "Hakuna sehemu ya Taarifa kwenye HTML."
+        );
+
+        return;
+
+    }
+
+
+    const notifications =
+        await pataTaarifaZaUser();
+
+
+    let html = `
+
+        <div class="notifications">
+
+            <h2>🔔 Taarifa</h2>
+
+    `;
+
+
+    if (
+        notifications.length === 0
+    ) {
+
+        html += `
+
+            <p>
+                Huna taarifa mpya.
+            </p>
+
+        `;
+
+    }
+
+
+    notifications.forEach(
+        notification => {
+
+            html += `
+
+                <div class="notification-card">
+
+                    <h3>
+                        ${escapeHTML(
+                            notification.title
+                        )}
+                    </h3>
+
+                    <p>
+                        ${escapeHTML(
+                            notification.message
+                        )}
+                    </p>
+
+                </div>
+
+            `;
+
+        }
+    );
+
+
+    html += `
+
+        </div>
+
+    `;
+
+
+    container.innerHTML =
+        html;
+
+
+    await markAllNotificationsAsRead();
+
+}
+
+
+/* ---------------------------------------------------------
+   MARK READ
+--------------------------------------------------------- */
+
+async function markNotificationAsRead(
+    notificationId
+) {
+
+    try {
+
+        await db
+            .collection("notifications")
+            .doc(notificationId)
+            .update({
+
+                read:
+                    true
+
+            });
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+    }
+
+}
+
+
+async function markAllNotificationsAsRead() {
+
+    if (!hakikishaAmeingia()) {
+        return;
+    }
+
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("notifications")
+                .where(
+                    "userId",
+                    "==",
+                    roomrentCurrentUser.uid
+                )
+                .get();
+
+
+        const batch =
+            db.batch();
+
+
+        snapshot.forEach(doc => {
+
+            const data =
+                doc.data();
+
+
+            if (
+                data.read !== true
+            ) {
+
+                batch.update(
+                    doc.ref,
+                    {
+                        read: true
+                    }
+                );
+
+            }
+
+        });
+
+
+        await batch.commit();
+
+
+        await updateNotificationBadge();
+
+
+    } catch (error) {
+
+        console.error(
             error
         );
 
@@ -2013,2098 +3209,468 @@ async function addNotification(
 
 
 /* =========================================================
-   30. MY BOOKINGS
+   6. PROFIT DASHBOARD
 ========================================================= */
 
-async function onyeshaBookingZangu() {
 
-    try {
+/* ---------------------------------------------------------
+   CONFIRMED BOOKINGS
+--------------------------------------------------------- */
 
-        if (!requireLogin()) {
+async function pataBookingsZilizothibitishwa() {
 
-            return;
+    const bookings =
+        await pataBookingsZaUser();
 
-        }
 
-
-        const bookingQuery =
-            query(
-
-                collection(
-                    db,
-                    "bookings"
-                ),
-
-                where(
-                    "userId",
-                    "==",
-                    currentUser.uid
-                )
-
-            );
-
-
-        const result =
-            await getDocs(
-                bookingQuery
-            );
-
-
-        const bookings =
-            result.docs.map(
-
-                item => ({
-                    id:
-                        item.id,
-
-                    ...item.data()
-                })
-
-            );
-
-
-        const section =
-            document.getElementById(
-                "taarifaSection"
-            );
-
-
-        if (!section) {
-
-            return;
-
-        }
-
-
-        section.style.display =
-            "block";
-
-
-        section.innerHTML = `
-
-            <h2>
-                📋 Booking Zangu
-            </h2>
-
-
-            ${
-
-                !bookings.length
-
-                ?
-
-                `
-                    <p>
-                        Hakuna booking bado.
-                    </p>
-                `
-
-                :
-
-                bookings.map(
-
-                    b => `
-
-                        <div class="booking-card">
-
-                            <h3>
-                                ${b.bookingNumber}
-                            </h3>
-
-
-                            <p>
-                                🏠 Chumba:
-                                ${b.roomNumber}
-                            </p>
-
-
-                            <p>
-                                💰
-                                ${formatMoney(b.price)}
-                            </p>
-
-
-                            <p>
-                                📌
-                                ${b.status}
-                            </p>
-
-
-                            <p>
-                                💳
-                                ${b.paymentStatus}
-                            </p>
-
-
-                            ${
-
-                                b.transactionNumber
-
-                                ?
-
-                                `
-                                    <p>
-                                        📝 Transaction:
-
-                                        <strong>
-                                            ${b.transactionNumber}
-                                        </strong>
-                                    </p>
-                                `
-
-                                :
-
-                                ""
-
-                            }
-
-                        </div>
-
-                    `
-
-                ).join("")
-
-            }
-
-        `;
-
-
-        section.scrollIntoView({
-
-            behavior:
-                "smooth"
-
-        });
-
-    }
-
-    catch (error) {
-
-        console.error(error);
-
-
-        alert(
-            "❌ Imeshindikana kupata bookings."
-        );
-
-    }
+    return bookings.filter(
+        booking =>
+            booking.bookingStatus ===
+            "Imethibitishwa"
+    );
 
 }
 
 
-/* =========================================================
-   31. GET REFERRAL LEVELS
+/* ---------------------------------------------------------
+   PROFIT CALCULATION
+--------------------------------------------------------- */
 
-   USER:
-   A -> B -> C ONLY
-========================================================= */
+function hesabuDashboardFaida(
+    booking
+) {
 
-async function getReferralLevels(userData) {
+    const totalDays =
+        Number(
+            booking.totalDays || 0
+        );
 
-    const levels = {
 
-        A: null,
-        B: null,
-        C: null
+    const dailyProfit =
+        Number(
+            booking.dailyProfit || 0
+        );
 
-    };
+
+    let daysElapsed =
+        hesabuSiku(
+            booking.startDate
+        );
+
+
+    if (daysElapsed < 0) {
+        daysElapsed = 0;
+    }
 
 
     if (
-        !userData ||
-        !userData.referredBy
+        daysElapsed >
+        totalDays
     ) {
 
-        return levels;
+        daysElapsed =
+            totalDays;
 
     }
 
 
-    let currentCode =
-        userData.referredBy;
-
-
-    for (
-        const level of
-        ["A", "B", "C"]
-    ) {
-
-        const referrer =
-            await findUserByReferralCode(
-                currentCode
-            );
-
-
-        if (
-            !referrer ||
-            referrer.isAdmin
-        ) {
-
-            break;
-
-        }
-
-
-        levels[level] =
-            referrer;
-
-
-        currentCode =
-            referrer.referredBy || "";
-
-
-        if (!currentCode) {
-
-            break;
-
-        }
-
-    }
-
-
-    return levels;
-
-}
-
-
-/* =========================================================
-   32. PROCESS COMMISSIONS
-
-   SYSTEM A:
-
-   USER:
-   A = 5%
-   B = 2%
-   C = 1%
-
-   ADMIN:
-   KILA BOOKING = ADMIN COMMISSION
-========================================================= */
-
-async function processBookingCommissions(
-    bookingNumber
-) {
-
-    const bookingRef =
-        doc(
-            db,
-            "bookings",
-            bookingNumber
+    const daysRemaining =
+        Math.max(
+            totalDays -
+            daysElapsed,
+            0
         );
 
 
-    await runTransaction(
-
-        db,
-
-        async transaction => {
-
-            const bookingSnap =
-                await transaction.get(
-                    bookingRef
-                );
+    const profitEarned =
+        dailyProfit *
+        daysElapsed;
 
 
-            if (
-                !bookingSnap.exists()
-            ) {
-
-                throw new Error(
-                    "Booking haipo."
-                );
-
-            }
+    const expectedProfit =
+        dailyProfit *
+        totalDays;
 
 
-            const booking =
-                bookingSnap.data();
-
-
-            if (
-                booking.commissionProcessed
-            ) {
-
-                return;
-
-            }
-
-
-            /*
-               USER DATA
-            */
-
-            const userRef =
-                doc(
-                    db,
-                    "users",
-                    booking.userId
-                );
-
-
-            const userSnap =
-                await transaction.get(
-                    userRef
-                );
-
-
-            if (
-                !userSnap.exists()
-            ) {
-
-                throw new Error(
-                    "User haipo."
-                );
-
-            }
-
-
-            /*
-               MARK FIRST
-               TO PREVENT DOUBLE COMMISSION
-            */
-
-            transaction.update(
-
-                bookingRef,
-
-                {
-
-                    commissionProcessed:
-                        true,
-
-                    commissionProcessedAt:
-                        serverTimestamp()
-
-                }
-
-            );
-
-        }
-
-    );
-
-
-    /*
-       GET BOOKING AFTER LOCK
-    */
-
-    const bookingSnap =
-        await getDoc(
-            bookingRef
-        );
-
-
-    const booking =
-        bookingSnap.data();
-
-
-    const userData =
-        await getUserByUid(
-            booking.userId
-        );
-
-
-    if (!userData) {
-
-        return;
-
-    }
-
-
-    /*
-       USER LEVELS
-    */
-
-    const levels =
-        await getReferralLevels(
-            userData
-        );
-
-
-    for (
-        const level of
-        ["A", "B", "C"]
-    ) {
-
-        const referrer =
-            levels[level];
-
-
-        if (!referrer) {
-
-            continue;
-
-        }
-
-
-        const percent =
-            USER_COMMISSION[level];
-
-
-        const amount =
-            Number(
-                booking.price
+    const progress =
+        totalDays > 0
+            ? Math.min(
+                (
+                    daysElapsed /
+                    totalDays
+                ) * 100,
+                100
             )
-            *
-            percent
-            /
-            100;
+            : 0;
 
 
-        const commissionRef =
-            doc(
-                collection(
-                    db,
-                    "commissions"
-                )
-            );
+    return {
 
+        totalDays,
+        dailyProfit,
+        daysElapsed,
+        daysRemaining,
+        profitEarned,
+        expectedProfit,
+        progress
 
-        await setDoc(
-
-            commissionRef,
-
-            {
-
-                bookingNumber,
-
-                userId:
-                    referrer.id,
-
-                phone:
-                    referrer.phone || "",
-
-                userName:
-                    referrer.name || "",
-
-                level,
-
-                percent,
-
-                amount,
-
-                type:
-                    "User Commission",
-
-                createdAt:
-                    serverTimestamp()
-
-            }
-
-        );
-
-
-        /*
-           UPDATE BALANCE
-        */
-
-        const targetRef =
-            doc(
-                db,
-                "users",
-                referrer.id
-            );
-
-
-        await runTransaction(
-
-            db,
-
-            async transaction => {
-
-                const snap =
-                    await transaction.get(
-                        targetRef
-                    );
-
-
-                if (!snap.exists()) {
-
-                    return;
-
-                }
-
-
-                const data =
-                    snap.data();
-
-
-                const totalCommission =
-                    Number(
-                        data.totalCommission || 0
-                    )
-                    +
-                    amount;
-
-
-                const availableBalance =
-                    Number(
-                        data.availableBalance || 0
-                    )
-                    +
-                    amount;
-
-
-                transaction.update(
-
-                    targetRef,
-
-                    {
-
-                        totalCommission,
-
-                        availableBalance,
-
-                        updatedAt:
-                            serverTimestamp()
-
-                    }
-
-                );
-
-            }
-
-        );
-
-
-        await addNotification(
-
-            referrer.id,
-
-            "Commission Mpya 💰",
-
-            `Umepata ${percent}% commission ya ${formatMoney(amount)} kwenye Level ${level}.`
-
-        );
-
-    }
-
-
-    /*
-       ADMIN COMMISSION
-
-       SYSTEM A:
-       KILA BOOKING
-    */
-
-    const adminAmount =
-        Number(
-            booking.price
-        )
-        *
-        ADMIN_COMMISSION_PERCENT
-        /
-        100;
-
-
-    await addDoc(
-
-        collection(
-            db,
-            "adminCommissions"
-        ),
-
-        {
-
-            bookingNumber,
-
-            bookingUserId:
-                booking.userId,
-
-            bookingUserName:
-                booking.name,
-
-            percent:
-                ADMIN_COMMISSION_PERCENT,
-
-            amount:
-                adminAmount,
-
-            type:
-                "System A Admin Commission",
-
-            createdAt:
-                serverTimestamp()
-
-        }
-
-    );
+    };
 
 }
 
 
-/* =========================================================
-   33. ACCOUNT
-========================================================= */
+/* ---------------------------------------------------------
+   PROFIT DASHBOARD
+--------------------------------------------------------- */
 
-async function funguaAccount() {
+async function onyeshaDashboardFaida() {
 
-    try {
-
-        if (!requireLogin()) {
-
-            return;
-
-        }
+    if (!hakikishaAmeingia()) {
+        return;
+    }
 
 
-        const user =
-            await getCurrentUserData();
+    const bookings =
+        await pataBookingsZilizothibitishwa();
 
 
-        if (!user) {
+    let container =
+        document.getElementById(
+            "faidaSection"
+        );
 
-            return;
 
-        }
+    if (!container) {
 
-
-        const section =
+        container =
             document.getElementById(
-                "taarifaSection"
+                "vyumba"
             );
 
-
-        if (!section) {
-
-            return;
-
-        }
+    }
 
 
-        section.style.display =
-            "block";
+    if (!container) {
+        return;
+    }
 
 
-        const totalCommission =
-            Number(
-                user.totalCommission || 0
-            );
+    if (
+        bookings.length === 0
+    ) {
 
+        container.innerHTML = `
 
-        const totalWithdrawn =
-            Number(
-                user.totalWithdrawn || 0
-            );
+            <div class="faida-dashboard">
 
-
-        const pendingWithdrawal =
-            Number(
-                user.pendingWithdrawal || 0
-            );
-
-
-        const availableBalance =
-            Number(
-                user.availableBalance || 0
-            );
-
-
-        /*
-           SALIO LOTE
-
-           Commission total -
-           withdrawn
-
-           Pending inaweza kuwa sehemu
-           iliyokwishawekwa kwenye request.
-        */
-
-        const totalBalance =
-            availableBalance +
-            pendingWithdrawal;
-
-
-        section.innerHTML = `
-
-            <h2>
-                👤 Account Yangu
-            </h2>
-
-
-            <div class="booking-card">
+                <h2>
+                    📊 Dashboard ya Faida
+                </h2>
 
                 <p>
-                    👤 Jina:
-
-                    <strong>
-                        ${user.name || "Bado hujaweka jina"}
-                    </strong>
+                    Bado huna booking
+                    iliyothibitishwa.
                 </p>
-
-
-                <p>
-                    📱 Namba:
-
-                    ${user.phone || currentUser.phoneNumber || "-"}
-                </p>
-
-
-                <p>
-                    🔑 Referral Code:
-
-                    <strong>
-                        ${user.referralCode || "-"}
-                    </strong>
-                </p>
-
-
-                <hr>
-
-
-                <h3>
-                    🏦 Salio Lako
-                </h3>
-
-
-                <p>
-                    💰 Jumla ya Commission:
-
-                    <strong>
-                        ${formatMoney(totalCommission)}
-                    </strong>
-                </p>
-
-
-                <p>
-                    🏦 Salio Lote:
-
-                    <strong>
-                        ${formatMoney(totalBalance)}
-                    </strong>
-                </p>
-
-
-                <p>
-                    💳 Salio Linaloweza Kuwithdraw:
-
-                    <strong>
-                        ${formatMoney(availableBalance)}
-                    </strong>
-                </p>
-
-
-                <p>
-                    ⏳ Withdrawal Inayosubiri:
-
-                    <strong>
-                        ${formatMoney(pendingWithdrawal)}
-                    </strong>
-                </p>
-
-
-                <p>
-                    💸 Jumla Iliyowahi Kuwithdraw:
-
-                    <strong>
-                        ${formatMoney(totalWithdrawn)}
-                    </strong>
-                </p>
-
-
-                <hr>
-
-
-                <button
-                    class="thibitishaBtn"
-                    onclick="funguaWithdrawal()"
-                >
-
-                    💸 Withdrawal
-
-                </button>
-
-
-                <button
-                    class="endeleaBtn"
-                    onclick="onyeshaMyReferral()"
-                >
-
-                    🤝 Referral Zangu
-
-                </button>
-
-
-                <button
-                    class="endeleaBtn"
-                    onclick="onyeshaMyCommissions()"
-                >
-
-                    💰 Commission Zangu
-
-                </button>
-
-
-                <button
-                    class="endeleaBtn"
-                    onclick="onyeshaWithdrawalHistory()"
-                >
-
-                    📜 Withdrawal History
-
-                </button>
-
-
-                <button
-                    class="endeleaBtn"
-                    onclick="onyeshaNotifications()"
-                >
-
-                    🔔 Taarifa Zangu
-
-                </button>
 
             </div>
 
         `;
 
-
-        section.scrollIntoView({
-
-            behavior:
-                "smooth"
-
-        });
-
-    }
-
-    catch (error) {
-
-        console.error(error);
-
-
-        alert(
-            "❌ Imeshindikana kufungua account."
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   34. MY REFERRALS
-========================================================= */
-
-async function onyeshaMyReferral() {
-
-    if (!requireLogin()) {
-
         return;
 
     }
 
 
-    const user =
-        await getCurrentUserData();
+    let totalProfitEarned = 0;
+    let totalExpectedProfit = 0;
+    let totalDailyProfit = 0;
 
 
-    if (!user) {
+    bookings.forEach(
+        booking => {
 
-        return;
-
-    }
-
-
-    const usersSnap =
-        await getDocs(
-
-            collection(
-                db,
-                "users"
-            )
-
-        );
-
-
-    const users =
-        usersSnap.docs.map(
-
-            item => ({
-
-                id:
-                    item.id,
-
-                ...item.data()
-
-            })
-
-        );
-
-
-    const levelA =
-        users.filter(
-
-            u =>
-                u.referredBy ===
-                user.referralCode
-
-        );
-
-
-    const levelB = [];
-
-    const levelC = [];
-
-
-    levelA.forEach(
-
-        userA => {
-
-            const children =
-                users.filter(
-
-                    u =>
-                        u.referredBy ===
-                        userA.referralCode
-
+            const info =
+                hesabuDashboardFaida(
+                    booking
                 );
 
 
-            levelB.push(
-                ...children
-            );
+            totalProfitEarned +=
+                info.profitEarned;
 
 
-            children.forEach(
-
-                userB => {
-
-                    const grandchildren =
-                        users.filter(
-
-                            u =>
-                                u.referredBy ===
-                                userB.referralCode
-
-                        );
+            totalExpectedProfit +=
+                info.expectedProfit;
 
 
-                    levelC.push(
-                        ...grandchildren
-                    );
-
-                }
-
-            );
+            totalDailyProfit +=
+                info.dailyProfit;
 
         }
-
     );
 
 
-    const section =
-        document.getElementById(
-            "taarifaSection"
-        );
+    let html = `
 
-
-    section.innerHTML = `
-
-        <h2>
-            🤝 Referral Zangu
-        </h2>
-
-
-        <button
-            class="endeleaBtn"
-            onclick="funguaAccount()"
-        >
-
-            ⬅️ Rudi Account
-
-        </button>
-
-
-        <div class="booking-card">
-
-            <p>
-                🔑 Referral Code:
-
-                <strong>
-                    ${user.referralCode}
-                </strong>
-            </p>
-
-
-            <p>
-                🅰️ Level A:
-                ${levelA.length}
-            </p>
-
-
-            <p>
-                🅱️ Level B:
-                ${levelB.length}
-            </p>
-
-
-            <p>
-                🅲 Level C:
-                ${levelC.length}
-            </p>
-
-        </div>
-
-
-        <h3>
-            🅰️ Level A
-        </h3>
-
-        ${
-
-            levelA.length
-
-            ?
-
-            levelA.map(
-
-                u => `
-
-                    <div class="booking-card">
-
-                        👤 ${u.name || "-"}
-
-                        <br>
-
-                        📱 ${u.phone || "-"}
-
-                    </div>
-
-                `
-
-            ).join("")
-
-            :
-
-            "<p>Hakuna referral Level A bado.</p>"
-
-        }
-
-
-        <h3>
-            🅱️ Level B
-        </h3>
-
-        ${
-
-            levelB.length
-
-            ?
-
-            levelB.map(
-
-                u => `
-
-                    <div class="booking-card">
-
-                        👤 ${u.name || "-"}
-
-                        <br>
-
-                        📱 ${u.phone || "-"}
-
-                    </div>
-
-                `
-
-            ).join("")
-
-            :
-
-            "<p>Hakuna referral Level B bado.</p>"
-
-        }
-
-
-        <h3>
-            🅲 Level C
-        </h3>
-
-        ${
-
-            levelC.length
-
-            ?
-
-            levelC.map(
-
-                u => `
-
-                    <div class="booking-card">
-
-                        👤 ${u.name || "-"}
-
-                        <br>
-
-                        📱 ${u.phone || "-"}
-
-                    </div>
-
-                `
-
-            ).join("")
-
-            :
-
-            "<p>Hakuna referral Level C bado.</p>"
-
-        }
-
-    `;
-
-}
-
-
-/* =========================================================
-   35. MY COMMISSIONS
-========================================================= */
-
-async function onyeshaMyCommissions() {
-
-    if (!requireLogin()) {
-
-        return;
-
-    }
-
-
-    const result =
-        await getDocs(
-
-            query(
-
-                collection(
-                    db,
-                    "commissions"
-                ),
-
-                where(
-                    "userId",
-                    "==",
-                    currentUser.uid
-                )
-
-            )
-
-        );
-
-
-    const commissions =
-        result.docs.map(
-
-            item => ({
-
-                id:
-                    item.id,
-
-                ...item.data()
-
-            })
-
-        );
-
-
-    const total =
-        commissions.reduce(
-
-            (sum, c) =>
-
-                sum +
-                Number(
-                    c.amount || 0
-                ),
-
-            0
-
-        );
-
-
-    const section =
-        document.getElementById(
-            "taarifaSection"
-        );
-
-
-    section.innerHTML = `
-
-        <h2>
-            💰 Commission Zangu
-        </h2>
-
-
-        <button
-            class="endeleaBtn"
-            onclick="funguaAccount()"
-        >
-
-            ⬅️ Rudi Account
-
-        </button>
-
-
-        <div class="booking-card">
-
-            <h3>
-                💰 Jumla:
-
-                ${formatMoney(total)}
-            </h3>
-
-        </div>
-
-
-        ${
-
-            !commissions.length
-
-            ?
-
-            "<p>Bado hujapata commission.</p>"
-
-            :
-
-            commissions.map(
-
-                c => `
-
-                    <div class="booking-card">
-
-                        <p>
-                            🅰️🅱️🅲 Level:
-
-                            <strong>
-                                ${c.level}
-                            </strong>
-                        </p>
-
-
-                        <p>
-                            📊 Asilimia:
-
-                            ${c.percent}%
-                        </p>
-
-
-                        <p>
-                            💰 Commission:
-
-                            <strong>
-                                ${formatMoney(c.amount)}
-                            </strong>
-                        </p>
-
-
-                        <p>
-                            📋 Booking:
-
-                            ${c.bookingNumber}
-                        </p>
-
-
-                        <p>
-                            📅
-
-                            ${formatDate(c.createdAt)}
-                        </p>
-
-                    </div>
-
-                `
-
-            ).join("")
-
-        }
-
-    `;
-
-}
-
-
-/* =========================================================
-   36. OPEN WITHDRAWAL
-========================================================= */
-
-async function funguaWithdrawal() {
-
-    if (!requireLogin()) {
-
-        return;
-
-    }
-
-
-    const user =
-        await getCurrentUserData();
-
-
-    const balance =
-        Number(
-            user.availableBalance || 0
-        );
-
-
-    const section =
-        document.getElementById(
-            "taarifaSection"
-        );
-
-
-    section.innerHTML = `
-
-        <h2>
-            💸 Withdrawal
-        </h2>
-
-
-        <button
-            class="endeleaBtn"
-            onclick="funguaAccount()"
-        >
-
-            ⬅️ Rudi Account
-
-        </button>
-
-
-        <div class="booking-card">
-
-            <h3>
-                🏦 Salio Linaloweza Kuwithdraw
-            </h3>
-
+        <div class="faida-dashboard">
 
             <h2>
-                ${formatMoney(balance)}
+                📊 Dashboard ya Faida
             </h2>
 
-        </div>
+
+            <div class="faida-summary">
+
+                <div class="faida-box">
+
+                    <h3>
+                        💰 Faida Iliyopatikana
+                    </h3>
+
+                    <strong>
+                        ${fedha(
+                            totalProfitEarned
+                        )}
+                    </strong>
+
+                </div>
 
 
-        <div class="booking-card">
+                <div class="faida-box">
 
-            <h3>
-                💸 Omba Withdrawal
-            </h3>
+                    <h3>
+                        📈 Faida Inayotarajiwa
+                    </h3>
 
+                    <strong>
+                        ${fedha(
+                            totalExpectedProfit
+                        )}
+                    </strong>
 
-            <p>
-                ⚠️ Kila withdrawal ina
-                makato ya 8%.
-            </p>
-
-
-            <input
-                type="number"
-                id="withdrawAmount"
-                placeholder="Kiasi unachotaka kuwithdraw"
-                oninput="hesabuWithdrawal()"
-            >
+                </div>
 
 
-            <select id="withdrawMethod">
+                <div class="faida-box">
 
-                <option value="">
-                    Chagua njia
-                </option>
+                    <h3>
+                        💵 Faida Kwa Siku
+                    </h3>
 
-                <option value="Airtel Money">
-                    Airtel Money
-                </option>
+                    <strong>
+                        ${fedha(
+                            totalDailyProfit
+                        )}
+                    </strong>
 
-                <option value="MIXX BY YAS">
-                    MIXX BY YAS
-                </option>
-
-            </select>
-
-
-            <input
-                type="text"
-                id="withdrawPhone"
-                placeholder="Namba ya kupokea pesa"
-            >
-
-
-            <div id="withdrawPreview">
-
-                <p>
-                    💰 Ingiza kiasi kuona
-                    makato na kiasi cha kupokea.
-                </p>
+                </div>
 
             </div>
 
+    `;
 
-            <button
-                class="thibitishaBtn"
-                onclick="ombaWithdrawal()"
-            >
 
-                💸 Tuma Withdrawal Request
+    bookings.forEach(
+        booking => {
 
-            </button>
+            const info =
+                hesabuDashboardFaida(
+                    booking
+                );
+
+
+            html += `
+
+                <div class="faida-card">
+
+                    <h3>
+                        🏠 Chumba
+                        ${escapeHTML(
+                            booking.roomNumber
+                        )}
+                    </h3>
+
+
+                    <p>
+                        Booking:
+                        ${escapeHTML(
+                            booking.bookingNumber
+                        )}
+                    </p>
+
+
+                    <p>
+                        💵 Faida kwa siku:
+                        <strong>
+                            ${fedha(
+                                info.dailyProfit
+                            )}
+                        </strong>
+                    </p>
+
+
+                    <p>
+                        📅 Muda:
+                        <strong>
+                            ${info.totalDays}
+                            siku
+                        </strong>
+                    </p>
+
+
+                    <p>
+                        ⏳ Siku zilizopita:
+                        <strong>
+                            ${info.daysElapsed}
+                        </strong>
+                    </p>
+
+
+                    <p>
+                        🔄 Siku zilizobaki:
+                        <strong>
+                            ${info.daysRemaining}
+                        </strong>
+                    </p>
+
+
+                    <p>
+                        💰 Faida iliyopatikana:
+                        <strong>
+                            ${fedha(
+                                info.profitEarned
+                            )}
+                        </strong>
+                    </p>
+
+
+                    <p>
+                        📈 Faida inayotarajiwa:
+                        <strong>
+                            ${fedha(
+                                info.expectedProfit
+                            )}
+                        </strong>
+                    </p>
+
+
+                    <div class="progress-container">
+
+                        <div
+                            class="progress-bar"
+                            style="width:${info.progress}%"
+                        ></div>
+
+                    </div>
+
+
+                    <p>
+                        <strong>
+                            ${info.progress.toFixed(1)}%
+                        </strong>
+                        imekamilika
+                    </p>
+
+                </div>
+
+            `;
+
+        }
+    );
+
+
+    html += `
 
         </div>
 
     `;
 
+
+    container.innerHTML =
+        html;
+
 }
 
 
-/* =========================================================
-   37. CALCULATE WITHDRAWAL
-========================================================= */
+function funguaDashboardFaida() {
 
-async function hesabuWithdrawal() {
-
-    const amount =
-        Number(
-
-            document
-            .getElementById(
-                "withdrawAmount"
-            )
-            ?.value || 0
-
-        );
-
-
-    const fee =
-        amount *
-        WITHDRAWAL_FEE_PERCENT
-        /
-        100;
-
-
-    const receive =
-        amount -
-        fee;
-
-
-    const preview =
-        document.getElementById(
-            "withdrawPreview"
-        );
-
-
-    if (!preview) {
-
+    if (!hakikishaAmeingia()) {
         return;
-
     }
 
 
-    preview.innerHTML = `
-
-        <div class="booking-card">
-
-            <p>
-                💰 Withdrawal:
-
-                <strong>
-                    ${formatMoney(amount)}
-                </strong>
-            </p>
-
-
-            <p>
-                ➖ Makato ${WITHDRAWAL_FEE_PERCENT}%:
-
-                <strong>
-                    ${formatMoney(fee)}
-                </strong>
-            </p>
-
-
-            <hr>
-
-
-            <p>
-                ✅ Utapokea:
-
-                <strong>
-                    ${formatMoney(receive)}
-                </strong>
-            </p>
-
-        </div>
-
-    `;
+    onyeshaDashboardFaida();
 
 }
 
 
 /* =========================================================
-   38. REQUEST WITHDRAWAL
+   7. ADMIN
 ========================================================= */
 
-async function ombaWithdrawal() {
+
+/* ---------------------------------------------------------
+   IS ADMIN
+--------------------------------------------------------- */
+
+async function niAdmin() {
+
+    if (!roomrentCurrentUser) {
+        return false;
+    }
+
 
     try {
 
-        if (!requireLogin()) {
+        const snap =
+            await db
+                .collection("users")
+                .doc(
+                    roomrentCurrentUser.uid
+                )
+                .get();
 
-            return;
 
+        if (!snap.exists) {
+            return false;
         }
 
 
-        const amount =
-            Number(
-
-                document
-                .getElementById(
-                    "withdrawAmount"
-                )
-                ?.value || 0
-
-            );
-
-
-        const method =
-            document
-            .getElementById(
-                "withdrawMethod"
-            )
-            ?.value;
-
-
-        const phone =
-            document
-            .getElementById(
-                "withdrawPhone"
-            )
-            ?.value
-            .trim();
-
-
-        if (
-            amount <= 0 ||
-            !method ||
-            !phone
-        ) {
-
-            alert(
-                "⚠️ Tafadhali jaza taarifa zote."
-            );
-
-            return;
-
-        }
-
-
-        const userRef =
-            doc(
-                db,
-                "users",
-                currentUser.uid
-            );
-
-
-        const fee =
-            amount *
-            WITHDRAWAL_FEE_PERCENT
-            /
-            100;
-
-
-        const receiveAmount =
-            amount -
-            fee;
-
-
-        const withdrawalRef =
-            doc(
-                collection(
-                    db,
-                    "withdrawals"
-                )
-            );
-
-
-        await runTransaction(
-
-            db,
-
-            async transaction => {
-
-                const userSnap =
-                    await transaction.get(
-                        userRef
-                    );
-
-
-                if (
-                    !userSnap.exists()
-                ) {
-
-                    throw new Error(
-                        "User haipo."
-                    );
-
-                }
-
-
-                const user =
-                    userSnap.data();
-
-
-                const balance =
-                    Number(
-                        user.availableBalance || 0
-                    );
-
-
-                if (
-                    amount > balance
-                ) {
-
-                    throw new Error(
-                        "Salio lako halitoshi."
-                    );
-
-                }
-
-
-                /*
-                   ONDOA KWENYE AVAILABLE
-
-                   WEKA PENDING
-                */
-
-                transaction.update(
-
-                    userRef,
-
-                    {
-
-                        availableBalance:
-                            balance - amount,
-
-                        pendingWithdrawal:
-
-                            Number(
-                                user.pendingWithdrawal || 0
-                            )
-                            +
-                            amount,
-
-                        updatedAt:
-                            serverTimestamp()
-
-                    }
-
-                );
-
-
-                transaction.set(
-
-                    withdrawalRef,
-
-                    {
-
-                        withdrawalId:
-                            withdrawalRef.id,
-
-                        userId:
-                            currentUser.uid,
-
-                        userName:
-                            user.name || "",
-
-                        userPhone:
-                            currentUser.phoneNumber || "",
-
-                        amount,
-
-                        fee,
-
-                        feePercent:
-                            WITHDRAWAL_FEE_PERCENT,
-
-                        receiveAmount,
-
-                        method,
-
-                        phone,
-
-                        status:
-                            "Pending",
-
-                        createdAt:
-                            serverTimestamp()
-
-                    }
-
-                );
-
-            }
-
+        return (
+            snap.data().role ===
+            "admin"
         );
 
 
-        await addNotification(
+    } catch (error) {
 
-            currentUser.uid,
-
-            "Withdrawal Request 💸",
-
-            `Withdrawal ya ${formatMoney(amount)} imetumwa. Utapokea ${formatMoney(receiveAmount)} baada ya makato ya 8%.`
-
+        console.error(
+            error
         );
 
-
-        alert(
-            `✅ Withdrawal request imetumwa.\n\nUtapokea: ${formatMoney(receiveAmount)}`
-        );
-
-
-        funguaAccount();
-
-    }
-
-    catch (error) {
-
-        console.error(error);
-
-
-        alert(
-            "❌ " + error.message
-        );
+        return false;
 
     }
 
 }
 
 
-/* =========================================================
-   39. WITHDRAWAL HISTORY
-========================================================= */
+/* ---------------------------------------------------------
+   ADMIN DASHBOARD
+--------------------------------------------------------- */
 
-async function onyeshaWithdrawalHistory() {
+async function funguaAdminDashboard() {
 
-    if (!requireLogin()) {
-
+    if (!hakikishaAmeingia()) {
         return;
-
     }
 
 
-    const result =
-        await getDocs(
+    const admin =
+        await niAdmin();
 
-            query(
 
-                collection(
-                    db,
-                    "withdrawals"
-                ),
-
-                where(
-                    "userId",
-                    "==",
-                    currentUser.uid
-                )
-
-            )
-
-        );
-
-
-    const withdrawals =
-        result.docs.map(
-
-            item => ({
-
-                id:
-                    item.id,
-
-                ...item.data()
-
-            })
-
-        );
-
-
-    const section =
-        document.getElementById(
-            "taarifaSection"
-        );
-
-
-    section.innerHTML = `
-
-        <h2>
-            📜 Withdrawal History
-        </h2>
-
-
-        <button
-            class="endeleaBtn"
-            onclick="funguaAccount()"
-        >
-
-            ⬅️ Rudi Account
-
-        </button>
-
-
-        ${
-
-            !withdrawals.length
-
-            ?
-
-            "<p>Hakuna withdrawal bado.</p>"
-
-            :
-
-            withdrawals.map(
-
-                w => `
-
-                    <div class="booking-card">
-
-                        <p>
-                            💰 Withdrawal:
-
-                            <strong>
-                                ${formatMoney(w.amount)}
-                            </strong>
-                        </p>
-
-
-                        <p>
-                            ➖ Makato:
-
-                            ${formatMoney(w.fee)}
-                        </p>
-
-
-                        <p>
-                            ✅ Utapokea:
-
-                            <strong>
-                                ${formatMoney(w.receiveAmount)}
-                            </strong>
-                        </p>
-
-
-                        <p>
-                            📱 ${w.method}
-                        </p>
-
-
-                        <p>
-                            📌 Status:
-
-                            <strong>
-                                ${w.status}
-                            </strong>
-                        </p>
-
-
-                        <p>
-                            📅
-
-                            ${formatDate(w.createdAt)}
-                        </p>
-
-                    </div>
-
-                `
-
-            ).join("")
-
-        }
-
-    `;
-
-}
-
-
-/* =========================================================
-   40. NOTIFICATIONS
-========================================================= */
-
-async function funguaTaarifa() {
-
-    if (!requireLogin()) {
-
-        return;
-
-    }
-
-
-    onyeshaNotifications();
-
-}
-
-
-async function onyeshaNotifications() {
-
-    if (!requireLogin()) {
-
-        return;
-
-    }
-
-
-    const result =
-        await getDocs(
-
-            query(
-
-                collection(
-                    db,
-                    "notifications"
-                ),
-
-                where(
-                    "userId",
-                    "==",
-                    currentUser.uid
-                )
-
-            )
-
-        );
-
-
-    const notifications =
-        result.docs.map(
-
-            item => ({
-
-                id:
-                    item.id,
-
-                ...item.data()
-
-            })
-
-        );
-
-
-    const section =
-        document.getElementById(
-            "taarifaSection"
-        );
-
-
-    section.style.display =
-        "block";
-
-
-    section.innerHTML = `
-
-        <h2>
-            🔔 Taarifa Zangu
-        </h2>
-
-
-        ${
-
-            !notifications.length
-
-            ?
-
-            "<p>Hakuna taarifa bado.</p>"
-
-            :
-
-            notifications.map(
-
-                n => `
-
-                    <div class="booking-card">
-
-                        <h3>
-                            ${n.title}
-                        </h3>
-
-
-                        <p>
-                            ${n.message}
-                        </p>
-
-
-                        <small>
-                            ${formatDate(n.createdAt)}
-                        </small>
-
-                    </div>
-
-                `
-
-            ).join("")
-
-        }
-
-    `;
-
-}
-
-
-/* =========================================================
-   41. CHECK ADMIN
-========================================================= */
-
-function isAdmin() {
-
-    return (
-
-        currentUser &&
-
-        currentUser.uid ===
-        ADMIN_UID
-
-    );
-
-}
-
-
-/* =========================================================
-   42. ADMIN LOGIN
-========================================================= */
-
-function funguaAdminLogin() {
-
-    if (!currentUser) {
-
-        alert(
-            "⚠️ Admin lazima aingie kwa Firebase Phone OTP kwanza."
-        );
-
-        return;
-
-    }
-
-
-    if (!isAdmin()) {
-
-        alert(
-            "❌ Account hii sio Admin."
-        );
-
-        return;
-
-    }
-
-
-    funguaAdmin();
-
-}
-
-
-/* =========================================================
-   43. ADMIN DASHBOARD
-========================================================= */
-
-async function funguaAdmin() {
-
-    if (!isAdmin()) {
+    if (!admin) {
 
         alert(
             "❌ Huna ruhusa ya Admin."
@@ -4115,1825 +3681,539 @@ async function funguaAdmin() {
     }
 
 
-    const section =
+    let container =
         document.getElementById(
-            "taarifaSection"
+            "adminSection"
         );
 
 
-    section.style.display =
-        "block";
+    if (!container) {
+
+        container =
+            document.getElementById(
+                "vyumba"
+            );
+
+    }
 
 
-    section.innerHTML = `
-
-        <h2>
-            🔐 RoomRent Admin Dashboard
-        </h2>
-
-
-        <div class="booking-card">
-
-            <p>
-                👑 Karibu Admin
-            </p>
-
-
-            <p>
-                🔑 Admin Referral Code:
-
-                <strong>
-                    ${ADMIN_REFERRAL_CODE}
-                </strong>
-            </p>
-
-
-            <button
-                class="endeleaBtn"
-                onclick="onyeshaAdminBookings()"
-            >
-
-                📋 Manage Bookings
-
-            </button>
-
-
-            <button
-                class="endeleaBtn"
-                onclick="onyeshaAdminWithdrawals()"
-            >
-
-                💸 Manage Withdrawals
-
-            </button>
-
-
-            <button
-                class="endeleaBtn"
-                onclick="onyeshaAdminCommissions()"
-            >
-
-                💰 Commission Management
-
-            </button>
-
-
-            <button
-                class="endeleaBtn"
-                onclick="onyeshaAdminReferrals()"
-            >
-
-                🤝 Manage Referrals
-
-            </button>
-
-
-            <button
-                class="endeleaBtn"
-                onclick="onyeshaAdminStatistics()"
-            >
-
-                📊 Statistics
-
-            </button>
-
-
-            <button
-                class="thibitishaBtn"
-                onclick="adminLogout()"
-            >
-
-                🚪 Logout
-
-            </button>
-
-        </div>
-
-    `;
-
-}
-
-
-/* =========================================================
-   44. ADMIN BOOKINGS
-========================================================= */
-
-async function onyeshaAdminBookings() {
-
-    if (!isAdmin()) {
-
+    if (!container) {
         return;
-
     }
 
 
-    const result =
-        await getDocs(
+    container.innerHTML = `
 
-            collection(
-                db,
-                "bookings"
-            )
+        <div class="admin-dashboard">
 
-        );
+            <h2>
+                🛠️ Admin Dashboard
+            </h2>
 
-
-    const bookings =
-        result.docs.map(
-
-            item => ({
-
-                id:
-                    item.id,
-
-                ...item.data()
-
-            })
-
-        );
-
-
-    const section =
-        document.getElementById(
-            "taarifaSection"
-        );
-
-
-    section.innerHTML = `
-
-        <h2>
-            📋 Manage Bookings
-        </h2>
-
-
-        <button
-            class="endeleaBtn"
-            onclick="funguaAdmin()"
-        >
-
-            ⬅️ Rudi Admin
-
-        </button>
-
-
-        ${
-
-            !bookings.length
-
-            ?
-
-            "<p>Hakuna booking bado.</p>"
-
-            :
-
-            bookings.map(
-
-                b => `
-
-                    <div class="booking-card">
-
-                        <h3>
-                            ${b.bookingNumber}
-                        </h3>
-
-
-                        <p>
-                            👤 ${b.name}
-                        </p>
-
-
-                        <p>
-                            📱 ${b.phone}
-                        </p>
-
-
-                        <p>
-                            🏠 Chumba:
-                            ${b.roomNumber}
-                        </p>
-
-
-                        <p>
-                            💰
-                            ${formatMoney(b.price)}
-                        </p>
-
-
-                        <p>
-                            💳
-                            ${b.paymentMethod}
-                        </p>
-
-
-                        <p>
-                            📝 Transaction:
-
-                            <strong>
-                                ${b.transactionNumber || "-"}
-                            </strong>
-                        </p>
-
-
-                        <p>
-                            📌
-
-                            <strong>
-                                ${b.status}
-                            </strong>
-                        </p>
-
-
-                        ${
-
-                            b.status !==
-                            "Confirmed"
-
-                            ?
-
-                            `
-
-                                <button
-                                    class="thibitishaBtn"
-                                    onclick="adminConfirmBooking('${b.bookingNumber}')"
-                                >
-
-                                    ✅ Confirm Payment
-
-                                </button>
-
-
-                                <button
-                                    class="kodiBtn"
-                                    onclick="adminCancelBooking('${b.bookingNumber}')"
-                                >
-
-                                    ❌ Cancel
-
-                                </button>
-
-                            `
-
-                            :
-
-                            `
-                                <p>
-                                    ✅ Confirmed
-                                </p>
-                            `
-
-                        }
-
-                    </div>
-
-                `
-
-            ).join("")
-
-        }
-
-    `;
-
-}
-
-
-/* =========================================================
-   45. ADMIN CONFIRM BOOKING
-========================================================= */
-
-async function adminConfirmBooking(
-    bookingNumber
-) {
-
-    try {
-
-        if (!isAdmin()) {
-
-            return;
-
-        }
-
-
-        const bookingRef =
-            doc(
-
-                db,
-
-                "bookings",
-
-                bookingNumber
-
-            );
-
-
-        const bookingSnap =
-            await getDoc(
-                bookingRef
-            );
-
-
-        if (
-            !bookingSnap.exists()
-        ) {
-
-            return;
-
-        }
-
-
-        const booking =
-            bookingSnap.data();
-
-
-        if (
-            booking.status ===
-            "Confirmed"
-        ) {
-
-            alert(
-                "Booking tayari imethibitishwa."
-            );
-
-            return;
-
-        }
-
-
-        if (
-            !booking.transactionNumber
-        ) {
-
-            const answer =
-                confirm(
-                    "⚠️ Transaction Number haipo. Una uhakika unataka kuthibitisha?"
-                );
-
-
-            if (!answer) {
-
-                return;
-
-            }
-
-        }
-
-
-        await updateDoc(
-
-            bookingRef,
-
-            {
-
-                status:
-                    "Confirmed",
-
-                paymentStatus:
-                    "Paid",
-
-                confirmedAt:
-                    serverTimestamp(),
-
-                confirmedBy:
-                    currentUser.uid
-
-            }
-
-        );
-
-
-        /*
-           PROCESS COMMISSION
-        */
-
-        await processBookingCommissions(
-            bookingNumber
-        );
-
-
-        await addNotification(
-
-            booking.userId,
-
-            "Malipo Yamethibitishwa ✅",
-
-            `Malipo ya ${formatMoney(booking.price)} yamethibitishwa.`
-
-        );
-
-
-        alert(
-            "✅ Booking na commissions zimethibitishwa!"
-        );
-
-
-        onyeshaAdminBookings();
-
-    }
-
-    catch (error) {
-
-        console.error(error);
-
-
-        alert(
-            "❌ " +
-            error.message
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   46. CANCEL BOOKING
-========================================================= */
-
-async function adminCancelBooking(
-    bookingNumber
-) {
-
-    if (!isAdmin()) {
-
-        return;
-
-    }
-
-
-    const bookingRef =
-        doc(
-
-            db,
-
-            "bookings",
-
-            bookingNumber
-
-        );
-
-
-    const bookingSnap =
-        await getDoc(
-            bookingRef
-        );
-
-
-    if (
-        !bookingSnap.exists()
-    ) {
-
-        return;
-
-    }
-
-
-    const booking =
-        bookingSnap.data();
-
-
-    await updateDoc(
-
-        bookingRef,
-
-        {
-
-            status:
-                "Cancelled",
-
-            paymentStatus:
-                "Cancelled",
-
-            cancelledAt:
-                serverTimestamp()
-
-        }
-
-    );
-
-
-    await addNotification(
-
-        booking.userId,
-
-        "Booking Imefutwa ❌",
-
-        `Booking ${bookingNumber} imefutwa.`
-
-    );
-
-
-    onyeshaAdminBookings();
-
-}
-
-
-/* =========================================================
-   47. ADMIN WITHDRAWALS
-========================================================= */
-
-async function onyeshaAdminWithdrawals() {
-
-    if (!isAdmin()) {
-
-        return;
-
-    }
-
-
-    const result =
-        await getDocs(
-
-            collection(
-                db,
-                "withdrawals"
-            )
-
-        );
-
-
-    const withdrawals =
-        result.docs.map(
-
-            item => ({
-
-                id:
-                    item.id,
-
-                ...item.data()
-
-            })
-
-        );
-
-
-    const section =
-        document.getElementById(
-            "taarifaSection"
-        );
-
-
-    section.innerHTML = `
-
-        <h2>
-            💸 Manage Withdrawals
-        </h2>
-
-
-        <button
-            class="endeleaBtn"
-            onclick="funguaAdmin()"
-        >
-
-            ⬅️ Rudi Admin
-
-        </button>
-
-
-        ${
-
-            !withdrawals.length
-
-            ?
-
-            "<p>Hakuna withdrawal bado.</p>"
-
-            :
-
-            withdrawals.map(
-
-                w => `
-
-                    <div class="booking-card">
-
-                        <h3>
-                            💸 Withdrawal
-                        </h3>
-
-
-                        <p>
-                            👤 ${w.userName}
-                        </p>
-
-
-                        <p>
-                            📱 ${w.userPhone}
-                        </p>
-
-
-                        <p>
-                            💰 Requested:
-
-                            <strong>
-                                ${formatMoney(w.amount)}
-                            </strong>
-                        </p>
-
-
-                        <p>
-                            ➖ Fee ${w.feePercent}%:
-
-                            ${formatMoney(w.fee)}
-                        </p>
-
-
-                        <p>
-                            ✅ Receive:
-
-                            <strong>
-                                ${formatMoney(w.receiveAmount)}
-                            </strong>
-                        </p>
-
-
-                        <p>
-                            📱 ${w.method}
-                        </p>
-
-
-                        <p>
-                            📞 ${w.phone}
-                        </p>
-
-
-                        <p>
-                            📌 Status:
-
-                            <strong>
-                                ${w.status}
-                            </strong>
-                        </p>
-
-
-                        ${
-
-                            w.status ===
-                            "Pending"
-
-                            ?
-
-                            `
-
-                                <button
-                                    class="thibitishaBtn"
-                                    onclick="adminApproveWithdrawal('${w.id}')"
-                                >
-
-                                    ✅ Approve
-
-                                </button>
-
-
-                                <button
-                                    class="kodiBtn"
-                                    onclick="adminRejectWithdrawal('${w.id}')"
-                                >
-
-                                    ❌ Reject
-
-                                </button>
-
-                            `
-
-                            :
-
-                            ""
-
-                        }
-
-                    </div>
-
-                `
-
-            ).join("")
-
-        }
-
-    `;
-
-}
-
-
-/* =========================================================
-   48. APPROVE WITHDRAWAL
-========================================================= */
-
-async function adminApproveWithdrawal(
-    withdrawalId
-) {
-
-    try {
-
-        if (!isAdmin()) {
-
-            return;
-
-        }
-
-
-        const withdrawalRef =
-            doc(
-
-                db,
-
-                "withdrawals",
-
-                withdrawalId
-
-            );
-
-
-        await runTransaction(
-
-            db,
-
-            async transaction => {
-
-                const withdrawalSnap =
-                    await transaction.get(
-                        withdrawalRef
-                    );
-
-
-                if (
-                    !withdrawalSnap.exists()
-                ) {
-
-                    throw new Error(
-                        "Withdrawal haipo."
-                    );
-
-                }
-
-
-                const withdrawal =
-                    withdrawalSnap.data();
-
-
-                if (
-                    withdrawal.status !==
-                    "Pending"
-                ) {
-
-                    throw new Error(
-                        "Withdrawal tayari imeshughulikiwa."
-                    );
-
-                }
-
-
-                const userRef =
-                    doc(
-
-                        db,
-
-                        "users",
-
-                        withdrawal.userId
-
-                    );
-
-
-                const userSnap =
-                    await transaction.get(
-                        userRef
-                    );
-
-
-                if (
-                    !userSnap.exists()
-                ) {
-
-                    throw new Error(
-                        "User haipo."
-                    );
-
-                }
-
-
-                const user =
-                    userSnap.data();
-
-
-                transaction.update(
-
-                    withdrawalRef,
-
-                    {
-
-                        status:
-                            "Approved",
-
-                        approvedAt:
-                            serverTimestamp(),
-
-                        approvedBy:
-                            currentUser.uid
-
-                    }
-
-                );
-
-
-                transaction.update(
-
-                    userRef,
-
-                    {
-
-                        pendingWithdrawal:
-
-                            Math.max(
-
-                                0,
-
-                                Number(
-                                    user.pendingWithdrawal || 0
-                                )
-                                -
-                                Number(
-                                    withdrawal.amount || 0
-                                )
-
-                            ),
-
-                        totalWithdrawn:
-
-                            Number(
-                                user.totalWithdrawn || 0
-                            )
-                            +
-                            Number(
-                                withdrawal.amount || 0
-                            ),
-
-                        updatedAt:
-                            serverTimestamp()
-
-                    }
-
-                );
-
-            }
-
-        );
-
-
-        const withdrawalSnap =
-            await getDoc(
-                withdrawalRef
-            );
-
-
-        const withdrawal =
-            withdrawalSnap.data();
-
-
-        await addNotification(
-
-            withdrawal.userId,
-
-            "Withdrawal Approved ✅",
-
-            `Withdrawal yako ya ${formatMoney(withdrawal.amount)} imeidhinishwa. Kiasi cha kupokea ni ${formatMoney(withdrawal.receiveAmount)}.`
-
-        );
-
-
-        alert(
-            "✅ Withdrawal imeidhinishwa."
-        );
-
-
-        onyeshaAdminWithdrawals();
-
-    }
-
-    catch (error) {
-
-        console.error(error);
-
-
-        alert(
-            "❌ " +
-            error.message
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   49. REJECT WITHDRAWAL
-========================================================= */
-
-async function adminRejectWithdrawal(
-    withdrawalId
-) {
-
-    try {
-
-        if (!isAdmin()) {
-
-            return;
-
-        }
-
-
-        const withdrawalRef =
-            doc(
-
-                db,
-
-                "withdrawals",
-
-                withdrawalId
-
-            );
-
-
-        await runTransaction(
-
-            db,
-
-            async transaction => {
-
-                const withdrawalSnap =
-                    await transaction.get(
-                        withdrawalRef
-                    );
-
-
-                if (
-                    !withdrawalSnap.exists()
-                ) {
-
-                    throw new Error(
-                        "Withdrawal haipo."
-                    );
-
-                }
-
-
-                const withdrawal =
-                    withdrawalSnap.data();
-
-
-                if (
-                    withdrawal.status !==
-                    "Pending"
-                ) {
-
-                    throw new Error(
-                        "Withdrawal tayari imeshughulikiwa."
-                    );
-
-                }
-
-
-                const userRef =
-                    doc(
-
-                        db,
-
-                        "users",
-
-                        withdrawal.userId
-
-                    );
-
-
-                const userSnap =
-                    await transaction.get(
-                        userRef
-                    );
-
-
-                if (
-                    !userSnap.exists()
-                ) {
-
-                    throw new Error(
-                        "User haipo."
-                    );
-
-                }
-
-
-                const user =
-                    userSnap.data();
-
-
-                /*
-                   RUDISHA PESA
-                   KWENYE AVAILABLE BALANCE
-                */
-
-                transaction.update(
-
-                    userRef,
-
-                    {
-
-                        availableBalance:
-
-                            Number(
-                                user.availableBalance || 0
-                            )
-                            +
-                            Number(
-                                withdrawal.amount || 0
-                            ),
-
-                        pendingWithdrawal:
-
-                            Math.max(
-
-                                0,
-
-                                Number(
-                                    user.pendingWithdrawal || 0
-                                )
-                                -
-                                Number(
-                                    withdrawal.amount || 0
-                                )
-
-                            ),
-
-                        updatedAt:
-                            serverTimestamp()
-
-                    }
-
-                );
-
-
-                transaction.update(
-
-                    withdrawalRef,
-
-                    {
-
-                        status:
-                            "Rejected",
-
-                        rejectedAt:
-                            serverTimestamp(),
-
-                        rejectedBy:
-                            currentUser.uid
-
-                    }
-
-                );
-
-            }
-
-        );
-
-
-        const withdrawalSnap =
-            await getDoc(
-                withdrawalRef
-            );
-
-
-        const withdrawal =
-            withdrawalSnap.data();
-
-
-        await addNotification(
-
-            withdrawal.userId,
-
-            "Withdrawal Imekataliwa ❌",
-
-            `Withdrawal yako ya ${formatMoney(withdrawal.amount)} imekataliwa. Salio limerudishwa kwenye account yako.`
-
-        );
-
-
-        alert(
-            "Withdrawal imekataliwa na salio limerudishwa."
-        );
-
-
-        onyeshaAdminWithdrawals();
-
-    }
-
-    catch (error) {
-
-        console.error(error);
-
-
-        alert(
-            "❌ " +
-            error.message
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   50. ADMIN COMMISSIONS
-========================================================= */
-
-async function onyeshaAdminCommissions() {
-
-    if (!isAdmin()) {
-
-        return;
-
-    }
-
-
-    const adminResult =
-        await getDocs(
-
-            collection(
-                db,
-                "adminCommissions"
-            )
-
-        );
-
-
-    const adminCommissions =
-        adminResult.docs.map(
-
-            item => ({
-
-                id:
-                    item.id,
-
-                ...item.data()
-
-            })
-
-        );
-
-
-    const userResult =
-        await getDocs(
-
-            collection(
-                db,
-                "commissions"
-            )
-
-        );
-
-
-    const userCommissions =
-        userResult.docs.map(
-
-            item => ({
-
-                id:
-                    item.id,
-
-                ...item.data()
-
-            })
-
-        );
-
-
-    const adminTotal =
-        adminCommissions.reduce(
-
-            (sum, c) =>
-
-                sum +
-                Number(
-                    c.amount || 0
-                ),
-
-            0
-
-        );
-
-
-    const userTotal =
-        userCommissions.reduce(
-
-            (sum, c) =>
-
-                sum +
-                Number(
-                    c.amount || 0
-                ),
-
-            0
-
-        );
-
-
-    const section =
-        document.getElementById(
-            "taarifaSection"
-        );
-
-
-    section.innerHTML = `
-
-        <h2>
-            💰 Commission Management
-        </h2>
-
-
-        <button
-            class="endeleaBtn"
-            onclick="funguaAdmin()"
-        >
-
-            ⬅️ Rudi Admin
-
-        </button>
-
-
-        <div class="booking-card">
-
-            <h3>
-                👑 Admin Commission
-            </h3>
-
-
-            <p>
-                System A:
-                Admin hupata commission kwenye
-                kila booking iliyothibitishwa.
-            </p>
-
-
-            <p>
-                📊 Asilimia:
-
-                <strong>
-                    ${ADMIN_COMMISSION_PERCENT}%
-                </strong>
-            </p>
-
-
-            <p>
-                💰 Jumla:
-
-                <strong>
-                    ${formatMoney(adminTotal)}
-                </strong>
-            </p>
+            <div id="adminBookings">
+                ⏳ Inapakia...
+            </div>
 
 
             <hr>
 
 
-            <h3>
-                👥 User Commission
-            </h3>
-
-
-            <p>
-                🅰️ Level A: 5%
-            </p>
-
-            <p>
-                🅱️ Level B: 2%
-            </p>
-
-            <p>
-                🅲 Level C: 1%
-            </p>
-
-
-            <p>
-                💰 Jumla:
-
-                <strong>
-                    ${formatMoney(userTotal)}
-                </strong>
-            </p>
-
-        </div>
-
-
-        <h3>
-            👑 Admin Commission History
-        </h3>
-
-
-        ${
-
-            !adminCommissions.length
-
-            ?
-
-            "<p>Hakuna commission bado.</p>"
-
-            :
-
-            adminCommissions.map(
-
-                c => `
-
-                    <div class="booking-card">
-
-                        <p>
-                            📋 Booking:
-                            ${c.bookingNumber}
-                        </p>
-
-
-                        <p>
-                            👤
-                            ${c.bookingUserName}
-                        </p>
-
-
-                        <p>
-                            📊
-                            ${c.percent}%
-                        </p>
-
-
-                        <p>
-                            💰
-
-                            <strong>
-                                ${formatMoney(c.amount)}
-                            </strong>
-                        </p>
-
-                    </div>
-
-                `
-
-            ).join("")
-
-        }
-
-    `;
-
-}
-
-
-/* =========================================================
-   51. ADMIN REFERRALS
-========================================================= */
-
-async function onyeshaAdminReferrals() {
-
-    if (!isAdmin()) {
-
-        return;
-
-    }
-
-
-    const result =
-        await getDocs(
-
-            collection(
-                db,
-                "users"
-            )
-
-        );
-
-
-    const users =
-        result.docs.map(
-
-            item => ({
-
-                id:
-                    item.id,
-
-                ...item.data()
-
-            })
-
-        );
-
-
-    const section =
-        document.getElementById(
-            "taarifaSection"
-        );
-
-
-    section.innerHTML = `
-
-        <h2>
-            🤝 Manage Referrals
-        </h2>
-
-
-        <button
-            class="endeleaBtn"
-            onclick="funguaAdmin()"
-        >
-
-            ⬅️ Rudi Admin
-
-        </button>
-
-
-        <div class="booking-card">
-
-            <p>
-                🔑 Admin Referral Code:
-
-                <strong>
-                    ${ADMIN_REFERRAL_CODE}
-                </strong>
-            </p>
-
-
-            <p>
-                👥 Total Users:
-
-                <strong>
-                    ${users.length}
-                </strong>
-            </p>
-
-        </div>
-
-
-        ${
-
-            !users.length
-
-            ?
-
-            "<p>Hakuna users bado.</p>"
-
-            :
-
-            users.map(
-
-                user => `
-
-                    <div class="booking-card">
-
-                        <h3>
-                            👤 ${user.name || "-"}
-                        </h3>
-
-
-                        <p>
-                            📱
-                            ${user.phone || "-"}
-                        </p>
-
-
-                        <p>
-                            🔑 Referral:
-
-                            <strong>
-                                ${user.referralCode || "-"}
-                            </strong>
-                        </p>
-
-
-                        <p>
-                            🤝 Referred By:
-
-                            ${user.referredBy || "-"}
-                        </p>
-
-
-                        <p>
-                            🏦 Available Balance:
-
-                            <strong>
-                                ${formatMoney(user.availableBalance)}
-                            </strong>
-                        </p>
-
-                    </div>
-
-                `
-
-            ).join("")
-
-        }
-
-    `;
-
-}
-
-
-/* =========================================================
-   52. ADMIN STATISTICS
-========================================================= */
-
-async function onyeshaAdminStatistics() {
-
-    if (!isAdmin()) {
-
-        return;
-
-    }
-
-
-    const bookingResult =
-        await getDocs(
-
-            collection(
-                db,
-                "bookings"
-            )
-
-        );
-
-
-    const bookings =
-        bookingResult.docs.map(
-
-            item =>
-                item.data()
-
-        );
-
-
-    const userResult =
-        await getDocs(
-
-            collection(
-                db,
-                "users"
-            )
-
-        );
-
-
-    const users =
-        userResult.docs.map(
-
-            item =>
-                item.data()
-
-        );
-
-
-    const withdrawalResult =
-        await getDocs(
-
-            collection(
-                db,
-                "withdrawals"
-            )
-
-        );
-
-
-    const withdrawals =
-        withdrawalResult.docs.map(
-
-            item =>
-                item.data()
-
-        );
-
-
-    const confirmed =
-        bookings.filter(
-
-            b =>
-                b.status ===
-                "Confirmed"
-
-        );
-
-
-    const pending =
-        bookings.filter(
-
-            b =>
-                b.status !==
-                "Confirmed"
-
-        );
-
-
-    const revenue =
-        confirmed.reduce(
-
-            (sum, b) =>
-
-                sum +
-                Number(
-                    b.price || 0
-                ),
-
-            0
-
-        );
-
-
-    const adminResult =
-        await getDocs(
-
-            collection(
-                db,
-                "adminCommissions"
-            )
-
-        );
-
-
-    const adminTotal =
-        adminResult.docs.reduce(
-
-            (sum, item) =>
-
-                sum +
-                Number(
-                    item.data().amount || 0
-                ),
-
-            0
-
-        );
-
-
-    const userCommissionResult =
-        await getDocs(
-
-            collection(
-                db,
-                "commissions"
-            )
-
-        );
-
-
-    const userTotal =
-        userCommissionResult.docs.reduce(
-
-            (sum, item) =>
-
-                sum +
-                Number(
-                    item.data().amount || 0
-                ),
-
-            0
-
-        );
-
-
-    const pendingWithdrawals =
-        withdrawals.filter(
-
-            w =>
-                w.status ===
-                "Pending"
-
-        ).length;
-
-
-    const section =
-        document.getElementById(
-            "taarifaSection"
-        );
-
-
-    section.innerHTML = `
-
-        <h2>
-            📊 Statistics
-        </h2>
-
-
-        <button
-            class="endeleaBtn"
-            onclick="funguaAdmin()"
-        >
-
-            ⬅️ Rudi Admin
-
-        </button>
-
-
-        <div class="booking-card">
-
-            <p>
-                📋 Total Bookings:
-
-                <strong>
-                    ${bookings.length}
-                </strong>
-            </p>
-
-
-            <p>
-                👥 Total Users:
-
-                <strong>
-                    ${users.length}
-                </strong>
-            </p>
-
-
-            <p>
-                ✅ Confirmed:
-
-                <strong>
-                    ${confirmed.length}
-                </strong>
-            </p>
-
-
-            <p>
-                ⏳ Pending Bookings:
-
-                <strong>
-                    ${pending.length}
-                </strong>
-            </p>
-
-
-            <p>
-                💸 Pending Withdrawals:
-
-                <strong>
-                    ${pendingWithdrawals}
-                </strong>
-            </p>
-
-
-            <p>
-                💰 Revenue:
-
-                <strong>
-                    ${formatMoney(revenue)}
-                </strong>
-            </p>
-
-
-            <p>
-                👑 Admin Commission:
-
-                <strong>
-                    ${formatMoney(adminTotal)}
-                </strong>
-            </p>
-
-
-            <p>
-                👥 User Commission:
-
-                <strong>
-                    ${formatMoney(userTotal)}
-                </strong>
-            </p>
-
-
-            <p>
-                🏠 Total Rooms:
-
-                <strong>
-                    ${rooms.length}
-                </strong>
-            </p>
+            <div id="adminWithdrawals">
+                ⏳ Inapakia withdrawals...
+            </div>
 
         </div>
 
     `;
 
+
+    await onyeshaAdminBookings();
+    await onyeshaAdminWithdrawals();
+
 }
 
 
-/* =========================================================
-   53. ADMIN LOGOUT
-========================================================= */
+/* ---------------------------------------------------------
+   ALL BOOKINGS
+--------------------------------------------------------- */
 
-async function adminLogout() {
+async function pataBookingsZaAdmin() {
 
     try {
 
-        await signOut(
-            auth
+        const snapshot =
+            await db
+                .collection("bookings")
+                .get();
+
+
+        const bookings = [];
+
+
+        snapshot.forEach(doc => {
+
+            bookings.push({
+
+                id:
+                    doc.id,
+
+                ...doc.data()
+
+            });
+
+        });
+
+
+        bookings.sort(
+            (a, b) => {
+
+                const aTime =
+                    a.createdAt?.toMillis
+                        ? a.createdAt.toMillis()
+                        : 0;
+
+                const bTime =
+                    b.createdAt?.toMillis
+                        ? b.createdAt.toMillis()
+                        : 0;
+
+                return bTime - aTime;
+
+            }
+        );
+
+
+        return bookings;
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+        return [];
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   ADMIN BOOKINGS
+--------------------------------------------------------- */
+
+async function onyeshaAdminBookings() {
+
+    if (
+        !(await niAdmin())
+    ) {
+        return;
+    }
+
+
+    const container =
+        document.getElementById(
+            "adminBookings"
+        );
+
+
+    if (!container) {
+        return;
+    }
+
+
+    const bookings =
+        await pataBookingsZaAdmin();
+
+
+    let html = `
+
+        <h3>
+            📋 Bookings
+        </h3>
+
+    `;
+
+
+    if (
+        bookings.length === 0
+    ) {
+
+        html += `
+            <p>
+                Hakuna booking.
+            </p>
+        `;
+
+    }
+
+
+    bookings.forEach(
+        booking => {
+
+            let buttons = "";
+
+
+            if (
+                booking.paymentStatus ===
+                    "Imelipwa" &&
+                booking.bookingStatus !==
+                    "Imethibitishwa" &&
+                booking.bookingStatus !==
+                    "Imekataliwa"
+            ) {
+
+                buttons = `
+
+                    <button
+                        onclick="thibitishaBooking(
+                            '${booking.id}'
+                        )"
+                    >
+                        ✅ Thibitisha
+                    </button>
+
+
+                    <button
+                        onclick="kataaBooking(
+                            '${booking.id}'
+                        )"
+                    >
+                        ❌ Kataa
+                    </button>
+
+                `;
+
+            }
+
+
+            html += `
+
+                <div class="admin-booking-card">
+
+                    <h3>
+                        🏠 Chumba
+                        ${escapeHTML(
+                            booking.roomNumber
+                        )}
+                    </h3>
+
+
+                    <p>
+                        Booking:
+                        ${escapeHTML(
+                            booking.bookingNumber
+                        )}
+                    </p>
+
+
+                    <p>
+                        Jina:
+                        ${escapeHTML(
+                            booking.jina
+                        )}
+                    </p>
+
+
+                    <p>
+                        Simu:
+                        ${escapeHTML(
+                            booking.simu
+                        )}
+                    </p>
+
+
+                    <p>
+                        Kiasi:
+                        <strong>
+                            ${fedha(
+                                booking.price
+                            )}
+                        </strong>
+                    </p>
+
+
+                    <p>
+                        Payment:
+                        ${escapeHTML(
+                            booking.paymentStatus
+                        )}
+                    </p>
+
+
+                    <p>
+                        Status:
+                        ${escapeHTML(
+                            booking.bookingStatus
+                        )}
+                    </p>
+
+
+                    ${buttons}
+
+                </div>
+
+            `;
+
+        }
+    );
+
+
+    container.innerHTML =
+        html;
+
+}
+
+
+/* ---------------------------------------------------------
+   CONFIRM BOOKING
+--------------------------------------------------------- */
+
+async function thibitishaBooking(
+    bookingId
+) {
+
+    if (
+        !(await niAdmin())
+    ) {
+
+        alert(
+            "❌ Huna ruhusa ya Admin."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !confirm(
+            "Thibitisha booking hii?"
+        )
+    ) {
+        return;
+    }
+
+
+    try {
+
+        const ref =
+            db
+                .collection("bookings")
+                .doc(bookingId);
+
+
+        const snap =
+            await ref.get();
+
+
+        if (!snap.exists) {
+
+            alert(
+                "❌ Booking haijapatikana."
+            );
+
+            return;
+
+        }
+
+
+        const booking =
+            snap.data();
+
+
+        await ref.update({
+
+            bookingStatus:
+                "Imethibitishwa",
+
+            confirmedBy:
+                roomrentCurrentUser.uid,
+
+            confirmedAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp(),
+
+            updatedAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp()
+
+        });
+
+
+        /*
+         * CREATE REFERRAL COMMISSIONS
+         * Mara moja tu kwa booking.
+         */
+
+        await tengenezaReferralCommission(
+            bookingId,
+            booking.userId,
+            booking.price
+        );
+
+
+        await tengenezaNotification(
+
+            booking.userId,
+
+            {
+
+                title:
+                    "✅ Booking Imethibitishwa",
+
+                message:
+                    `Booking yako ya chumba ${booking.roomNumber} imethibitishwa na Admin.`,
+
+                type:
+                    "booking_confirmed",
+
+                bookingId:
+                    bookingId
+
+            }
+
         );
 
 
         alert(
-            "👋 Umetoka kwenye RoomRent."
+            "✅ Booking imethibitishwa."
         );
 
 
-        location.reload();
+        await onyeshaAdminBookings();
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+        alert(
+            "❌ Imeshindikana kuthibitisha booking."
+        );
 
     }
 
-    catch (error) {
+}
 
-        console.error(error);
+
+/* ---------------------------------------------------------
+   REJECT BOOKING
+--------------------------------------------------------- */
+
+async function kataaBooking(
+    bookingId
+) {
+
+    if (
+        !(await niAdmin())
+    ) {
+
+        alert(
+            "❌ Huna ruhusa ya Admin."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !confirm(
+            "Kataa booking hii?"
+        )
+    ) {
+        return;
+    }
+
+
+    try {
+
+        const ref =
+            db
+                .collection("bookings")
+                .doc(bookingId);
+
+
+        const snap =
+            await ref.get();
+
+
+        if (!snap.exists) {
+            return;
+        }
+
+
+        const booking =
+            snap.data();
+
+
+        await ref.update({
+
+            bookingStatus:
+                "Imekataliwa",
+
+            rejectedBy:
+                roomrentCurrentUser.uid,
+
+            rejectedAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp(),
+
+            updatedAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp()
+
+        });
+
+
+        await tengenezaNotification(
+
+            booking.userId,
+
+            {
+
+                title:
+                    "❌ Booking Imekataliwa",
+
+                message:
+                    `Booking yako ya chumba ${booking.roomNumber} imekataliwa na Admin.`,
+
+                type:
+                    "booking_rejected",
+
+                bookingId:
+                    bookingId
+
+            }
+
+        );
+
+
+        alert(
+            "❌ Booking imekataliwa."
+        );
+
+
+        await onyeshaAdminBookings();
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+        alert(
+            "❌ Imeshindikana kukataa booking."
+        );
 
     }
 
@@ -5941,237 +4221,2477 @@ async function adminLogout() {
 
 
 /* =========================================================
-   54. EXPOSE FUNCTIONS TO WINDOW
-
-   HII NI MUHIMU SANA KWA
-   HTML onclick BUTTONS
+   8. WALLET + WITHDRAWAL
 ========================================================= */
 
-window.funguaKodi =
-    funguaKodi;
 
-window.tengenezaBooking =
-    tengenezaBooking;
+/* ---------------------------------------------------------
+   WALLET
+--------------------------------------------------------- */
 
-window.tumaPaymentRequest =
-    tumaPaymentRequest;
+async function pataWalletYaUser() {
 
-window.onyeshaBookingZangu =
-    onyeshaBookingZangu;
+    if (!hakikishaAmeingia()) {
 
-window.funguaAccount =
-    funguaAccount;
+        return {
 
-window.onyeshaMyReferral =
-    onyeshaMyReferral;
+            balance: 0,
+            totalEarned: 0,
+            totalWithdrawn: 0
 
-window.onyeshaMyCommissions =
-    onyeshaMyCommissions;
-
-window.funguaWithdrawal =
-    funguaWithdrawal;
-
-window.hesabuWithdrawal =
-    hesabuWithdrawal;
-
-window.ombaWithdrawal =
-    ombaWithdrawal;
-
-window.onyeshaWithdrawalHistory =
-    onyeshaWithdrawalHistory;
-
-window.funguaTaarifa =
-    funguaTaarifa;
-
-window.onyeshaNotifications =
-    onyeshaNotifications;
-
-window.tumaOTP =
-    tumaOTP;
-
-window.thibitishaOTP =
-    thibitishaOTP;
-
-window.funguaAdminLogin =
-    funguaAdminLogin;
-
-window.funguaAdmin =
-    funguaAdmin;
-
-window.onyeshaAdminBookings =
-    onyeshaAdminBookings;
-
-window.adminConfirmBooking =
-    adminConfirmBooking;
-
-window.adminCancelBooking =
-    adminCancelBooking;
-
-window.onyeshaAdminWithdrawals =
-    onyeshaAdminWithdrawals;
-
-window.adminApproveWithdrawal =
-    adminApproveWithdrawal;
-
-window.adminRejectWithdrawal =
-    adminRejectWithdrawal;
-
-window.onyeshaAdminCommissions =
-    onyeshaAdminCommissions;
-
-window.onyeshaAdminReferrals =
-    onyeshaAdminReferrals;
-
-window.onyeshaAdminStatistics =
-    onyeshaAdminStatistics;
-
-window.adminLogout =
-    adminLogout;
-
-
-/* =========================================================
-   55. INITIALIZE WEBSITE
-========================================================= */
-
-document.addEventListener(
-
-    "DOMContentLoaded",
-
-    () => {
-
-
-        /*
-           DISPLAY ROOMS
-        */
-
-        onyeshaVyumba();
-
-
-        /*
-           ANGALIA VYUMBA
-        */
-
-        const angalia =
-            document.getElementById(
-                "angaliaVyumba"
-            );
-
-
-        if (angalia) {
-
-            angalia.onclick =
-                () => {
-
-                    document
-                    .getElementById(
-                        "vyumba"
-                    )
-                    ?.scrollIntoView({
-
-                        behavior:
-                            "smooth"
-
-                    });
-
-                };
-
-        }
-
-
-        /*
-           BOOKINGS
-        */
-
-        const booking =
-            document.getElementById(
-                "bookingZangu"
-            );
-
-
-        if (booking) {
-
-            booking.onclick =
-                onyeshaBookingZangu;
-
-        }
-
-
-        /*
-           ACCOUNT
-        */
-
-        const account =
-            document.getElementById(
-                "accountBtn"
-            );
-
-
-        if (account) {
-
-            account.onclick =
-                funguaAccount;
-
-        }
-
-
-        /*
-           NOTIFICATIONS
-        */
-
-        const taarifa =
-            document.getElementById(
-                "taarifaBtn"
-            );
-
-
-        if (taarifa) {
-
-            taarifa.onclick =
-                funguaTaarifa;
-
-        }
-
-
-        /*
-           SEND OTP
-        */
-
-        const sendOtpBtn =
-            document.getElementById(
-                "sendOtpBtn"
-            );
-
-
-        if (sendOtpBtn) {
-
-            sendOtpBtn.onclick =
-                tumaOTP;
-
-        }
-
-
-        /*
-           VERIFY OTP
-        */
-
-        const verifyOtpBtn =
-            document.getElementById(
-                "verifyOtpBtn"
-            );
-
-
-        if (verifyOtpBtn) {
-
-            verifyOtpBtn.onclick =
-                thibitishaOTP;
-
-        }
+        };
 
     }
 
-);
+
+    try {
+
+        const snap =
+            await db
+                .collection("users")
+                .doc(
+                    roomrentCurrentUser.uid
+                )
+                .get();
+
+
+        if (!snap.exists) {
+
+            return {
+
+                balance: 0,
+                totalEarned: 0,
+                totalWithdrawn: 0
+
+            };
+
+        }
+
+
+        const data =
+            snap.data();
+
+
+        return {
+
+            balance:
+                Number(
+                    data.balance || 0
+                ),
+
+            totalEarned:
+                Number(
+                    data.totalEarned || 0
+                ),
+
+            totalWithdrawn:
+                Number(
+                    data.totalWithdrawn || 0
+                )
+
+        };
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+
+        return {
+
+            balance: 0,
+            totalEarned: 0,
+            totalWithdrawn: 0
+
+        };
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   WALLET DISPLAY
+--------------------------------------------------------- */
+
+async function onyeshaWallet() {
+
+    if (!hakikishaAmeingia()) {
+        return;
+    }
+
+
+    const wallet =
+        await pataWalletYaUser();
+
+
+    let container =
+        document.getElementById(
+            "walletSection"
+        );
+
+
+    if (!container) {
+
+        container =
+            document.getElementById(
+                "vyumba"
+            );
+
+    }
+
+
+    if (!container) {
+        return;
+    }
+
+
+    container.innerHTML = `
+
+        <div class="wallet-dashboard">
+
+            <h2>
+                💰 Wallet Yangu
+            </h2>
+
+
+            <div class="wallet-box">
+
+                <p>
+                    Salio
+                </p>
+
+                <h2>
+                    ${fedha(
+                        wallet.balance
+                    )}
+                </h2>
+
+            </div>
+
+
+            <p>
+                💵 Jumla Iliyopatikana:
+                <strong>
+                    ${fedha(
+                        wallet.totalEarned
+                    )}
+                </strong>
+            </p>
+
+
+            <p>
+                💸 Jumla Iliyotolewa:
+                <strong>
+                    ${fedha(
+                        wallet.totalWithdrawn
+                    )}
+                </strong>
+            </p>
+
+
+            <button
+                onclick="funguaWithdrawal()"
+            >
+                💸 Toa Pesa
+            </button>
+
+
+            <button
+                onclick="onyeshaWithdrawals()"
+            >
+                📋 Withdrawal Zangu
+            </button>
+
+        </div>
+
+    `;
+
+}
+
+
+/* ---------------------------------------------------------
+   WITHDRAWAL FORM
+--------------------------------------------------------- */
+
+async function funguaWithdrawal() {
+
+    if (!hakikishaAmeingia()) {
+        return;
+    }
+
+
+    const wallet =
+        await pataWalletYaUser();
+
+
+    let container =
+        document.getElementById(
+            "walletSection"
+        );
+
+
+    if (!container) {
+
+        container =
+            document.getElementById(
+                "vyumba"
+            );
+
+    }
+
+
+    if (!container) {
+        return;
+    }
+
+
+    container.innerHTML = `
+
+        <div class="withdrawal-form">
+
+            <h2>
+                💸 Toa Pesa
+            </h2>
+
+
+            <p>
+                Salio:
+                <strong>
+                    ${fedha(
+                        wallet.balance
+                    )}
+                </strong>
+            </p>
+
+
+            <label>
+                Kiasi
+            </label>
+
+            <input
+                type="number"
+                id="withdrawAmount"
+                min="1"
+                placeholder="Mfano 10000"
+            />
+
+
+            <label>
+                Namba ya simu
+            </label>
+
+            <input
+                type="tel"
+                id="withdrawPhone"
+                placeholder="07XXXXXXXX"
+            />
+
+
+            <label>
+                Njia
+            </label>
+
+            <select
+                id="withdrawMethod"
+            >
+
+                <option value="">
+                    Chagua
+                </option>
+
+                <option value="MIXX BY YAS">
+                    MIXX BY YAS
+                </option>
+
+                <option value="Airtel Money">
+                    Airtel Money
+                </option>
+
+            </select>
+
+
+            <br><br>
+
+
+            <button
+                onclick="tumaWithdrawal()"
+            >
+                📤 Tuma Ombi
+            </button>
+
+
+            <button
+                onclick="onyeshaWallet()"
+            >
+                ↩️ Rudi
+            </button>
+
+        </div>
+
+    `;
+
+}
+
+
+/* ---------------------------------------------------------
+   SEND WITHDRAWAL
+--------------------------------------------------------- */
+
+async function tumaWithdrawal() {
+
+    if (!hakikishaAmeingia()) {
+        return;
+    }
+
+
+    const amount =
+        Number(
+            document
+                .getElementById(
+                    "withdrawAmount"
+                )
+                ?.value || 0
+        );
+
+
+    const phone =
+        document
+            .getElementById(
+                "withdrawPhone"
+            )
+            ?.value
+            .trim();
+
+
+    const method =
+        document
+            .getElementById(
+                "withdrawMethod"
+            )
+            ?.value;
+
+
+    if (
+        amount <= 0
+    ) {
+
+        alert(
+            "❌ Weka kiasi sahihi."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !simuNiSahihi(phone)
+    ) {
+
+        alert(
+            "❌ Weka namba sahihi."
+        );
+
+        return;
+
+    }
+
+
+    if (!method) {
+
+        alert(
+            "❌ Chagua njia ya malipo."
+        );
+
+        return;
+
+    }
+
+
+    const wallet =
+        await pataWalletYaUser();
+
+
+    if (
+        amount >
+        wallet.balance
+    ) {
+
+        alert(
+            "❌ Salio halitoshi."
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        await db
+            .collection("withdrawals")
+            .add({
+
+                userId:
+                    roomrentCurrentUser.uid,
+
+                amount:
+                    amount,
+
+                phone:
+                    rekebishaSimu(
+                        phone
+                    ),
+
+                method:
+                    method,
+
+                status:
+                    "Inasubiri",
+
+                createdAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp(),
+
+                updatedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
+
+            });
+
+
+        await tengenezaNotification(
+
+            roomrentCurrentUser.uid,
+
+            {
+
+                title:
+                    "💸 Withdrawal Imetumwa",
+
+                message:
+                    `Ombi la ${fedha(amount)} linasubiri Admin.`,
+
+                type:
+                    "withdrawal_pending"
+
+            }
+
+        );
+
+
+        alert(
+            "✅ Ombi limetumwa."
+        );
+
+
+        await onyeshaWallet();
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+        alert(
+            "❌ Imeshindikana kutuma withdrawal."
+        );
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   USER WITHDRAWALS
+--------------------------------------------------------- */
+
+async function pataWithdrawalsZaUser() {
+
+    if (!hakikishaAmeingia()) {
+        return [];
+    }
+
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("withdrawals")
+                .where(
+                    "userId",
+                    "==",
+                    roomrentCurrentUser.uid
+                )
+                .get();
+
+
+        const list = [];
+
+
+        snapshot.forEach(doc => {
+
+            list.push({
+
+                id:
+                    doc.id,
+
+                ...doc.data()
+
+            });
+
+        });
+
+
+        list.sort(
+            (a, b) => {
+
+                const aTime =
+                    a.createdAt?.toMillis
+                        ? a.createdAt.toMillis()
+                        : 0;
+
+                const bTime =
+                    b.createdAt?.toMillis
+                        ? b.createdAt.toMillis()
+                        : 0;
+
+                return bTime - aTime;
+
+            }
+        );
+
+
+        return list;
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+        return [];
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   SHOW WITHDRAWALS
+--------------------------------------------------------- */
+
+async function onyeshaWithdrawals() {
+
+    if (!hakikishaAmeingia()) {
+        return;
+    }
+
+
+    const list =
+        await pataWithdrawalsZaUser();
+
+
+    let container =
+        document.getElementById(
+            "withdrawalSection"
+        );
+
+
+    if (!container) {
+
+        container =
+            document.getElementById(
+                "vyumba"
+            );
+
+    }
+
+
+    if (!container) {
+        return;
+    }
+
+
+    let html = `
+
+        <div class="withdrawal-history">
+
+            <h2>
+                💸 Withdrawal Zangu
+            </h2>
+
+    `;
+
+
+    if (
+        list.length === 0
+    ) {
+
+        html += `
+            <p>
+                Bado hujafanya withdrawal.
+            </p>
+        `;
+
+    }
+
+
+    list.forEach(item => {
+
+        html += `
+
+            <div class="withdrawal-card">
+
+                <p>
+                    💰 Kiasi:
+                    <strong>
+                        ${fedha(
+                            item.amount
+                        )}
+                    </strong>
+                </p>
+
+                <p>
+                    📱 Simu:
+                    ${escapeHTML(
+                        item.phone
+                    )}
+                </p>
+
+                <p>
+                    💳 Njia:
+                    ${escapeHTML(
+                        item.method
+                    )}
+                </p>
+
+                <p>
+                    📌 Status:
+                    <strong>
+                        ${escapeHTML(
+                            item.status
+                        )}
+                    </strong>
+                </p>
+
+            </div>
+
+        `;
+
+    });
+
+
+    html += `
+        </div>
+    `;
+
+
+    container.innerHTML =
+        html;
+
+}
+
+
+/* ---------------------------------------------------------
+   ADMIN WITHDRAWALS
+--------------------------------------------------------- */
+
+async function pataWithdrawalsZaAdmin() {
+
+    if (
+        !(await niAdmin())
+    ) {
+        return [];
+    }
+
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("withdrawals")
+                .get();
+
+
+        const list = [];
+
+
+        snapshot.forEach(doc => {
+
+            list.push({
+
+                id:
+                    doc.id,
+
+                ...doc.data()
+
+            });
+
+        });
+
+
+        list.sort(
+            (a, b) => {
+
+                const aTime =
+                    a.createdAt?.toMillis
+                        ? a.createdAt.toMillis()
+                        : 0;
+
+                const bTime =
+                    b.createdAt?.toMillis
+                        ? b.createdAt.toMillis()
+                        : 0;
+
+                return bTime - aTime;
+
+            }
+        );
+
+
+        return list;
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+        return [];
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   SHOW ADMIN WITHDRAWALS
+--------------------------------------------------------- */
+
+async function onyeshaAdminWithdrawals() {
+
+    if (
+        !(await niAdmin())
+    ) {
+        return;
+    }
+
+
+    const container =
+        document.getElementById(
+            "adminWithdrawals"
+        );
+
+
+    if (!container) {
+        return;
+    }
+
+
+    const list =
+        await pataWithdrawalsZaAdmin();
+
+
+    let html = `
+
+        <h3>
+            💸 Withdrawals
+        </h3>
+
+    `;
+
+
+    if (
+        list.length === 0
+    ) {
+
+        html += `
+            <p>
+                Hakuna withdrawal.
+            </p>
+        `;
+
+    }
+
+
+    list.forEach(item => {
+
+        let actions = "";
+
+
+        if (
+            item.status ===
+            "Inasubiri"
+        ) {
+
+            actions = `
+
+                <button
+                    onclick="thibitishaWithdrawal(
+                        '${item.id}'
+                    )"
+                >
+                    ✅ Lipwa
+                </button>
+
+
+                <button
+                    onclick="kataaWithdrawal(
+                        '${item.id}'
+                    )"
+                >
+                    ❌ Kataa
+                </button>
+
+            `;
+
+        }
+
+
+        html += `
+
+            <div class="admin-withdrawal-card">
+
+                <p>
+                    💰 ${fedha(
+                        item.amount
+                    )}
+                </p>
+
+                <p>
+                    📱 ${escapeHTML(
+                        item.phone
+                    )}
+                </p>
+
+                <p>
+                    💳 ${escapeHTML(
+                        item.method
+                    )}
+                </p>
+
+                <p>
+                    📌 ${escapeHTML(
+                        item.status
+                    )}
+                </p>
+
+                ${actions}
+
+            </div>
+
+        `;
+
+    });
+
+
+    container.innerHTML =
+        html;
+
+}
+
+
+/* ---------------------------------------------------------
+   CONFIRM WITHDRAWAL
+--------------------------------------------------------- */
+
+async function thibitishaWithdrawal(
+    withdrawalId
+) {
+
+    if (
+        !(await niAdmin())
+    ) {
+
+        alert(
+            "❌ Huna ruhusa."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !confirm(
+            "Thibitisha withdrawal hii?"
+        )
+    ) {
+        return;
+    }
+
+
+    try {
+
+        const withdrawalRef =
+            db
+                .collection(
+                    "withdrawals"
+                )
+                .doc(
+                    withdrawalId
+                );
+
+
+        const snap =
+            await withdrawalRef.get();
+
+
+        if (!snap.exists) {
+
+            alert(
+                "❌ Withdrawal haijapatikana."
+            );
+
+            return;
+
+        }
+
+
+        const withdrawal =
+            snap.data();
+
+
+        if (
+            withdrawal.status !==
+            "Inasubiri"
+        ) {
+
+            alert(
+                "⚠️ Withdrawal tayari imeshughulikiwa."
+            );
+
+            return;
+
+        }
+
+
+        const userRef =
+            db
+                .collection("users")
+                .doc(
+                    withdrawal.userId
+                );
+
+
+        const userSnap =
+            await userRef.get();
+
+
+        if (!userSnap.exists) {
+            return;
+        }
+
+
+        const user =
+            userSnap.data();
+
+
+        const balance =
+            Number(
+                user.balance || 0
+            );
+
+
+        const amount =
+            Number(
+                withdrawal.amount || 0
+            );
+
+
+        if (
+            balance < amount
+        ) {
+
+            alert(
+                "❌ Salio la user halitoshi."
+            );
+
+            return;
+
+        }
+
+
+        const batch =
+            db.batch();
+
+
+        batch.update(
+
+            withdrawalRef,
+
+            {
+
+                status:
+                    "Imelipwa",
+
+                approvedBy:
+                    roomrentCurrentUser.uid,
+
+                approvedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp(),
+
+                updatedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
+
+            }
+
+        );
+
+
+        batch.update(
+
+            userRef,
+
+            {
+
+                balance:
+                    balance - amount,
+
+                totalWithdrawn:
+                    Number(
+                        user.totalWithdrawn || 0
+                    ) + amount,
+
+                updatedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
+
+            }
+
+        );
+
+
+        await batch.commit();
+
+
+        await tengenezaNotification(
+
+            withdrawal.userId,
+
+            {
+
+                title:
+                    "✅ Withdrawal Imelipwa",
+
+                message:
+                    `Withdrawal ya ${fedha(amount)} imelipwa.`,
+
+                type:
+                    "withdrawal_paid"
+
+            }
+
+        );
+
+
+        alert(
+            "✅ Withdrawal imethibitishwa."
+        );
+
+
+        await onyeshaAdminWithdrawals();
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+        alert(
+            "❌ Imeshindikana."
+        );
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   REJECT WITHDRAWAL
+--------------------------------------------------------- */
+
+async function kataaWithdrawal(
+    withdrawalId
+) {
+
+    if (
+        !(await niAdmin())
+    ) {
+
+        alert(
+            "❌ Huna ruhusa."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !confirm(
+            "Kataa withdrawal hii?"
+        )
+    ) {
+        return;
+    }
+
+
+    try {
+
+        const ref =
+            db
+                .collection(
+                    "withdrawals"
+                )
+                .doc(
+                    withdrawalId
+                );
+
+
+        const snap =
+            await ref.get();
+
+
+        if (!snap.exists) {
+            return;
+        }
+
+
+        const withdrawal =
+            snap.data();
+
+
+        await ref.update({
+
+            status:
+                "Imekataliwa",
+
+            rejectedBy:
+                roomrentCurrentUser.uid,
+
+            rejectedAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp(),
+
+            updatedAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp()
+
+        });
+
+
+        await tengenezaNotification(
+
+            withdrawal.userId,
+
+            {
+
+                title:
+                    "❌ Withdrawal Imekataliwa",
+
+                message:
+                    `Withdrawal ya ${fedha(
+                        withdrawal.amount
+                    )} imekataliwa.`,
+
+                type:
+                    "withdrawal_rejected"
+
+            }
+
+        );
+
+
+        alert(
+            "❌ Withdrawal imekataliwa."
+        );
+
+
+        await onyeshaAdminWithdrawals();
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+        alert(
+            "❌ Imeshindikana."
+        );
+
+    }
+
+}
 
 
 /* =========================================================
-   MWISHO WA ROOMRENT FIREBASE SCRIPT
+   9. REFERRAL SYSTEM
 ========================================================= */
+
+
+/* ---------------------------------------------------------
+   REFERRAL CODE
+--------------------------------------------------------- */
+
+function tengenezaReferralCode() {
+
+    return (
+        "RR" +
+        Math.random()
+            .toString(36)
+            .substring(2, 8)
+            .toUpperCase()
+    );
+
+}
+
+
+/* ---------------------------------------------------------
+   UNIQUE REFERRAL CODE
+--------------------------------------------------------- */
+
+async function pataReferralCodeYaUser() {
+
+    if (!hakikishaAmeingia()) {
+        return null;
+    }
+
+
+    try {
+
+        const ref =
+            db
+                .collection("users")
+                .doc(
+                    roomrentCurrentUser.uid
+                );
+
+
+        const snap =
+            await ref.get();
+
+
+        if (!snap.exists) {
+            return null;
+        }
+
+
+        const data =
+            snap.data();
+
+
+        if (
+            data.referralCode
+        ) {
+
+            return data.referralCode;
+
+        }
+
+
+        let code =
+            tengenezaReferralCode();
+
+
+        let check =
+            await db
+                .collection("users")
+                .where(
+                    "referralCode",
+                    "==",
+                    code
+                )
+                .limit(1)
+                .get();
+
+
+        while (
+            !check.empty
+        ) {
+
+            code =
+                tengenezaReferralCode();
+
+
+            check =
+                await db
+                    .collection("users")
+                    .where(
+                        "referralCode",
+                        "==",
+                        code
+                    )
+                    .limit(1)
+                    .get();
+
+        }
+
+
+        await ref.update({
+
+            referralCode:
+                code,
+
+            updatedAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp()
+
+        });
+
+
+        if (
+            roomrentUserProfile
+        ) {
+
+            roomrentUserProfile
+                .referralCode =
+                code;
+
+        }
+
+
+        return code;
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+        return null;
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   REFERRAL LINK
+--------------------------------------------------------- */
+
+async function pataReferralLinkYaUser() {
+
+    const code =
+        await pataReferralCodeYaUser();
+
+
+    if (!code) {
+        return null;
+    }
+
+
+    return (
+        window.location.origin +
+        window.location.pathname +
+        "?ref=" +
+        encodeURIComponent(code)
+    );
+
+}
+
+
+/* ---------------------------------------------------------
+   URL REFERRAL
+--------------------------------------------------------- */
+
+function pataReferralCodeKwenyeURL() {
+
+    try {
+
+        const params =
+            new URLSearchParams(
+                window.location.search
+            );
+
+
+        return params.get("ref");
+
+    } catch (error) {
+
+        return null;
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   FIND REFERRER
+--------------------------------------------------------- */
+
+async function pataUserKwaReferralCode(
+    referralCode
+) {
+
+    if (!referralCode) {
+        return null;
+    }
+
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("users")
+                .where(
+                    "referralCode",
+                    "==",
+                    referralCode
+                )
+                .limit(1)
+                .get();
+
+
+        if (
+            snapshot.empty
+        ) {
+            return null;
+        }
+
+
+        const doc =
+            snapshot.docs[0];
+
+
+        return {
+
+            uid:
+                doc.id,
+
+            ...doc.data()
+
+        };
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+        return null;
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   SAVE REFERRAL AT SIGNUP
+--------------------------------------------------------- */
+
+async function hifadhiReferralWakatiWaSignup(
+    newUserUid,
+    referralCode
+) {
+
+    if (!referralCode) {
+        return null;
+    }
+
+
+    try {
+
+        const referrer =
+            await pataUserKwaReferralCode(
+                referralCode
+            );
+
+
+        if (!referrer) {
+            return null;
+        }
+
+
+        if (
+            referrer.uid ===
+            newUserUid
+        ) {
+
+            return null;
+
+        }
+
+
+        const updateData = {
+
+            referredBy:
+                referrer.uid,
+
+            referredByCode:
+                referralCode,
+
+            referralLevel:
+                "A"
+
+        };
+
+
+        /*
+         * LEVEL B
+         */
+
+        if (
+            referrer.referredBy
+        ) {
+
+            updateData.levelBReferrer =
+                referrer.referredBy;
+
+        }
+
+
+        /*
+         * LEVEL C
+         */
+
+        if (
+            referrer.referredBy
+        ) {
+
+            const levelBSnap =
+                await db
+                    .collection("users")
+                    .doc(
+                        referrer.referredBy
+                    )
+                    .get();
+
+
+            if (
+                levelBSnap.exists
+            ) {
+
+                const levelB =
+                    levelBSnap.data();
+
+
+                if (
+                    levelB.referredBy
+                ) {
+
+                    updateData
+                        .levelCReferrer =
+                        levelB.referredBy;
+
+                }
+
+            }
+
+        }
+
+
+        await db
+            .collection("users")
+            .doc(newUserUid)
+            .update(
+                updateData
+            );
+
+
+        return referrer.uid;
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+        return null;
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   USER COMMISSION
+--------------------------------------------------------- */
+
+function pataReferralCommissionRate(
+    level
+) {
+
+    if (level === "A") {
+        return 0.05;
+    }
+
+    if (level === "B") {
+        return 0.02;
+    }
+
+    if (level === "C") {
+        return 0.01;
+    }
+
+    return 0;
+
+}
+
+
+/* ---------------------------------------------------------
+   ADMIN COMMISSION
+--------------------------------------------------------- */
+
+function pataAdminReferralCommissionRate(
+    level
+) {
+
+    if (level === "A") {
+        return 0.20;
+    }
+
+    if (level === "B") {
+        return 0.10;
+    }
+
+    if (level === "C") {
+        return 0.05;
+    }
+
+    return 0;
+
+}
+
+
+/* ---------------------------------------------------------
+   REFERRAL COMMISSION
+--------------------------------------------------------- */
+
+async function tengenezaReferralCommission(
+    bookingId,
+    userId,
+    amount
+) {
+
+    try {
+
+        /*
+         * CHECK IF ALREADY CREATED
+         */
+
+        const existing =
+            await db
+                .collection(
+                    "referralCommissions"
+                )
+                .where(
+                    "bookingId",
+                    "==",
+                    bookingId
+                )
+                .limit(1)
+                .get();
+
+
+        if (
+            !existing.empty
+        ) {
+
+            return;
+
+        }
+
+
+        const userSnap =
+            await db
+                .collection("users")
+                .doc(userId)
+                .get();
+
+
+        if (
+            !userSnap.exists
+        ) {
+            return;
+        }
+
+
+        const user =
+            userSnap.data();
+
+
+        const commissions = [];
+
+
+        /*
+         * LEVEL A
+         */
+
+        if (
+            user.referredBy
+        ) {
+
+            commissions.push({
+
+                level:
+                    "A",
+
+                receiverId:
+                    user.referredBy,
+
+                rate:
+                    0.05,
+
+                amount:
+                    Number(amount) *
+                    0.05
+
+            });
+
+        }
+
+
+        /*
+         * LEVEL B
+         */
+
+        if (
+            user.levelBReferrer
+        ) {
+
+            commissions.push({
+
+                level:
+                    "B",
+
+                receiverId:
+                    user.levelBReferrer,
+
+                rate:
+                    0.02,
+
+                amount:
+                    Number(amount) *
+                    0.02
+
+            });
+
+        }
+
+
+        /*
+         * LEVEL C
+         */
+
+        if (
+            user.levelCReferrer
+        ) {
+
+            commissions.push({
+
+                level:
+                    "C",
+
+                receiverId:
+                    user.levelCReferrer,
+
+                rate:
+                    0.01,
+
+                amount:
+                    Number(amount) *
+                    0.01
+
+            });
+
+        }
+
+
+        /*
+         * SAVE COMMISSIONS
+         */
+
+        for (
+            const commission
+            of commissions
+        ) {
+
+            await db
+                .collection(
+                    "referralCommissions"
+                )
+                .add({
+
+                    bookingId:
+                        bookingId,
+
+                    sourceUserId:
+                        userId,
+
+                    receiverId:
+                        commission.receiverId,
+
+                    level:
+                        commission.level,
+
+                    rate:
+                        commission.rate,
+
+                    amount:
+                        commission.amount,
+
+                    status:
+                        "Pending",
+
+                    createdAt:
+                        firebase.firestore
+                            .FieldValue
+                            .serverTimestamp()
+
+                });
+
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "Referral commission error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   REFERRAL DASHBOARD
+--------------------------------------------------------- */
+
+async function onyeshaReferralDashboard() {
+
+    if (!hakikishaAmeingia()) {
+        return;
+    }
+
+
+    const code =
+        await pataReferralCodeYaUser();
+
+
+    const link =
+        await pataReferralLinkYaUser();
+
+
+    if (!code || !link) {
+
+        alert(
+            "❌ Referral Link haijapatikana."
+        );
+
+        return;
+
+    }
+
+
+    let container =
+        document.getElementById(
+            "referralSection"
+        );
+
+
+    if (!container) {
+
+        container =
+            document.getElementById(
+                "vyumba"
+            );
+
+    }
+
+
+    if (!container) {
+        return;
+    }
+
+
+    container.innerHTML = `
+
+        <div class="referral-dashboard">
+
+            <h2>
+                🔗 Referral System
+            </h2>
+
+
+            <p>
+                Mwalike watu kupitia
+                Referral Link yako.
+            </p>
+
+
+            <div>
+
+                <p>
+                    Referral Code:
+                </p>
+
+                <strong>
+                    ${escapeHTML(code)}
+                </strong>
+
+            </div>
+
+
+            <br>
+
+
+            <div>
+
+                <p>
+                    Referral Link:
+                </p>
+
+                <input
+                    type="text"
+                    id="myReferralLink"
+                    value="${escapeHTML(link)}"
+                    readonly
+                />
+
+
+                <button
+                    onclick="copyReferralLink()"
+                >
+                    📋 Copy Link
+                </button>
+
+            </div>
+
+
+            <br>
+
+
+            <h3>
+                💰 Commission
+            </h3>
+
+
+            <p>
+                🥇 Level A:
+                <strong>
+                    5%
+                </strong>
+            </p>
+
+
+            <p>
+                🥈 Level B:
+                <strong>
+                    2%
+                </strong>
+            </p>
+
+
+            <p>
+                🥉 Level C:
+                <strong>
+                    1%
+                </strong>
+            </p>
+
+
+            <div id="referralStats">
+
+                ⏳ Inapakia...
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    await onyeshaReferralStats();
+
+}
+
+
+/* ---------------------------------------------------------
+   COPY LINK
+--------------------------------------------------------- */
+
+async function copyReferralLink() {
+
+    const input =
+        document.getElementById(
+            "myReferralLink"
+        );
+
+
+    if (!input) {
+        return;
+    }
+
+
+    try {
+
+        await navigator.clipboard
+            .writeText(
+                input.value
+            );
+
+
+        alert(
+            "✅ Referral Link imenakiliwa."
+        );
+
+
+    } catch (error) {
+
+        input.select();
+
+        document.execCommand(
+            "copy"
+        );
+
+
+        alert(
+            "✅ Referral Link imenakiliwa."
+        );
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   REFERRAL STATS
+--------------------------------------------------------- */
+
+async function onyeshaReferralStats() {
+
+    if (!hakikishaAmeingia()) {
+        return;
+    }
+
+
+    const container =
+        document.getElementById(
+            "referralStats"
+        );
+
+
+    if (!container) {
+        return;
+    }
+
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("users")
+                .where(
+                    "referredBy",
+                    "==",
+                    roomrentCurrentUser.uid
+                )
+                .get();
+
+
+        const levelA =
+            snapshot.size;
+
+
+        const commissions =
+            await db
+                .collection(
+                    "referralCommissions"
+                )
+                .where(
+                    "receiverId",
+                    "==",
+                    roomrentCurrentUser.uid
+                )
+                .get();
+
+
+        let totalCommission = 0;
+
+
+        commissions.forEach(
+            doc => {
+
+                const data =
+                    doc.data();
+
+
+                if (
+                    data.status !==
+                    "Cancelled"
+                ) {
+
+                    totalCommission +=
+                        Number(
+                            data.amount || 0
+                        );
+
+                }
+
+            }
+        );
+
+
+        container.innerHTML = `
+
+            <div>
+
+                <h3>
+                    👥 Level A
+                </h3>
+
+                <strong>
+                    ${levelA}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <h3>
+                    💰 Commission
+                </h3>
+
+                <strong>
+                    ${fedha(
+                        totalCommission
+                    )}
+                </strong>
+
+            </div>
+
+        `;
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+
+        container.innerHTML = `
+
+            <p>
+                ❌ Imeshindikana kupakia statistics.
+            </p>
+
+        `;
+
+    }
+
+}
+
+
+/* =========================================================
+   10. FINAL BUTTON INTEGRATION
+========================================================= */
+
+
+/* ---------------------------------------------------------
+   ROOMRENT BUTTONS
+--------------------------------------------------------- */
+
+function unganishaRoomRentButtons() {
+
+    const bookingBtn =
+        document.getElementById(
+            "bookingZangu"
+        );
+
+
+    const accountBtn =
+        document.getElementById(
+            "accountBtn"
+        );
+
+
+    const taarifaBtn =
+        document.getElementById(
+            "taarifaBtn"
+        );
+
+
+    const roomsBtn =
+        document.getElementById(
+            "angaliaVyumba"
+        );
+
+
+    if (bookingBtn) {
+
+        bookingBtn.onclick =
+            function() {
+
+                onyeshaBookingZangu();
+
+            };
+
+    }
+
+
+    if (accountBtn) {
+
+        accountBtn.onclick =
+            function() {
+
+                funguaAccount();
+
+            };
+
+    }
+
+
+    if (taarifaBtn) {
+
+        taarifaBtn.onclick =
+            function() {
+
+                onyeshaTaarifa();
+
+            };
+
+    }
+
+
+    if (roomsBtn) {
+
+        roomsBtn.onclick =
+            function() {
+
+                onyeshaVyumba();
+
+            };
+
+    }
+
+
+    /*
+     * OPTIONAL BUTTONS
+     */
+
+    const faidaBtn =
+        document.getElementById(
+            "faidaBtn"
+        );
+
+
+    if (faidaBtn) {
+
+        faidaBtn.onclick =
+            function() {
+
+                onyeshaDashboardFaida();
+
+            };
+
+    }
+
+
+    const walletBtn =
+        document.getElementById(
+            "walletBtn"
+        );
+
+
+    if (walletBtn) {
+
+        walletBtn.onclick =
+            function() {
+
+                onyeshaWallet();
+
+            };
+
+    }
+
+
+    const referralBtn =
+        document.getElementById(
+            "referralBtn"
+        );
+
+
+    if (referralBtn) {
+
+        referralBtn.onclick =
+            function() {
+
+                onyeshaReferralDashboard();
+
+            };
+
+    }
+
+
+    const adminBtn =
+        document.getElementById(
+            "adminBtn"
+        );
+
+
+    if (adminBtn) {
+
+        adminBtn.onclick =
+            function() {
+
+                funguaAdminDashboard();
+
+            };
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   ADMIN BUTTON
+--------------------------------------------------------- */
+
+function unganishaAdminButton() {
+
+    const adminBtn =
+        document.getElementById(
+            "adminBtn"
+        );
+
+
+    if (adminBtn) {
+
+        adminBtn.onclick =
+            function() {
+
+                funguaAdminDashboard();
+
+            };
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   REFERRAL BUTTON
+--------------------------------------------------------- */
+
+function unganishaReferralButton() {
+
+    const referralBtn =
+        document.getElementById(
+            "referralBtn"
+        );
+
+
+    if (referralBtn) {
+
+        referralBtn.onclick =
+            function() {
+
+                onyeshaReferralDashboard();
+
+            };
+
+    }
+
+}
+
+
+/* =========================================================
+   APP START
+========================================================= */
+
+async function anzishaRoomRent() {
+
+    const success =
+        anzishaFirebase();
+
+
+    if (!success) {
+        return;
+    }
+
+
+    fuatiliaMtumiaji();
+
+
+    /*
+     * Bind buttons immediately
+     */
+
+    unganishaRoomRentButtons();
+
+
+    /*
+     * Show rooms automatically
+     * if container exists
+     */
+
+    if (
+        document.getElementById(
+            "vyumba"
+        )
+    ) {
+
+        onyeshaVyumba();
+
+    }
+
+
+    /*
+     * Check referral URL
+     */
+
+    const referralCode =
+        pataReferralCodeKwenyeURL();
+
+
+    if (referralCode) {
+
+        console.log(
+            "Referral code imepatikana:",
+            referralCode
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   DOM READY
+========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        anzishaRoomRent();
+
+    }
+);

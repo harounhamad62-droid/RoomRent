@@ -382,18 +382,33 @@
     <!-- ==============================
          JAVASCRIPT
     ============================== -->
-
-      <!-- FIREBASE SDK -->
+<!-- FIREBASE SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBlLpRr_zx1ru9acHQ_qHNnZp9f6kv12yA",
+    authDomain: "roomrent-4b63b.firebaseapp.com",
+    projectId: "roomrent-4b63b",
+    storageBucket: "roomrent-4b63b.firebasestorage.app",
+    messagingSenderId: "585995801987",
+    appId: "1:585995801987:web:fdca35cf0b6bdd6f6ed2b6",
+    measurementId: "G-Q562RWY1XV"
+  };
+
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+</script>
+
 <!-- ROOMRENT JAVASCRIPT -->
-<script src="script.js"></script>  
+<script src="script.js"></script>
 
 </body>
-
 </html>
+      
 
 
 

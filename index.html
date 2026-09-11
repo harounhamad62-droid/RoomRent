@@ -50,42 +50,35 @@
         <div class="top-buttons">
 
             <button id="angaliaVyumba">
-
                 🏠 Vyumba
-
             </button>
 
 
             <button id="bookingZangu">
-
                 📋 Booking Zangu
-
             </button>
 
 
             <button id="accountBtn">
-
                 👤 Account
-
             </button>
 
 
-            <button
-                id="taarifaBtn"
-            >
-
+            <button id="taarifaBtn">
                 🔔 Taarifa
-
             </button>
-<button
-    id="withdrawalBtn"
->
-    💸 Withdrawal
-</button>
+
+
+            <button id="withdrawalBtn">
+                💸 Withdrawal
+            </button>
+
         </div>
 
 
-        <!-- CUSTOMER SERVICE -->
+        <!-- ==============================
+             CUSTOMER SERVICE
+        ============================== -->
 
         <div class="customer-service">
 
@@ -114,64 +107,105 @@
 
     </header>
 
-<!-- ==============================
-     PHONE LOGIN
-============================== -->
 
-<section
-    id="phoneLoginSection"
-    class="phone-login-section"
->
 
-    <div class="booking-card">
+    <!-- ==============================
+         EMAIL LOGIN / SIGN UP
+    ============================== -->
 
-        <h2>📱 Ingia RoomRent</h2>
+    <section
+        id="emailLoginSection"
+        class="phone-login-section"
+    >
 
-        <p>
-            Ingiza namba yako ya simu kuthibitisha
-            account yako kwa OTP.
-        </p>
+        <div class="booking-card">
 
-        <input
-            type="tel"
-            id="loginPhone"
-            placeholder="Mfano: 0712345678"
-        >
+            <h2>
+                👤 Ingia RoomRent
+            </h2>
 
-        <div id="recaptcha-container"></div>
 
-        <button
-            class="endeleaBtn"
-            id="sendOtpBtn"
-        >
-            📩 Tuma OTP
-        </button>
+            <p>
+                Ingia kwa kutumia Email na Password yako.
+            </p>
 
-        <div
-            id="otpSection"
-            style="display:none;"
-        >
+
+            <!-- EMAIL -->
 
             <input
-                type="text"
-                id="otpCode"
-                placeholder="Ingiza OTP"
+                type="email"
+                id="loginEmail"
+                placeholder="Mfano: example@gmail.com"
+                autocomplete="email"
             >
+
+
+            <!-- PASSWORD -->
+
+            <input
+                type="password"
+                id="loginPassword"
+                placeholder="Weka Password"
+                autocomplete="current-password"
+            >
+
+
+            <!-- SIGN IN -->
 
             <button
                 class="thibitishaBtn"
-                id="verifyOtpBtn"
+                id="signInBtn"
             >
-                ✅ Thibitisha OTP
+
+                🔐 Ingia
+
             </button>
+
+
+            <!-- SIGN UP -->
+
+            <button
+                class="endeleaBtn"
+                id="signUpBtn"
+            >
+
+                📝 Jisajili
+
+            </button>
+
+
+            <!-- LOGIN MESSAGE -->
+
+            <p
+                id="loginMessage"
+            ></p>
+
+
+            <p
+                style="
+                    text-align:center;
+                    margin-top:15px;
+                "
+            >
+
+                Huna account?
+
+                <br><br>
+
+                Bonyeza
+                <strong>
+                    📝 Jisajili
+                </strong>
+
+                kutengeneza account mpya.
+
+            </p>
 
         </div>
 
-        <p id="loginMessage"></p>
+    </section>
 
-    </div>
 
-            </section>
 
     <!-- ==============================
          MAIN CONTENT
@@ -180,15 +214,21 @@
     <main>
 
 
-        <!-- VYUMBA -->
+        <!-- ==============================
+             VYUMBA
+        ============================== -->
 
-        <section id="vyumba">
+        <section
+            id="vyumba"
+        >
 
         </section>
 
 
 
-        <!-- FOMU YA KODI -->
+        <!-- ==============================
+             FOMU YA KODI
+        ============================== -->
 
         <section
             id="fomuKodi"
@@ -199,7 +239,9 @@
 
 
 
-        <!-- TAARIFA / ACCOUNT / ADMIN -->
+        <!-- ==============================
+             TAARIFA / ACCOUNT / ADMIN
+        ============================== -->
 
         <section
             id="taarifaSection"
@@ -217,7 +259,9 @@
          FOOTER
     ============================== -->
 
-    <footer class="footer">
+    <footer
+        class="footer"
+    >
 
         <h3>
             🏠 RoomRent
@@ -258,7 +302,9 @@
         style="display:none;"
     >
 
-        <div class="modal-content">
+        <div
+            class="modal-content"
+        >
 
 
             <button
@@ -337,9 +383,12 @@
          JAVASCRIPT
     ============================== -->
 
-    <script type="module" src="script.js"></script>
+    <script
+        type="module"
+        src="script.js"
+    ></script>
 
 
 </body>
 
-  </html>
+                </html>

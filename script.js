@@ -6907,3 +6907,219 @@ function roomrentNavigationButtons() {
 document.addEventListener("DOMContentLoaded", function () {
     roomrentNavigationButtons();
 });
+/* =========================================================
+   ROOMRENT - EMAIL AUTH BUTTON FIX
+========================================================= */
+
+function unganishaEmailAuthButtons() {
+
+    const signInBtn =
+        document.getElementById("signInBtn");
+
+    const signUpBtn =
+        document.getElementById("signUpBtn");
+
+
+    /* =========================
+       INGIA
+    ========================= */
+
+    if (signInBtn) {
+
+        signInBtn.onclick = async function () {
+
+            const email =
+                document.getElementById("loginEmail").value.trim();
+
+            const password =
+                document.getElementById("loginPassword").value;
+
+            const message =
+                document.getElementById("loginMessage");
+
+
+            if (!email || !password) {
+
+                message.textContent =
+                    "⚠️ Tafadhali jaza Email na Password.";
+
+                return;
+            }
+
+
+            try {
+
+                message.textContent =
+                    "⏳ Inaingia...";
+
+
+                await firebase.auth()
+                    .signInWithEmailAndPassword(
+                        email,
+                        password
+                    );
+
+
+                message.textContent =
+                    "✅ Umefanikiwa kuingia!";
+
+
+                setTimeout(function () {
+
+                    const loginSection =
+                        document.getElementById(
+                            "emailLoginSection"
+                        );
+
+                    if (loginSection) {
+
+                        loginSection.style.display =
+                            "none";
+
+                    }
+
+
+                    funguaVyumba();
+
+                }, 700);
+
+
+            } catch (error) {
+
+                console.error(error);
+
+                message.textContent =
+                    "❌ " + error.message;
+
+            }
+
+        };
+
+    }
+
+
+    /* =========================
+       JISAJILI
+    ========================= */
+
+    if (signUpBtn) {
+
+        signUpBtn.onclick = async function () {
+
+            const email =
+                document.getElementById("loginEmail").value.trim();
+
+            const password =
+                document.getElementById("loginPassword").value;
+
+            const message =
+                document.getElementById("loginMessage");
+
+
+            if (!email || !password) {
+
+                message.textContent =
+                    "⚠️ Weka Email na Password kwanza.";
+
+                return;
+
+            }
+
+
+            if (password.length < 6) {
+
+                message.textContent =
+                    "⚠️ Password iwe angalau herufi 6.";
+
+                return;
+
+            }
+
+
+            try {
+
+                message.textContent =
+                    "⏳ Inatengeneza account...";
+
+
+                const result =
+                    await firebase.auth()
+                        .createUserWithEmailAndPassword(
+                            email,
+                            password
+                        );
+
+
+                const user =
+                    result.user;
+
+
+                await firebase.firestore()
+                    .collection("users")
+                    .doc(user.uid)
+                    .set({
+
+                        uid: user.uid,
+
+                        email: user.email,
+
+                        createdAt:
+                            firebase.firestore
+                                .FieldValue
+                                .serverTimestamp()
+
+                    });
+
+
+                message.textContent =
+                    "✅ Account imetengenezwa!";
+
+
+                setTimeout(function () {
+
+                    const loginSection =
+                        document.getElementById(
+                            "emailLoginSection"
+                        );
+
+                    if (loginSection) {
+
+                        loginSection.style.display =
+                            "none";
+
+                    }
+
+
+                    funguaVyumba();
+
+                }, 1000);
+
+
+            } catch (error) {
+
+                console.error(error);
+
+                message.textContent =
+                    "❌ " + error.message;
+
+            }
+
+        };
+
+    }
+
+}
+
+
+/* =========================================================
+   START EMAIL AUTH BUTTONS
+========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        unganishaEmailAuthButtons();
+
+    }
+);

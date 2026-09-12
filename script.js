@@ -6695,3 +6695,215 @@ document.addEventListener(
 
     }
 );
+/* =========================================================
+   ROOMRENT - NAVIGATION
+   ========================================================= */
+
+function fichaSehemuZote() {
+    const sehemu = [
+        "vyumba",
+        "fomuKodi",
+        "taarifaSection",
+        "bookingZanguSection",
+        "faidaSection",
+        "accountSection",
+        "withdrawalSection"
+    ];
+
+    sehemu.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.style.display = "none";
+        }
+    });
+}
+
+
+/* =========================
+   VYUMBA
+========================= */
+
+function funguaVyumba() {
+    fichaSehemuZote();
+
+    const section = document.getElementById("vyumba");
+
+    if (section) {
+        section.style.display = "block";
+        onyeshaVyumba();
+
+        section.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+    }
+}
+
+
+/* =========================
+   BOOKING ZANGU
+========================= */
+
+function funguaBookingZanguNavigation() {
+    if (!mtumiajiAmeingia()) {
+        alert("Tafadhali ingia kwenye account yako kwanza.");
+        return;
+    }
+
+    fichaSehemuZote();
+
+    let section = document.getElementById("bookingZanguSection");
+
+    if (!section) {
+        section = document.createElement("section");
+        section.id = "bookingZanguSection";
+        section.style.display = "block";
+
+        const main = document.querySelector("main");
+
+        if (main) {
+            main.appendChild(section);
+        }
+    }
+
+    section.style.display = "block";
+
+    if (typeof onyeshaBookingZangu === "function") {
+        onyeshaBookingZangu();
+    }
+
+    section.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
+}
+
+
+/* =========================
+   ACCOUNT
+========================= */
+
+function funguaAccountNavigation() {
+    if (!mtumiajiAmeingia()) {
+        alert("Tafadhali ingia kwenye account yako kwanza.");
+        return;
+    }
+
+    fichaSehemuZote();
+
+    let section = document.getElementById("accountSection");
+
+    if (!section) {
+        section = document.createElement("section");
+        section.id = "accountSection";
+        section.className = "booking-card";
+
+        const main = document.querySelector("main");
+
+        if (main) {
+            main.appendChild(section);
+        }
+    }
+
+    section.style.display = "block";
+
+    const jina = pataJinaLaUser();
+    const simu = pataSimuYaUser();
+    const email = roomrentCurrentUser
+        ? roomrentCurrentUser.email || ""
+        : "";
+
+    section.innerHTML = `
+        <h2>👤 Account Yangu</h2>
+
+        <p><strong>Jina:</strong> ${escapeHTML(jina)}</p>
+
+        <p><strong>Email:</strong> ${escapeHTML(email)}</p>
+
+        <p><strong>Simu:</strong> ${escapeHTML(simu)}</p>
+
+        <hr>
+
+        <button onclick="onyeshaProfile()">
+            👤 Taarifa za Account
+        </button>
+
+        <button onclick="tokaAccount()">
+            🚪 Toka
+        </button>
+    `;
+
+    section.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
+}
+
+
+/* =========================
+   TAARIFA
+========================= */
+
+function funguaTaarifaNavigation() {
+    if (!mtumiajiAmeingia()) {
+        alert("Tafadhali ingia kwenye account yako kwanza.");
+        return;
+    }
+
+    fichaSehemuZote();
+
+    const section = document.getElementById("taarifaSection");
+
+    if (section) {
+        section.style.display = "block";
+
+        if (typeof onyeshaTaarifa === "function") {
+            onyeshaTaarifa();
+        }
+
+        section.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+    }
+}
+
+
+/* =========================
+   BUTTON BINDING
+========================= */
+
+function roomrentNavigationButtons() {
+
+    const vyumbaBtn = document.getElementById("angaliaVyumba");
+    const bookingBtn = document.getElementById("bookingZangu");
+    const accountBtn = document.getElementById("accountBtn");
+    const taarifaBtn = document.getElementById("taarifaBtn");
+
+    if (vyumbaBtn) {
+        vyumbaBtn.onclick = funguaVyumba;
+    }
+
+    if (bookingBtn) {
+        bookingBtn.onclick = funguaBookingZanguNavigation;
+    }
+
+    if (accountBtn) {
+        accountBtn.onclick = funguaAccountNavigation;
+    }
+
+    if (taarifaBtn) {
+        taarifaBtn.onclick = funguaTaarifaNavigation;
+    }
+
+    console.log("✅ RoomRent navigation imeunganishwa.");
+}
+
+
+/* =========================
+   START NAVIGATION
+========================= */
+
+document.addEventListener("DOMContentLoaded", function () {
+    roomrentNavigationButtons();
+});

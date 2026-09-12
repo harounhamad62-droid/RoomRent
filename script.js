@@ -7179,3 +7179,577 @@ document.addEventListener(
 
     }
 );
+/* =========================================================
+   ROOMRENT - NAVIGATION & SESSION FINAL FIX
+========================================================= */
+
+/* MUDA WA SESSION
+   Saa 2 = 2 × 60 × 60 × 1000
+*/
+
+const ROOMRENT_SESSION_TIME =
+    2 * 60 * 60 * 1000;
+
+
+/* =========================================================
+   SESSION TIME
+========================================================= */
+
+function hifadhiSessionRoomRent() {
+
+    sessionStorage.setItem(
+        "roomrentLastLogin",
+        Date.now().toString()
+    );
+
+}
+
+
+function sessionImeishaRoomRent() {
+
+    const lastLogin =
+        sessionStorage.getItem(
+            "roomrentLastLogin"
+        );
+
+    if (!lastLogin) {
+        return false;
+    }
+
+    const tofauti =
+        Date.now() - Number(lastLogin);
+
+    return tofauti >
+        ROOMRENT_SESSION_TIME;
+
+}
+
+
+/* =========================================================
+   FICHA SEHEMU ZOTE
+========================================================= */
+
+function roomrentFichaSehemuZote() {
+
+    const sehemu = [
+
+        "vyumba",
+
+        "fomuKodi",
+
+        "taarifaSection",
+
+        "bookingZanguSection",
+
+        "accountSection",
+
+        "withdrawalSection",
+
+        "faidaSection"
+
+    ];
+
+    sehemu.forEach(function (id) {
+
+        const sehemuMoja =
+            document.getElementById(id);
+
+        if (sehemuMoja) {
+
+            sehemuMoja.style.display =
+                "none";
+
+        }
+
+    });
+
+}
+
+
+/* =========================================================
+   VYUMBA
+========================================================= */
+
+async function roomrentFunguaVyumba() {
+
+    roomrentFichaSehemuZote();
+
+    const vyumba =
+        document.getElementById("vyumba");
+
+    if (!vyumba) {
+        return;
+    }
+
+
+    vyumba.style.display =
+        "block";
+
+
+    if (
+        typeof onyeshaVyumba ===
+        "function"
+    ) {
+
+        try {
+
+            await onyeshaVyumba();
+
+        } catch (error) {
+
+            console.error(
+                "RoomRent rooms error:",
+                error
+            );
+
+        }
+
+    }
+
+
+    setTimeout(function () {
+
+        vyumba.scrollIntoView({
+
+            behavior: "smooth",
+
+            block: "start"
+
+        });
+
+    }, 100);
+
+}
+
+
+/* =========================================================
+   ACCOUNT
+========================================================= */
+
+async function roomrentFunguaAccount() {
+
+    roomrentFichaSehemuZote();
+
+
+    let accountSection =
+        document.getElementById(
+            "accountSection"
+        );
+
+
+    if (!accountSection) {
+
+        accountSection =
+            document.createElement(
+                "section"
+            );
+
+        accountSection.id =
+            "accountSection";
+
+        accountSection.className =
+            "booking-card";
+
+
+        const main =
+            document.querySelector("main");
+
+
+        if (main) {
+
+            main.appendChild(
+                accountSection
+            );
+
+        }
+
+    }
+
+
+    const user =
+        firebase.auth().currentUser;
+
+
+    if (!user) {
+
+        alert(
+            "Tafadhali ingia kwenye account yako kwanza."
+        );
+
+        return;
+
+    }
+
+
+    accountSection.style.display =
+        "block";
+
+
+    let jina = "Bado halijawekwa";
+
+    let simu = "";
+
+
+    try {
+
+        const userDoc =
+            await firebase.firestore()
+                .collection("users")
+                .doc(user.uid)
+                .get();
+
+
+        if (userDoc.exists) {
+
+            const data =
+                userDoc.data();
+
+
+            jina =
+                data.jina ||
+                data.name ||
+                jina;
+
+
+            simu =
+                data.simu ||
+                data.phone ||
+                "";
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Account error:",
+            error
+        );
+
+    }
+
+
+    accountSection.innerHTML = `
+
+        <h2>
+            👤 Account Yangu
+        </h2>
+
+
+        <p>
+
+            <strong>
+                Jina:
+            </strong>
+
+            ${escapeHTML(jina)}
+
+        </p>
+
+
+        <p>
+
+            <strong>
+                Email:
+            </strong>
+
+            ${escapeHTML(
+                user.email || ""
+            )}
+
+        </p>
+
+
+        <p>
+
+            <strong>
+                Simu:
+            </strong>
+
+            ${escapeHTML(simu)}
+
+        </p>
+
+
+        <p>
+
+            <strong>
+                Role:
+            </strong>
+
+            User
+
+        </p>
+
+
+        <hr>
+
+
+        <button
+            id="roomrentLogoutBtn"
+        >
+
+            🚪 Toka kwenye Account
+
+        </button>
+
+    `;
+
+
+    const logoutBtn =
+        document.getElementById(
+            "roomrentLogoutBtn"
+        );
+
+
+    if (logoutBtn) {
+
+        logoutBtn.onclick =
+            roomrentToka;
+
+    }
+
+
+    setTimeout(function () {
+
+        accountSection.scrollIntoView({
+
+            behavior: "smooth",
+
+            block: "start"
+
+        });
+
+    }, 100);
+
+}
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+async function roomrentToka() {
+
+    try {
+
+        await firebase.auth()
+            .signOut();
+
+
+        sessionStorage.removeItem(
+            "roomrentLastLogin"
+        );
+
+
+        alert(
+            "✅ Umetoka kwenye account yako."
+        );
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        alert(
+            "❌ Imeshindikana kutoka."
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   SESSION CHECK
+========================================================= */
+
+async function roomrentAngaliaSession() {
+
+    const user =
+        firebase.auth().currentUser;
+
+
+    if (!user) {
+        return;
+    }
+
+
+    if (
+        sessionImeishaRoomRent()
+    ) {
+
+        alert(
+            "Session yako imeisha. Tafadhali ingia tena."
+        );
+
+
+        await roomrentToka();
+
+    }
+
+}
+
+
+/* =========================================================
+   BUTTONS - FINAL BINDING
+========================================================= */
+
+function roomrentUnganishaButtonsFinal() {
+
+    const vyumbaBtn =
+        document.getElementById(
+            "angaliaVyumba"
+        );
+
+
+    const accountBtn =
+        document.getElementById(
+            "accountBtn"
+        );
+
+
+    const bookingBtn =
+        document.getElementById(
+            "bookingZangu"
+        );
+
+
+    const taarifaBtn =
+        document.getElementById(
+            "taarifaBtn"
+        );
+
+
+    if (vyumbaBtn) {
+
+        vyumbaBtn.onclick =
+            roomrentFunguaVyumba;
+
+    }
+
+
+    if (accountBtn) {
+
+        accountBtn.onclick =
+            roomrentFunguaAccount;
+
+    }
+
+
+    if (bookingBtn) {
+
+        bookingBtn.onclick =
+            function () {
+
+                if (
+                    typeof funguaBookingZanguNavigation ===
+                    "function"
+                ) {
+
+                    funguaBookingZanguNavigation();
+
+                }
+
+            };
+
+    }
+
+
+    if (taarifaBtn) {
+
+        taarifaBtn.onclick =
+            function () {
+
+                if (
+                    typeof funguaTaarifaNavigation ===
+                    "function"
+                ) {
+
+                    funguaTaarifaNavigation();
+
+                }
+
+            };
+
+    }
+
+}
+
+
+/* =========================================================
+   FIREBASE AUTH STATE
+========================================================= */
+
+firebase.auth()
+    .onAuthStateChanged(
+        function (user) {
+
+            const loginSection =
+                document.getElementById(
+                    "emailLoginSection"
+                );
+
+
+            if (user) {
+
+                if (
+                    !sessionStorage.getItem(
+                        "roomrentLastLogin"
+                    )
+                ) {
+
+                    hifadhiSessionRoomRent();
+
+                }
+
+
+                if (loginSection) {
+
+                    loginSection.style.display =
+                        "none";
+
+                }
+
+
+                roomrentFichaSehemuZote();
+
+
+                roomrentAngaliaSession();
+
+
+            } else {
+
+                roomrentFichaSehemuZote();
+
+
+                if (loginSection) {
+
+                    loginSection.style.display =
+                        "block";
+
+                }
+
+            }
+
+        }
+    );
+
+
+/* =========================================================
+   START
+========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        roomrentUnganishaButtonsFinal();
+
+        setInterval(
+            roomrentAngaliaSession,
+            60000
+        );
+
+    }
+);

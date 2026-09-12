@@ -7123,3 +7123,59 @@ document.addEventListener(
 
     }
 );
+/* =========================================================
+   ROOMRENT - HIDE ROOMS BEFORE LOGIN
+========================================================= */
+
+function roomrentDhibitiMwanzo() {
+
+    const vyumba =
+        document.getElementById("vyumba");
+
+    const loginSection =
+        document.getElementById("emailLoginSection");
+
+
+    firebase.auth().onAuthStateChanged(function (user) {
+
+        if (user) {
+
+            // Mtumiaji ameingia
+
+            if (loginSection) {
+                loginSection.style.display = "none";
+            }
+
+            if (vyumba) {
+                vyumba.style.display = "none";
+            }
+
+        } else {
+
+            // Mtumiaji hajaingia
+
+            if (loginSection) {
+                loginSection.style.display = "block";
+            }
+
+            if (vyumba) {
+                vyumba.style.display = "none";
+            }
+
+        }
+
+    });
+
+}
+
+
+/* START */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        roomrentDhibitiMwanzo();
+
+    }
+);

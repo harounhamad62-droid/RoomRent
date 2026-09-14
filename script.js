@@ -694,10 +694,666 @@ function fungaAdminLogin() {
     modal.style.display = "none";
 
 }
+/* =========================================================
+   18. FIREBASE AUTH - ROOMRENT
+   SEHEMU YA 2
+========================================================= */
 
 
 /* =========================================================
-   18. BUTTON EVENTS
+   18.1 KUHAKIKI AUTH
+========================================================= */
+
+if (!auth) {
+
+    console.error(
+        "❌ Firebase Auth haipo."
+    );
+
+}
+
+
+/* =========================================================
+   18.2 MESSAGE YA LOGIN
+========================================================= */
+
+function onyeshaLoginMessage(message, type = "error") {
+
+    const box =
+        getElement("loginMessage");
+
+    if (!box) {
+        return;
+    }
+
+    box.style.display = "block";
+
+    box.textContent = message;
+
+    if (type === "success") {
+
+        box.style.color = "green";
+
+    } else {
+
+        box.style.color = "red";
+
+    }
+
+}
+
+
+/* =========================================================
+   18.3 CLEAN PHONE / EMAIL
+========================================================= */
+
+function safishaEmail(email) {
+
+    return String(email || "")
+        .trim()
+        .toLowerCase();
+
+}
+
+
+/* =========================================================
+   18.4 JISAJILI
+========================================================= */
+
+async function jisajiliRoomRent() {
+
+    const emailInput =
+        getElement("loginEmail");
+
+    const passwordInput =
+        getElement("loginPassword");
+
+
+    if (!emailInput || !passwordInput) {
+
+        onyeshaLoginMessage(
+            "❌ Sehemu ya Email au Password haijapatikana."
+        );
+
+        return;
+
+    }
+
+
+    const email =
+        safishaEmail(
+            emailInput.value
+        );
+
+
+    const password =
+        String(
+            passwordInput.value || ""
+        ).trim();
+
+
+    /* =========================
+       VALIDATION
+    ========================= */
+
+    if (!email) {
+
+        onyeshaLoginMessage(
+            "❌ Tafadhali weka Email yako."
+        );
+
+        return;
+
+    }
+
+
+    if (!password) {
+
+        onyeshaLoginMessage(
+            "❌ Tafadhali weka Password yako."
+        );
+
+        return;
+
+    }
+
+
+    if (password.length < 6) {
+
+        onyeshaLoginMessage(
+            "❌ Password lazima iwe na angalau herufi/namba 6."
+        );
+
+        return;
+
+    }
+
+
+    if (!auth) {
+
+        onyeshaLoginMessage(
+            "❌ Firebase Auth haijapatikana."
+        );
+
+        return;
+
+    }
+
+
+    onyeshaLoginMessage(
+        "⏳ Tunatengeneza account yako...",
+        "success"
+    );
+
+
+    try {
+
+        /* =========================
+           CREATE FIREBASE ACCOUNT
+        ========================= */
+
+        const credential =
+            await auth.createUserWithEmailAndPassword(
+                email,
+                password
+            );
+
+
+        const user =
+            credential.user;
+
+
+        if (!user) {
+
+            throw new Error(
+                "User hakupatikana baada ya registration."
+            );
+
+        }
+
+
+        /* =========================
+           SAVE USER FIRESTORE
+        ========================= */
+
+        if (db) {
+
+            await db
+                .collection("users")
+                .doc(user.uid)
+                .set({
+
+                    uid: user.uid,
+
+                    email: user.email,
+
+                    referralCode: "",
+
+                    referredBy: "",
+
+                    totalCommission: 0,
+
+                    totalBookings: 0,
+
+                    createdAt:
+                        firebase.firestore.FieldValue.serverTimestamp(),
+
+                    updatedAt:
+                        firebase.firestore.FieldValue.serverTimestamp()
+
+                }, {
+
+                    merge: true
+
+                });
+
+        }
+
+
+        onyeshaLoginMessage(
+            "✅ Account yako imetengenezwa kikamilifu!",
+            "success"
+        );
+
+
+        alert(
+            "🎉 Karibu RoomRent!\n\nAccount yako imetengenezwa."
+        );
+
+
+        /* =========================
+           CLEAR PASSWORD
+        ========================= */
+
+        passwordInput.value = "";
+
+
+    } catch (error) {
+
+        console.error(
+            "Signup Error:",
+            error
+        );
+
+
+        let message =
+            "❌ Imeshindikana kutengeneza account.";
+
+
+        if (
+            error.code ===
+            "auth/email-already-in-use"
+        ) {
+
+            message =
+                "❌ Email hii tayari ina account. Tafadhali Ingia.";
+
+        }
+
+
+        else if (
+            error.code ===
+            "auth/invalid-email"
+        ) {
+
+            message =
+                "❌ Email uliyoweka si sahihi.";
+
+        }
+
+
+        else if (
+            error.code ===
+            "auth/weak-password"
+        ) {
+
+            message =
+                "❌ Password ni dhaifu. Tumia angalau herufi/namba 6.";
+
+        }
+
+
+        else if (
+            error.code ===
+            "auth/operation-not-allowed"
+        ) {
+
+            message =
+                "❌ Email/Password Login haijawezeshwa Firebase Console.";
+
+        }
+
+
+        else if (error.message) {
+
+            message =
+                "❌ " + error.message;
+
+        }
+
+
+        onyeshaLoginMessage(
+            message
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   18.5 INGIA
+========================================================= */
+
+async function ingiaRoomRent() {
+
+    const emailInput =
+        getElement("loginEmail");
+
+    const passwordInput =
+        getElement("loginPassword");
+
+
+    if (!emailInput || !passwordInput) {
+
+        onyeshaLoginMessage(
+            "❌ Sehemu ya Email au Password haijapatikana."
+        );
+
+        return;
+
+    }
+
+
+    const email =
+        safishaEmail(
+            emailInput.value
+        );
+
+
+    const password =
+        String(
+            passwordInput.value || ""
+        ).trim();
+
+
+    /* =========================
+       VALIDATION
+    ========================= */
+
+    if (!email) {
+
+        onyeshaLoginMessage(
+            "❌ Tafadhali weka Email yako."
+        );
+
+        return;
+
+    }
+
+
+    if (!password) {
+
+        onyeshaLoginMessage(
+            "❌ Tafadhali weka Password yako."
+        );
+
+        return;
+
+    }
+
+
+    if (!auth) {
+
+        onyeshaLoginMessage(
+            "❌ Firebase Auth haijapatikana."
+        );
+
+        return;
+
+    }
+
+
+    onyeshaLoginMessage(
+        "⏳ Tunaingia RoomRent...",
+        "success"
+    );
+
+
+    try {
+
+        const credential =
+            await auth.signInWithEmailAndPassword(
+                email,
+                password
+            );
+
+
+        const user =
+            credential.user;
+
+
+        if (!user) {
+
+            throw new Error(
+                "User hakupatikana."
+            );
+
+        }
+
+
+        /* =========================
+           ENSURE FIRESTORE USER
+        ========================= */
+
+        if (db) {
+
+            await db
+                .collection("users")
+                .doc(user.uid)
+                .set({
+
+                    uid: user.uid,
+
+                    email: user.email,
+
+                    updatedAt:
+                        firebase.firestore.FieldValue.serverTimestamp()
+
+                }, {
+
+                    merge: true
+
+                });
+
+        }
+
+
+        onyeshaLoginMessage(
+            "✅ Umeingia RoomRent kikamilifu!",
+            "success"
+        );
+
+
+        alert(
+            "👋 Karibu tena RoomRent!"
+        );
+
+
+        passwordInput.value = "";
+
+
+        /* =========================
+           SHOW ROOMS
+        ========================= */
+
+        setTimeout(function() {
+
+            onyeshaVyumba();
+
+        }, 500);
+
+
+    } catch (error) {
+
+        console.error(
+            "Login Error:",
+            error
+        );
+
+
+        let message =
+            "❌ Imeshindikana kuingia.";
+
+
+        if (
+            error.code ===
+            "auth/user-not-found"
+        ) {
+
+            message =
+                "❌ Email hii haina account.";
+
+        }
+
+
+        else if (
+            error.code ===
+            "auth/wrong-password"
+        ) {
+
+            message =
+                "❌ Password si sahihi.";
+
+        }
+
+
+        else if (
+            error.code ===
+            "auth/invalid-credential"
+        ) {
+
+            message =
+                "❌ Email au Password si sahihi.";
+
+        }
+
+
+        else if (
+            error.code ===
+            "auth/invalid-email"
+        ) {
+
+            message =
+                "❌ Email uliyoweka si sahihi.";
+
+        }
+
+
+        else if (error.message) {
+
+            message =
+                "❌ " + error.message;
+
+        }
+
+
+        onyeshaLoginMessage(
+            message
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   18.6 LOGOUT
+========================================================= */
+
+async function tokaRoomRent() {
+
+    if (!auth) {
+        return;
+    }
+
+
+    try {
+
+        await auth.signOut();
+
+
+        onyeshaLoginMessage(
+            "✅ Umetoka kwenye account.",
+            "success"
+        );
+
+
+        alert(
+            "👋 Umetoka RoomRent."
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Logout Error:",
+            error
+        );
+
+
+        alert(
+            "❌ Imeshindikana kutoka."
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   18.7 KUANGALIA USER ALIYEINGIA
+========================================================= */
+
+if (auth) {
+
+    auth.onAuthStateChanged(
+        async function(user) {
+
+            if (user) {
+
+                console.log(
+                    "👤 User aliyeingia:",
+                    user.email
+                );
+
+
+                console.log(
+                    "🆔 UID:",
+                    user.uid
+                );
+
+
+                /*
+                 * Hapa hatutaficha login section
+                 * bado. Tutafanya hivyo kwenye
+                 * sehemu inayofuata baada ya mfumo
+                 * kuthibitishwa.
+                 */
+
+
+                if (db) {
+
+                    try {
+
+                        await db
+                            .collection("users")
+                            .doc(user.uid)
+                            .set({
+
+                                uid: user.uid,
+
+                                email: user.email,
+
+                                lastLogin:
+                                    firebase.firestore.FieldValue.serverTimestamp(),
+
+                                updatedAt:
+                                    firebase.firestore.FieldValue.serverTimestamp()
+
+                            }, {
+
+                                merge: true
+
+                            });
+
+                    } catch (error) {
+
+                        console.error(
+                            "❌ User Firestore update error:",
+                            error
+                        );
+
+                    }
+
+                }
+
+            } else {
+
+                console.log(
+                    "👤 Hakuna user aliyeingia."
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   18.8 BUTTON EVENTS
 ========================================================= */
 
 document.addEventListener(
@@ -737,6 +1393,10 @@ document.addEventListener(
             getElement("signUpBtn");
 
 
+        /* =========================
+           VYUMBA
+        ========================= */
+
         if (angaliaVyumba) {
 
             angaliaVyumba.addEventListener(
@@ -746,6 +1406,10 @@ document.addEventListener(
 
         }
 
+
+        /* =========================
+           BOOKING
+        ========================= */
 
         if (bookingZangu) {
 
@@ -757,6 +1421,10 @@ document.addEventListener(
         }
 
 
+        /* =========================
+           ACCOUNT
+        ========================= */
+
         if (accountBtn) {
 
             accountBtn.addEventListener(
@@ -766,6 +1434,10 @@ document.addEventListener(
 
         }
 
+
+        /* =========================
+           TAARIFA
+        ========================= */
 
         if (taarifaBtn) {
 
@@ -777,6 +1449,10 @@ document.addEventListener(
         }
 
 
+        /* =========================
+           WITHDRAWAL
+        ========================= */
+
         if (withdrawalBtn) {
 
             withdrawalBtn.addEventListener(
@@ -787,40 +1463,36 @@ document.addEventListener(
         }
 
 
+        /* =========================
+           SIGN IN
+        ========================= */
+
         if (signInBtn) {
 
             signInBtn.addEventListener(
                 "click",
-                function() {
-
-                    alert(
-                        "🔐 Mfumo wa Login utaunganishwa sasa."
-                    );
-
-                }
+                ingiaRoomRent
             );
 
         }
 
 
+        /* =========================
+           SIGN UP
+        ========================= */
+
         if (signUpBtn) {
 
             signUpBtn.addEventListener(
                 "click",
-                function() {
-
-                    alert(
-                        "📝 Mfumo wa Jisajili utaunganishwa sasa."
-                    );
-
-                }
+                jisajiliRoomRent
             );
 
         }
 
 
         console.log(
-            "✅ Button events zimeunganishwa."
+            "✅ RoomRent buttons zote zimeunganishwa."
         );
 
     }
@@ -828,9 +1500,12 @@ document.addEventListener(
 
 
 /* =========================================================
-   19. MWISHO WA SEHEMU YA 1
+   19. MWISHO WA SEHEMU YA 2
 ========================================================= */
 
 console.log(
-    "🏠 ROOMRENT SEHEMU YA 1 IMELOADED."
+    "🔥 ROOMRENT SEHEMU YA 2 IMELOADED."
 );
+
+
+

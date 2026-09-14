@@ -1,32 +1,47 @@
 /* =========================================================
    ROOMRENT - SCRIPT NZIMA
-   SEHEMU YA 1 + SEHEMU YA 2
+   VERSION: CLEAN MERGED
    =========================================================
 
    MFUMO:
    - Firebase
    - Firebase Auth
    - Firestore
-   - Room Data
-   - Navigation
+   - Firebase Storage
    - Sign Up
    - Sign In
    - Sign Out
+   - Account
+   - Referral System
+   - Level A / B / C
+   - Vyumba
+   - Booking
+   - Manual Payment Request
+   - Booking Zangu
+   - Notifications
+   - Withdrawal
+   - Admin Login Modal
 
    MUHIMU:
    - Hakuna localStorage
    - Hakuna payment demo
-   ========================================================= */
+   - Malipo yanaenda kwenye namba halisi
+   - Admin ndiye anathibitisha malipo
+========================================================= */
 
 
 /* =========================================================
-   1. KUHAKIKI FIREBASE
+   1. FIREBASE CHECK
 ========================================================= */
 
 if (typeof firebase === "undefined") {
 
     alert(
         "❌ Firebase haijapakiwa. Tafadhali hakikisha Firebase SDK ipo kwenye HTML."
+    );
+
+    console.error(
+        "❌ Firebase SDK haipo."
     );
 
 } else {
@@ -68,6 +83,14 @@ if (typeof firebase !== "undefined") {
         console.log(
             "✅ Firestore iko tayari."
         );
+
+        if (storage) {
+
+            console.log(
+                "✅ Firebase Storage iko tayari."
+            );
+
+        }
 
     } catch (error) {
 
@@ -156,90 +179,77 @@ const ROOMRENT_ROOMS = [
         roomNumber: "0023",
         price: 30000,
         profitPerDay: 1000,
-        days: 40
+        durationDays: 40
     },
 
     {
         roomNumber: "0024",
         price: 70000,
         profitPerDay: 2333,
-        days: 40
+        durationDays: 40
     },
 
     {
         roomNumber: "0025",
         price: 140000,
         profitPerDay: 4666,
-        days: 40
+        durationDays: 40
     },
 
     {
         roomNumber: "0026",
         price: 210000,
         profitPerDay: 6993,
-        days: 40
+        durationDays: 40
     },
 
     {
         roomNumber: "0027",
         price: 280000,
         profitPerDay: 9324,
-        days: 40
+        durationDays: 40
     },
 
     {
         roomNumber: "0028",
         price: 350000,
         profitPerDay: 11655,
-        days: 40
+        durationDays: 40
     },
 
     {
         roomNumber: "0029",
         price: 420000,
         profitPerDay: 13986,
-        days: 40
+        durationDays: 40
     },
 
     {
         roomNumber: "0030",
         price: 490000,
         profitPerDay: 16317,
-        days: 40
+        durationDays: 40
     },
 
     {
         roomNumber: "0031",
         price: 560000,
         profitPerDay: 18648,
-        days: 40
+        durationDays: 40
     },
 
     {
         roomNumber: "0032",
         price: 630000,
         profitPerDay: 20979,
-        days: 40
+        durationDays: 40
     }
 
 ];
 
 
 /* =========================================================
-   5. HELPER - MONEY
-========================================================= */
-
-function formatMoney(amount) {
-
-    const number = Number(amount) || 0;
-
-    return number.toLocaleString("en-TZ");
-
-}
-
-
-/* =========================================================
-   6. HELPER - GET ELEMENT
+   5. HELPER - GET ELEMENT
 ========================================================= */
 
 function getElement(id) {
@@ -250,1770 +260,21 @@ function getElement(id) {
 
 
 /* =========================================================
-   7. SHOW SECTION
+   6. FORMAT MONEY
 ========================================================= */
 
-function showSection(id) {
+function formatMoney(amount) {
 
-    const section =
-        getElement(id);
+    const number =
+        Number(amount) || 0;
 
-    if (!section) {
-
-        console.warn(
-            "Section haijapatikana:",
-            id
-        );
-
-        return;
-
-    }
-
-    section.style.display = "block";
+    return number.toLocaleString("en-US");
 
 }
 
 
 /* =========================================================
-   8. HIDE SECTION
-========================================================= */
-
-function hideSection(id) {
-
-    const section =
-        getElement(id);
-
-    if (!section) {
-
-        return;
-
-    }
-
-    section.style.display = "none";
-
-}
-
-
-/* =========================================================
-   9. FICHA SECTIONS KUBWA
-========================================================= */
-
-function hideMainSections() {
-
-    hideSection("vyumba");
-
-    hideSection("fomuKodi");
-
-    hideSection("taarifaSection");
-
-}
-
-
-/* =========================================================
-   10. ONYESHA VYUMBA
-========================================================= */
-
-function onyeshaVyumba() {
-
-    const container =
-        getElement("vyumba");
-
-
-    if (!container) {
-
-        console.error(
-            "❌ Element #vyumba haijapatikana."
-        );
-
-        return;
-
-    }
-
-
-    hideSection("fomuKodi");
-
-    hideSection("taarifaSection");
-
-
-    container.style.display = "block";
-
-
-    container.innerHTML = `
-
-        <div class="booking-card">
-
-            <h2>
-                🏠 Vyumba vya RoomRent
-            </h2>
-
-            <p>
-                Chagua chumba unachotaka kukodi.
-            </p>
-
-        </div>
-
-    `;
-
-
-    ROOMRENT_ROOMS.forEach(
-        function(room) {
-
-            const totalProfit =
-                room.profitPerDay *
-                room.days;
-
-
-            const card =
-                document.createElement("div");
-
-
-            card.className =
-                "booking-card";
-
-
-            card.innerHTML = `
-
-                <h3>
-                    🏠 Chumba ${room.roomNumber}
-                </h3>
-
-                <p>
-                    💰 Bei:
-                    <strong>
-                        ${formatMoney(room.price)} TSh
-                    </strong>
-                </p>
-
-                <p>
-                    📈 Faida kwa siku:
-                    <strong>
-                        ${formatMoney(room.profitPerDay)} TSh
-                    </strong>
-                </p>
-
-                <p>
-                    📅 Muda:
-                    <strong>
-                        ${room.days} siku
-                    </strong>
-                </p>
-
-                <p>
-                    💵 Faida ya mzunguko:
-                    <strong>
-                        ${formatMoney(totalProfit)} TSh
-                    </strong>
-                </p>
-
-                <button
-                    class="endeleaBtn"
-                    onclick="funguaFomuKodi('${room.roomNumber}')"
-                >
-                    🏠 Kodi Chumba
-                </button>
-
-            `;
-
-
-            container.appendChild(card);
-
-        }
-    );
-
-
-    window.scrollTo({
-
-        top: 0,
-
-        behavior: "smooth"
-
-    });
-
-}
-
-
-/* =========================================================
-   11. FOMU YA KODI
-========================================================= */
-
-function funguaFomuKodi(roomNumber) {
-
-    const room =
-        ROOMRENT_ROOMS.find(
-            function(item) {
-
-                return item.roomNumber === roomNumber;
-
-            }
-        );
-
-
-    if (!room) {
-
-        alert(
-            "❌ Chumba hakijapatikana."
-        );
-
-        return;
-
-    }
-
-
-    hideSection("vyumba");
-
-    hideSection("taarifaSection");
-
-
-    const form =
-        getElement("fomuKodi");
-
-
-    if (!form) {
-
-        console.error(
-            "❌ #fomuKodi haijapatikana."
-        );
-
-        return;
-
-    }
-
-
-    form.style.display = "block";
-
-
-    form.innerHTML = `
-
-        <div class="booking-card">
-
-            <h2>
-                🏠 Kodi Chumba ${room.roomNumber}
-            </h2>
-
-            <p>
-                💰 Bei:
-                <strong>
-                    ${formatMoney(room.price)} TSh
-                </strong>
-            </p>
-
-            <p>
-                📅 Muda:
-                <strong>
-                    ${room.days} siku
-                </strong>
-            </p>
-
-            <hr>
-
-            <p>
-                Mfumo wa booking utaunganishwa
-                katika sehemu inayofuata.
-            </p>
-
-            <button
-                class="endeleaBtn"
-                onclick="onyeshaVyumba()"
-            >
-                ← Rudi Vyumba
-            </button>
-
-        </div>
-
-    `;
-
-
-    window.scrollTo({
-
-        top: 0,
-
-        behavior: "smooth"
-
-    });
-
-}
-
-
-/* =========================================================
-   12. BOOKING ZANGU
-========================================================= */
-
-function funguaBookingZangu() {
-
-    hideSection("vyumba");
-
-    hideSection("fomuKodi");
-
-
-    const section =
-        getElement("taarifaSection");
-
-
-    if (!section) {
-
-        return;
-
-    }
-
-
-    section.style.display =
-        "block";
-
-
-    section.innerHTML = `
-
-        <div class="booking-card">
-
-            <h2>
-                📋 Booking Zangu
-            </h2>
-
-            <p>
-                Mfumo wa Booking Zangu
-                utaunganishwa katika sehemu
-                inayofuata.
-            </p>
-
-        </div>
-
-    `;
-
-
-    window.scrollTo({
-
-        top: 0,
-
-        behavior: "smooth"
-
-    });
-
-}
-
-
-/* =========================================================
-   13. ACCOUNT
-========================================================= */
-
-function funguaAccount() {
-
-    hideSection("vyumba");
-
-    hideSection("fomuKodi");
-
-
-    const section =
-        getElement("taarifaSection");
-
-
-    if (!section) {
-
-        return;
-
-    }
-
-
-    section.style.display =
-        "block";
-
-
-    section.innerHTML = `
-
-        <div class="booking-card">
-
-            <h2>
-                👤 Account
-            </h2>
-
-            <p>
-                Mfumo wa Account utaunganishwa
-                katika sehemu inayofuata.
-            </p>
-
-        </div>
-
-    `;
-
-
-    window.scrollTo({
-
-        top: 0,
-
-        behavior: "smooth"
-
-    });
-
-}
-
-
-/* =========================================================
-   14. TAARIFA
-========================================================= */
-
-function funguaTaarifa() {
-
-    hideSection("vyumba");
-
-    hideSection("fomuKodi");
-
-
-    const section =
-        getElement("taarifaSection");
-
-
-    if (!section) {
-
-        return;
-
-    }
-
-
-    section.style.display =
-        "block";
-
-
-    section.innerHTML = `
-
-        <div class="booking-card">
-
-            <h2>
-                🔔 Taarifa
-            </h2>
-
-            <p>
-                Huna taarifa mpya kwa sasa.
-            </p>
-
-        </div>
-
-    `;
-
-
-    window.scrollTo({
-
-        top: 0,
-
-        behavior: "smooth"
-
-    });
-
-}
-
-
-/* =========================================================
-   15. WITHDRAWAL
-========================================================= */
-
-function funguaWithdrawal() {
-
-    hideSection("vyumba");
-
-    hideSection("fomuKodi");
-
-
-    const section =
-        getElement("taarifaSection");
-
-
-    if (!section) {
-
-        return;
-
-    }
-
-
-    section.style.display =
-        "block";
-
-
-    section.innerHTML = `
-
-        <div class="booking-card">
-
-            <h2>
-                💸 Withdrawal
-            </h2>
-
-            <p>
-                Mfumo wa withdrawal utaunganishwa
-                katika sehemu inayofuata.
-            </p>
-
-        </div>
-
-    `;
-
-
-    window.scrollTo({
-
-        top: 0,
-
-        behavior: "smooth"
-
-    });
-
-}
-
-
-/* =========================================================
-   16. ADMIN LOGIN - OPEN
-========================================================= */
-
-function funguaAdmin() {
-
-    const modal =
-        getElement("adminLoginModal");
-
-
-    if (!modal) {
-
-        return;
-
-    }
-
-
-    modal.style.display =
-        "flex";
-
-}
-
-
-/* =========================================================
-   17. ADMIN LOGIN - CLOSE
-========================================================= */
-
-function fungaAdminLogin() {
-
-    const modal =
-        getElement("adminLoginModal");
-
-
-    if (!modal) {
-
-        return;
-
-    }
-
-
-    modal.style.display =
-        "none";
-
-}
-
-
-/* =========================================================
-   18. FIREBASE AUTH
-========================================================= */
-
-
-/* =========================================================
-   18.1 LOGIN MESSAGE
-========================================================= */
-
-function onyeshaLoginMessage(
-    message,
-    type = "error"
-) {
-
-    const box =
-        getElement("loginMessage");
-
-
-    if (!box) {
-
-        return;
-
-    }
-
-
-    box.style.display =
-        "block";
-
-
-    box.textContent =
-        message;
-
-
-    if (type === "success") {
-
-        box.style.color =
-            "green";
-
-    } else {
-
-        box.style.color =
-            "red";
-
-    }
-
-}
-
-
-/* =========================================================
-   18.2 SAFISHA EMAIL
-========================================================= */
-
-function safishaEmail(email) {
-
-    return String(email || "")
-        .trim()
-        .toLowerCase();
-
-}
-
-
-/* =========================================================
-   18.3 JISAJILI
-========================================================= */
-
-async function jisajiliRoomRent() {
-
-    const emailInput =
-        getElement("loginEmail");
-
-
-    const passwordInput =
-        getElement("loginPassword");
-
-
-    if (!emailInput ||
-        !passwordInput) {
-
-        onyeshaLoginMessage(
-            "❌ Sehemu ya Email au Password haijapatikana."
-        );
-
-        return;
-
-    }
-
-
-    const email =
-        safishaEmail(
-            emailInput.value
-        );
-
-
-    const password =
-        String(
-            passwordInput.value || ""
-        ).trim();
-
-
-    if (!email) {
-
-        onyeshaLoginMessage(
-            "❌ Tafadhali weka Email yako."
-        );
-
-        return;
-
-    }
-
-
-    if (!password) {
-
-        onyeshaLoginMessage(
-            "❌ Tafadhali weka Password yako."
-        );
-
-        return;
-
-    }
-
-
-    if (password.length < 6) {
-
-        onyeshaLoginMessage(
-            "❌ Password lazima iwe na angalau herufi/namba 6."
-        );
-
-        return;
-
-    }
-
-
-    if (!auth) {
-
-        onyeshaLoginMessage(
-            "❌ Firebase Auth haijapatikana."
-        );
-
-        return;
-
-    }
-
-
-    onyeshaLoginMessage(
-        "⏳ Tunatengeneza account yako...",
-        "success"
-    );
-
-
-    try {
-
-        const credential =
-            await auth.createUserWithEmailAndPassword(
-                email,
-                password
-            );
-
-
-        const user =
-            credential.user;
-
-
-        if (!user) {
-
-            throw new Error(
-                "User hakupatikana baada ya registration."
-            );
-
-        }
-
-
-        if (db) {
-
-            await db
-                .collection("users")
-                .doc(user.uid)
-                .set({
-
-                    uid: user.uid,
-
-                    email: user.email,
-
-                    referralCode: "",
-
-                    referredBy: "",
-
-                    totalCommission: 0,
-
-                    totalBookings: 0,
-
-                    createdAt:
-                        firebase.firestore.FieldValue.serverTimestamp(),
-
-                    updatedAt:
-                        firebase.firestore.FieldValue.serverTimestamp()
-
-                }, {
-
-                    merge: true
-
-                });
-
-        }
-
-
-        onyeshaLoginMessage(
-            "✅ Account yako imetengenezwa kikamilifu!",
-            "success"
-        );
-
-
-        alert(
-            "🎉 Karibu RoomRent!\n\nAccount yako imetengenezwa."
-        );
-
-
-        passwordInput.value = "";
-
-
-    } catch (error) {
-
-        console.error(
-            "Signup Error:",
-            error
-        );
-
-
-        let message =
-            "❌ Imeshindikana kutengeneza account.";
-
-
-        if (
-            error.code ===
-            "auth/email-already-in-use"
-        ) {
-
-            message =
-                "❌ Email hii tayari ina account. Tafadhali Ingia.";
-
-        }
-
-        else if (
-            error.code ===
-            "auth/invalid-email"
-        ) {
-
-            message =
-                "❌ Email uliyoweka si sahihi.";
-
-        }
-
-        else if (
-            error.code ===
-            "auth/weak-password"
-        ) {
-
-            message =
-                "❌ Password ni dhaifu. Tumia angalau herufi/namba 6.";
-
-        }
-
-        else if (
-            error.code ===
-            "auth/operation-not-allowed"
-        ) {
-
-            message =
-                "❌ Email/Password Login haijawezeshwa Firebase Console.";
-
-        }
-
-        else if (error.message) {
-
-            message =
-                "❌ " + error.message;
-
-        }
-
-
-        onyeshaLoginMessage(
-            message
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   18.4 INGIA
-========================================================= */
-
-async function ingiaRoomRent() {
-
-    const emailInput =
-        getElement("loginEmail");
-
-
-    const passwordInput =
-        getElement("loginPassword");
-
-
-    if (!emailInput ||
-        !passwordInput) {
-
-        onyeshaLoginMessage(
-            "❌ Sehemu ya Email au Password haijapatikana."
-        );
-
-        return;
-
-    }
-
-
-    const email =
-        safishaEmail(
-            emailInput.value
-        );
-
-
-    const password =
-        String(
-            passwordInput.value || ""
-        ).trim();
-
-
-    if (!email) {
-
-        onyeshaLoginMessage(
-            "❌ Tafadhali weka Email yako."
-        );
-
-        return;
-
-    }
-
-
-    if (!password) {
-
-        onyeshaLoginMessage(
-            "❌ Tafadhali weka Password yako."
-        );
-
-        return;
-
-    }
-
-
-    if (!auth) {
-
-        onyeshaLoginMessage(
-            "❌ Firebase Auth haijapatikana."
-        );
-
-        return;
-
-    }
-
-
-    onyeshaLoginMessage(
-        "⏳ Tunaingia RoomRent...",
-        "success"
-    );
-
-
-    try {
-
-        const credential =
-            await auth.signInWithEmailAndPassword(
-                email,
-                password
-            );
-
-
-        const user =
-            credential.user;
-
-
-        if (!user) {
-
-            throw new Error(
-                "User hakupatikana."
-            );
-
-        }
-
-
-        if (db) {
-
-            await db
-                .collection("users")
-                .doc(user.uid)
-                .set({
-
-                    uid: user.uid,
-
-                    email: user.email,
-
-                    updatedAt:
-                        firebase.firestore.FieldValue.serverTimestamp()
-
-                }, {
-
-                    merge: true
-
-                });
-
-        }
-
-
-        onyeshaLoginMessage(
-            "✅ Umeingia RoomRent kikamilifu!",
-            "success"
-        );
-
-
-        alert(
-            "👋 Karibu tena RoomRent!"
-        );
-
-
-        passwordInput.value = "";
-
-
-        setTimeout(
-            function() {
-
-                onyeshaVyumba();
-
-            },
-            500
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Login Error:",
-            error
-        );
-
-
-        let message =
-            "❌ Imeshindikana kuingia.";
-
-
-        if (
-            error.code ===
-            "auth/user-not-found"
-        ) {
-
-            message =
-                "❌ Email hii haina account.";
-
-        }
-
-        else if (
-            error.code ===
-            "auth/wrong-password"
-        ) {
-
-            message =
-                "❌ Password si sahihi.";
-
-        }
-
-        else if (
-            error.code ===
-            "auth/invalid-credential"
-        ) {
-
-            message =
-                "❌ Email au Password si sahihi.";
-
-        }
-
-        else if (
-            error.code ===
-            "auth/invalid-email"
-        ) {
-
-            message =
-                "❌ Email uliyoweka si sahihi.";
-
-        }
-
-        else if (error.message) {
-
-            message =
-                "❌ " + error.message;
-
-        }
-
-
-        onyeshaLoginMessage(
-            message
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   18.5 LOGOUT
-========================================================= */
-
-async function tokaRoomRent() {
-
-    if (!auth) {
-
-        return;
-
-    }
-
-
-    try {
-
-        await auth.signOut();
-
-
-        onyeshaLoginMessage(
-            "✅ Umetoka kwenye account.",
-            "success"
-        );
-
-
-        alert(
-            "👋 Umetoka RoomRent."
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Logout Error:",
-            error
-        );
-
-
-        alert(
-            "❌ Imeshindikana kutoka."
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   18.6 AUTH STATE
-========================================================= */
-
-if (auth) {
-
-    auth.onAuthStateChanged(
-        async function(user) {
-
-            if (user) {
-
-                console.log(
-                    "👤 User aliyeingia:",
-                    user.email
-                );
-
-
-                console.log(
-                    "🆔 UID:",
-                    user.uid
-                );
-
-
-                if (db) {
-
-                    try {
-
-                        await db
-                            .collection("users")
-                            .doc(user.uid)
-                            .set({
-
-                                uid: user.uid,
-
-                                email: user.email,
-
-                                lastLogin:
-                                    firebase.firestore.FieldValue.serverTimestamp(),
-
-                                updatedAt:
-                                    firebase.firestore.FieldValue.serverTimestamp()
-
-                            }, {
-
-                                merge: true
-
-                            });
-
-                    } catch (error) {
-
-                        console.error(
-                            "❌ User Firestore update error:",
-                            error
-                        );
-
-                    }
-
-                }
-
-            } else {
-
-                console.log(
-                    "👤 Hakuna user aliyeingia."
-                );
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   19. BUTTON EVENTS
-========================================================= */
-
-document.addEventListener(
-    "DOMContentLoaded",
-    function() {
-
-        console.log(
-            "🚀 RoomRent DOM imekamilika."
-        );
-
-
-        const angaliaVyumba =
-            getElement("angaliaVyumba");
-
-
-        const bookingZangu =
-            getElement("bookingZangu");
-
-
-        const accountBtn =
-            getElement("accountBtn");
-
-
-        const taarifaBtn =
-            getElement("taarifaBtn");
-
-
-        const withdrawalBtn =
-            getElement("withdrawalBtn");
-
-
-        const signInBtn =
-            getElement("signInBtn");
-
-
-        const signUpBtn =
-            getElement("signUpBtn");
-
-
-        if (angaliaVyumba) {
-
-            angaliaVyumba.addEventListener(
-                "click",
-                onyeshaVyumba
-            );
-
-        }
-
-
-        if (bookingZangu) {
-
-            bookingZangu.addEventListener(
-                "click",
-                funguaBookingZangu
-            );
-
-        }
-
-
-        if (accountBtn) {
-
-            accountBtn.addEventListener(
-                "click",
-                funguaAccount
-            );
-
-        }
-
-
-        if (taarifaBtn) {
-
-            taarifaBtn.addEventListener(
-                "click",
-                funguaTaarifa
-            );
-
-        }
-
-
-        if (withdrawalBtn) {
-
-            withdrawalBtn.addEventListener(
-                "click",
-                funguaWithdrawal
-            );
-
-        }
-
-
-        if (signInBtn) {
-
-            signInBtn.addEventListener(
-                "click",
-                ingiaRoomRent
-            );
-
-        }
-
-
-        if (signUpBtn) {
-
-            signUpBtn.addEventListener(
-                "click",
-                jisajiliRoomRent
-            );
-
-        }
-
-
-        console.log(
-            "✅ RoomRent buttons zote zimeunganishwa."
-        );
-
-    }
-);
-
-
-/* =========================================================
-   20. MWISHO
-========================================================= */
-
-console.log(
-    "🔥 ROOMRENT SCRIPT IMELOADED."
-);
-/* =========================================================
-   ROOMRENT - SEHEMU YA 3
-   ACCOUNT + REFERRAL SYSTEM
-   VERSION: CLEAN
-========================================================= */
-
-
-/* =========================================================
-   3.1 - PATA USER ALIYEINGIA
-========================================================= */
-
-function getCurrentUser() {
-
-    if (!auth) {
-        return null;
-    }
-
-    return auth.currentUser || null;
-}
-
-
-/* =========================================================
-   3.2 - PATA REFERRAL CODE KWENYE URL
-========================================================= */
-
-function pataReferralKutokaURL() {
-
-    try {
-
-        const url =
-            new URL(window.location.href);
-
-        const code =
-            url.searchParams.get("ref");
-
-        if (!code) {
-            return "";
-        }
-
-        return code
-            .trim()
-            .toUpperCase();
-
-    } catch (error) {
-
-        console.error(
-            "Referral URL error:",
-            error
-        );
-
-        return "";
-    }
-}
-
-
-/* =========================================================
-   3.3 - GENERATE REFERRAL CODE
-========================================================= */
-
-function generateReferralCode(email) {
-
-    let prefix = "RR";
-
-    if (email) {
-
-        const emailName =
-            email
-                .split("@")[0]
-                .replace(/[^a-zA-Z0-9]/g, "")
-                .substring(0, 5)
-                .toUpperCase();
-
-        if (emailName.length >= 2) {
-
-            prefix =
-                "RR" + emailName;
-        }
-    }
-
-
-    const randomPart =
-        Math.random()
-            .toString(36)
-            .substring(2, 8)
-            .toUpperCase();
-
-
-    return prefix + randomPart;
-}
-
-
-/* =========================================================
-   3.4 - GENERATE REFERRAL CODE
-   BILA QUERY YA USERS
-========================================================= */
-
-async function tengenezaReferralCodeUnique(email) {
-
-    /*
-     * Tunatumia random code yenye nafasi kubwa sana
-     * ya kuwa unique.
-     *
-     * Hii inazuia Account kushindwa kwa sababu ya
-     * Firestore query.
-     */
-
-    return generateReferralCode(email);
-}
-
-
-/* =========================================================
-   3.5 - TENGENEZA REFERRAL LINK
-========================================================= */
-
-function pataReferralLink(code) {
-
-    if (!code) {
-        return "";
-    }
-
-
-    try {
-
-        const baseURL =
-            window.location.origin +
-            window.location.pathname;
-
-
-        return (
-            baseURL +
-            "?ref=" +
-            encodeURIComponent(code)
-        );
-
-    } catch (error) {
-
-        return (
-            window.location.href.split("?")[0] +
-            "?ref=" +
-            encodeURIComponent(code)
-        );
-    }
-}
-
-
-/* =========================================================
-   3.6 - HAKIKISHA USER ANA REFERRAL CODE
-========================================================= */
-
-async function hakikishaReferralCodeYaUser() {
-
-    const user =
-        getCurrentUser();
-
-
-    if (!user) {
-
-        console.error(
-            "Hakuna user aliyeingia."
-        );
-
-        return null;
-    }
-
-
-    if (!db) {
-
-        console.error(
-            "Firestore haijaunganishwa."
-        );
-
-        return null;
-    }
-
-
-    try {
-
-        const userRef =
-            db
-                .collection("users")
-                .doc(user.uid);
-
-
-        const userSnap =
-            await userRef.get();
-
-
-        /*
-         * Kama document haipo
-         */
-
-        if (!userSnap.exists) {
-
-            console.log(
-                "User document haipo. Inatengenezwa..."
-            );
-
-
-            const newCode =
-                await tengenezaReferralCodeUnique(
-                    user.email
-                );
-
-
-            const newLink =
-                pataReferralLink(
-                    newCode
-                );
-
-
-            await userRef.set({
-
-                uid:
-                    user.uid,
-
-                email:
-                    user.email || "",
-
-                referralCode:
-                    newCode,
-
-                referralLink:
-                    newLink,
-
-                referredBy:
-                    "",
-
-                referralType:
-                    "",
-
-                totalCommission:
-                    0,
-
-                totalBookings:
-                    0,
-
-                createdAt:
-                    firebase.firestore
-                        .FieldValue
-                        .serverTimestamp(),
-
-                updatedAt:
-                    firebase.firestore
-                        .FieldValue
-                        .serverTimestamp()
-
-            });
-
-
-            console.log(
-                "User document mpya imetengenezwa."
-            );
-
-
-            return newCode;
-        }
-
-
-        /*
-         * Kama document ipo
-         */
-
-        const userData =
-            userSnap.data();
-
-
-        /*
-         * Kama referral code ipo tayari
-         */
-
-        if (
-            userData.referralCode
-        ) {
-
-            /*
-             * Kama link haipo,
-             * itengeneze.
-             */
-
-            if (!userData.referralLink) {
-
-                const link =
-                    pataReferralLink(
-                        userData.referralCode
-                    );
-
-
-                await userRef.set(
-                    {
-                        referralLink:
-                            link,
-
-                        updatedAt:
-                            firebase.firestore
-                                .FieldValue
-                                .serverTimestamp()
-
-                    },
-                    {
-                        merge: true
-                    }
-                );
-            }
-
-
-            return userData.referralCode;
-        }
-
-
-        /*
-         * Kama document ipo lakini
-         * referralCode haipo
-         */
-
-        const newCode =
-            await tengenezaReferralCodeUnique(
-                user.email
-            );
-
-
-        const newLink =
-            pataReferralLink(
-                newCode
-            );
-
-
-        await userRef.set(
-            {
-
-                referralCode:
-                    newCode,
-
-                referralLink:
-                    newLink,
-
-                totalCommission:
-                    userData.totalCommission || 0,
-
-                totalBookings:
-                    userData.totalBookings || 0,
-
-                updatedAt:
-                    firebase.firestore
-                        .FieldValue
-                        .serverTimestamp()
-
-            },
-            {
-                merge: true
-            }
-        );
-
-
-        console.log(
-            "Referral code mpya:",
-            newCode
-        );
-
-
-        return newCode;
-
-
-    } catch (error) {
-
-        console.error(
-            "REFERRAL CODE ERROR:",
-            error
-        );
-
-        return null;
-    }
-}
-
-
-/* =========================================================
-   3.7 - PATA ACCOUNT DATA
-========================================================= */
-
-async function pataAccountData() {
-
-    const user =
-        getCurrentUser();
-
-
-    if (!user) {
-        return null;
-    }
-
-
-    if (!db) {
-
-        console.error(
-            "Firestore haipo."
-        );
-
-        return null;
-    }
-
-
-    try {
-
-        const snapshot =
-            await db
-                .collection("users")
-                .doc(user.uid)
-                .get();
-
-
-        /*
-         * Kama user document haipo,
-         * rudisha basic information.
-         */
-
-        if (!snapshot.exists) {
-
-            return {
-
-                uid:
-                    user.uid,
-
-                email:
-                    user.email || "",
-
-                referralCode:
-                    "",
-
-                referralLink:
-                    "",
-
-                referredBy:
-                    "",
-
-                totalCommission:
-                    0,
-
-                totalBookings:
-                    0
-
-            };
-        }
-
-
-        return {
-
-            uid:
-                user.uid,
-
-            ...snapshot.data()
-
-        };
-
-
-    } catch (error) {
-
-        console.error(
-            "ACCOUNT DATA ERROR:",
-            error
-        );
-
-        return null;
-    }
-}
-
-
-/* =========================================================
-   3.8 - ESCAPE HTML
+   7. ESCAPE HTML
 ========================================================= */
 
 function escapeHTML(value) {
@@ -2024,8 +285,8 @@ function escapeHTML(value) {
     ) {
 
         return "";
-    }
 
+    }
 
     return String(value)
 
@@ -2053,132 +314,299 @@ function escapeHTML(value) {
             /'/g,
             "&#039;"
         );
+
 }
 
 
 /* =========================================================
-   3.9 - FORMAT MONEY
+   8. SHOW SECTION
 ========================================================= */
 
-function formatMoney(amount) {
-
-    const number =
-        Number(amount) || 0;
-
-
-    return number.toLocaleString(
-        "en-US"
-    );
-}
-
-
-/* =========================================================
-   3.10 - DISPLAY ACCOUNT
-========================================================= */
-
-async function funguaAccount() {
-
-    const user =
-        getCurrentUser();
-
-
-    if (!user) {
-
-        alert(
-            "Tafadhali ingia kwenye account kwanza."
-        );
-
-        return;
-    }
-
+function showSection(id) {
 
     const section =
-        document.getElementById(
-            "taarifaSection"
-        );
-
+        getElement(id);
 
     if (!section) {
 
-        console.error(
-            "taarifaSection haipo HTML."
-        );
-
         return;
+
     }
-
-
-    /*
-     * Onyesha section
-     */
 
     section.style.display =
         "block";
 
-
-    /*
-     * Ficha vyumba
-     */
-
-    const vyumba =
-        document.getElementById(
-            "vyumba"
-        );
+}
 
 
-    if (vyumba) {
+/* =========================================================
+   9. HIDE SECTION
+========================================================= */
 
-        vyumba.style.display =
-            "none";
+function hideSection(id) {
+
+    const section =
+        getElement(id);
+
+    if (!section) {
+
+        return;
+
     }
 
+    section.style.display =
+        "none";
 
-    /*
-     * Onyesha loading
-     */
+}
 
-    section.innerHTML = `
 
-        <div class="booking-card">
+/* =========================================================
+   10. CURRENT USER
+========================================================= */
 
-            <h2>
-                👤 Account Yangu
-            </h2>
+function getCurrentUser() {
 
-            <p>
-                ⏳ Inapakia taarifa...
-            </p>
+    if (!auth) {
 
-        </div>
+        return null;
 
-    `;
+    }
 
+    return auth.currentUser || null;
+
+}
+
+
+/* =========================================================
+   11. LOGIN MESSAGE
+========================================================= */
+
+function onyeshaLoginMessage(
+    message,
+    type = "error"
+) {
+
+    const box =
+        getElement("loginMessage");
+
+    if (!box) {
+
+        return;
+
+    }
+
+    box.style.display =
+        "block";
+
+    box.textContent =
+        message;
+
+    box.style.color =
+        type === "success"
+            ? "green"
+            : "red";
+
+}
+
+
+/* =========================================================
+   12. CLEAN EMAIL
+========================================================= */
+
+function safishaEmail(email) {
+
+    return String(email || "")
+        .trim()
+        .toLowerCase();
+
+}
+
+
+/* =========================================================
+   13. GENERATE REFERRAL CODE
+========================================================= */
+
+function generateReferralCode(email) {
+
+    let prefix =
+        "RR";
+
+    if (email) {
+
+        const emailName =
+            email
+                .split("@")[0]
+                .replace(
+                    /[^a-zA-Z0-9]/g,
+                    ""
+                )
+                .substring(0, 5)
+                .toUpperCase();
+
+        if (
+            emailName.length >= 2
+        ) {
+
+            prefix =
+                "RR" + emailName;
+
+        }
+
+    }
+
+    const randomPart =
+        Math.random()
+            .toString(36)
+            .substring(2, 8)
+            .toUpperCase();
+
+    return prefix + randomPart;
+
+}
+
+
+/* =========================================================
+   14. REFERRAL CODE UNIQUE
+========================================================= */
+
+async function tengenezaReferralCodeUnique(
+    email
+) {
+
+    return generateReferralCode(
+        email
+    );
+
+}
+
+
+/* =========================================================
+   15. REFERRAL URL
+========================================================= */
+
+function pataReferralKutokaURL() {
 
     try {
 
-        /*
-         * Pata account
-         */
+        const url =
+            new URL(
+                window.location.href
+            );
 
-        let data =
-            await pataAccountData();
+        const code =
+            url.searchParams.get(
+                "ref"
+            );
+
+        if (!code) {
+
+            return "";
+
+        }
+
+        return code
+            .trim()
+            .toUpperCase();
+
+    } catch (error) {
+
+        console.error(
+            "Referral URL error:",
+            error
+        );
+
+        return "";
+
+    }
+
+}
 
 
-        /*
-         * Hakikisha referral code ipo
-         */
+/* =========================================================
+   16. REFERRAL LINK
+========================================================= */
 
-        let referralCode =
-            await hakikishaReferralCodeYaUser();
+function pataReferralLink(code) {
+
+    if (!code) {
+
+        return "";
+
+    }
+
+    try {
+
+        const baseURL =
+            window.location.origin +
+            window.location.pathname;
+
+        return (
+            baseURL +
+            "?ref=" +
+            encodeURIComponent(code)
+        );
+
+    } catch (error) {
+
+        return (
+            window.location.href.split("?")[0] +
+            "?ref=" +
+            encodeURIComponent(code)
+        );
+
+    }
+
+}
 
 
-        /*
-         * Kama account haikupatikana
-         */
+/* =========================================================
+   17. HAKIKISHA REFERRAL CODE YA USER
+========================================================= */
 
-        if (!data) {
+async function hakikishaReferralCodeYaUser() {
 
-            data = {
+    const user =
+        getCurrentUser();
+
+    if (!user) {
+
+        return null;
+
+    }
+
+    if (!db) {
+
+        console.error(
+            "Firestore haipo."
+        );
+
+        return null;
+
+    }
+
+    try {
+
+        const userRef =
+            db
+                .collection("users")
+                .doc(user.uid);
+
+        const userSnap =
+            await userRef.get();
+
+        if (!userSnap.exists) {
+
+            const newCode =
+                await tengenezaReferralCodeUnique(
+                    user.email
+                );
+
+            const newLink =
+                pataReferralLink(
+                    newCode
+                );
+
+            await userRef.set({
 
                 uid:
                     user.uid,
@@ -2187,14 +615,154 @@ async function funguaAccount() {
                     user.email || "",
 
                 referralCode:
-                    referralCode || "",
+                    newCode,
 
                 referralLink:
-                    referralCode
-                        ? pataReferralLink(
-                            referralCode
-                        )
-                        : "",
+                    newLink,
+
+                referredBy:
+                    "",
+
+                referredByUid:
+                    "",
+
+                referralType:
+                    "",
+
+                totalCommission:
+                    0,
+
+                totalBookings:
+                    0,
+
+                createdAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp(),
+
+                updatedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
+
+            });
+
+            return newCode;
+
+        }
+
+
+        const data =
+            userSnap.data();
+
+        if (data.referralCode) {
+
+            if (!data.referralLink) {
+
+                await userRef.set({
+
+                    referralLink:
+                        pataReferralLink(
+                            data.referralCode
+                        ),
+
+                    updatedAt:
+                        firebase.firestore
+                            .FieldValue
+                            .serverTimestamp()
+
+                }, {
+                    merge: true
+                });
+
+            }
+
+            return data.referralCode;
+
+        }
+
+
+        const newCode =
+            await tengenezaReferralCodeUnique(
+                user.email
+            );
+
+        const newLink =
+            pataReferralLink(
+                newCode
+            );
+
+        await userRef.set({
+
+            referralCode:
+                newCode,
+
+            referralLink:
+                newLink,
+
+            updatedAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp()
+
+        }, {
+            merge: true
+        });
+
+        return newCode;
+
+    } catch (error) {
+
+        console.error(
+            "REFERRAL CODE ERROR:",
+            error
+        );
+
+        return null;
+
+    }
+
+}
+
+
+/* =========================================================
+   18. ACCOUNT DATA
+========================================================= */
+
+async function pataAccountData() {
+
+    const user =
+        getCurrentUser();
+
+    if (!user || !db) {
+
+        return null;
+
+    }
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("users")
+                .doc(user.uid)
+                .get();
+
+        if (!snapshot.exists) {
+
+            return {
+
+                uid:
+                    user.uid,
+
+                email:
+                    user.email || "",
+
+                referralCode:
+                    "",
+
+                referralLink:
+                    "",
 
                 referredBy:
                     "",
@@ -2206,391 +774,43 @@ async function funguaAccount() {
                     0
 
             };
+
         }
 
+        return {
 
-        /*
-         * Tumia code mpya kama
-         * data ya zamani haina code.
-         */
+            uid:
+                user.uid,
 
-        if (!referralCode) {
+            ...snapshot.data()
 
-            referralCode =
-                data.referralCode || "";
-        }
-
-
-        const referralLink =
-            data.referralLink ||
-            (
-                referralCode
-                    ? pataReferralLink(
-                        referralCode
-                    )
-                    : ""
-            );
-
-
-        /*
-         * ACCOUNT UI
-         */
-
-        section.innerHTML = `
-
-            <div class="booking-card">
-
-                <h2>
-                    👤 Account Yangu
-                </h2>
-
-
-                <p>
-                    <strong>Email:</strong>
-                </p>
-
-                <p>
-                    ${escapeHTML(
-                        user.email || ""
-                    )}
-                </p>
-
-
-                <hr>
-
-
-                <p>
-                    <strong>🆔 UID:</strong>
-                </p>
-
-                <p>
-                    <small>
-                        ${escapeHTML(
-                            user.uid
-                        )}
-                    </small>
-                </p>
-
-
-                <hr>
-
-
-                <h3>
-                    🔗 Referral Yangu
-                </h3>
-
-
-                <p>
-                    Referral Code yako:
-                </p>
-
-
-                <input
-                    type="text"
-                    id="myReferralCode"
-                    value="${escapeHTML(
-                        referralCode
-                    )}"
-                    readonly
-                >
-
-
-                <p>
-                    Referral Link yako:
-                </p>
-
-
-                <input
-                    type="text"
-                    id="myReferralLink"
-                    value="${escapeHTML(
-                        referralLink
-                    )}"
-                    readonly
-                >
-
-
-                <button
-                    class="thibitishaBtn"
-                    id="copyReferralBtn"
-                >
-                    📋 Copy Referral Link
-                </button>
-
-
-                <p
-                    id="referralCopyMessage"
-                    style="
-                        text-align:center;
-                        font-weight:bold;
-                    "
-                ></p>
-
-
-                <hr>
-
-
-                <h3>
-                    💰 Commission System
-                </h3>
-
-
-                <div>
-
-                    <p>
-                        🥇 Level A:
-                        <strong>
-                            5%
-                        </strong>
-                    </p>
-
-                    <p>
-                        🥈 Level B:
-                        <strong>
-                            2%
-                        </strong>
-                    </p>
-
-                    <p>
-                        🥉 Level C:
-                        <strong>
-                            1%
-                        </strong>
-                    </p>
-
-                </div>
-
-
-                <hr>
-
-
-                <h3>
-                    💵 Commission Yako
-                </h3>
-
-
-                <h2>
-                    TSh
-                    ${formatMoney(
-                        data.totalCommission || 0
-                    )}
-                </h2>
-
-
-                <p>
-                    📊 Total Bookings:
-                    <strong>
-                        ${data.totalBookings || 0}
-                    </strong>
-                </p>
-
-
-                <hr>
-
-
-                <button
-                    class="endeleaBtn"
-                    id="logoutAccountBtn"
-                >
-                    🚪 Toka kwenye Account
-                </button>
-
-            </div>
-
-        `;
-
-
-        /*
-         * COPY BUTTON
-         */
-
-        const copyButton =
-            document.getElementById(
-                "copyReferralBtn"
-            );
-
-
-        if (copyButton) {
-
-            copyButton.onclick =
-                async function() {
-
-                    await nakiliReferralLink(
-                        referralLink
-                    );
-
-                };
-        }
-
-
-        /*
-         * LOGOUT BUTTON
-         */
-
-        const logoutButton =
-            document.getElementById(
-                "logoutAccountBtn"
-            );
-
-
-        if (logoutButton) {
-
-            logoutButton.onclick =
-                tokaRoomRent;
-        }
-
+        };
 
     } catch (error) {
 
         console.error(
-            "FUNGUA ACCOUNT ERROR:",
+            "ACCOUNT DATA ERROR:",
             error
         );
 
+        return null;
 
-        section.innerHTML = `
-
-            <div class="booking-card">
-
-                <h2>
-                    👤 Account Yangu
-                </h2>
-
-                <p
-                    style="color:red;"
-                >
-                    ❌ Imeshindikana kupakia
-                    taarifa za Account.
-                </p>
-
-                <p>
-                    Tafadhali jaribu tena.
-                </p>
-
-                <button
-                    class="thibitishaBtn"
-                    onclick="funguaAccount()"
-                >
-                    🔄 Jaribu Tena
-                </button>
-
-            </div>
-
-        `;
     }
+
 }
 
 
 /* =========================================================
-   3.11 - COPY REFERRAL LINK
-========================================================= */
-
-async function nakiliReferralLink(link) {
-
-    const message =
-        document.getElementById(
-            "referralCopyMessage"
-        );
-
-
-    if (!link) {
-
-        if (message) {
-
-            message.style.color =
-                "red";
-
-            message.textContent =
-                "❌ Referral link haipo.";
-
-        }
-
-        return;
-    }
-
-
-    try {
-
-        await navigator.clipboard.writeText(
-            link
-        );
-
-
-        if (message) {
-
-            message.style.color =
-                "green";
-
-            message.textContent =
-                "✅ Referral link imenakiliwa.";
-
-        }
-
-
-    } catch (error) {
-
-        /*
-         * Fallback ya Android
-         */
-
-        const input =
-            document.getElementById(
-                "myReferralLink"
-            );
-
-
-        if (input) {
-
-            input.focus();
-
-            input.select();
-
-
-            try {
-
-                document.execCommand(
-                    "copy"
-                );
-
-
-                if (message) {
-
-                    message.style.color =
-                        "green";
-
-                    message.textContent =
-                        "✅ Referral link imenakiliwa.";
-
-                }
-
-
-            } catch (copyError) {
-
-                if (message) {
-
-                    message.style.color =
-                        "red";
-
-                    message.textContent =
-                        "⚠️ Shikilia Referral Link kisha Copy.";
-
-                }
-            }
-        }
-    }
-}
-
-
-/* =========================================================
-   3.12 - HIFADHI REFERRAL YA MTUMIAJI MPYA
+   19. SAVE NEW USER REFERRAL
 ========================================================= */
 
 async function hifadhiReferralMpya(uid) {
 
     if (!uid || !db) {
-        return "";
-    }
 
+        return "";
+
+    }
 
     try {
 
@@ -2599,136 +819,90 @@ async function hifadhiReferralMpya(uid) {
                 .collection("users")
                 .doc(uid);
 
-
         const userSnap =
             await userRef.get();
 
-
         if (!userSnap.exists) {
-            return "";
-        }
 
+            return "";
+
+        }
 
         const userData =
             userSnap.data();
 
-
-        /*
-         * Kama tayari ana referredBy,
-         * usibadilishe.
-         */
-
-        if (
-            userData.referredBy
-        ) {
+        if (userData.referredBy) {
 
             return userData.referredBy;
+
         }
-
-
-        /*
-         * Pata referral kutoka URL
-         */
 
         const referralCode =
             pataReferralKutokaURL();
 
-
         if (!referralCode) {
 
             return "";
+
         }
-
-
-        /*
-         * Zuia RRADMIN hapa haitahitaji
-         * user document.
-         */
 
         if (
             referralCode ===
-            ROOMRENT_SETTINGS
-                .adminReferralCode
+            ROOMRENT_SETTINGS.adminReferralCode
         ) {
 
-            await userRef.set(
-                {
+            await userRef.set({
 
-                    referredBy:
-                        referralCode,
+                referredBy:
+                    referralCode,
 
-                    referralType:
-                        "admin",
+                referralType:
+                    "admin",
 
-                    updatedAt:
-                        firebase.firestore
-                            .FieldValue
-                            .serverTimestamp()
+                updatedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
 
-                },
-                {
-                    merge: true
-                }
-            );
-
+            }, {
+                merge: true
+            });
 
             return referralCode;
+
         }
 
+        try {
 
-        /*
-         * Tafuta user mwenye code hiyo
-         */
+            const snapshot =
+                await db
+                    .collection("users")
+                    .where(
+                        "referralCode",
+                        "==",
+                        referralCode
+                    )
+                    .limit(1)
+                    .get();
 
-        const snapshot =
-            await db
-                .collection("users")
-                .where(
-                    "referralCode",
-                    "==",
-                    referralCode
-                )
-                .limit(1)
-                .get();
+            if (snapshot.empty) {
 
+                return "";
 
-        if (snapshot.empty) {
+            }
 
-            console.log(
-                "Referral code haipo:",
-                referralCode
-            );
+            const referrer =
+                snapshot.docs[0];
 
-            return "";
-        }
+            if (
+                referrer.id === uid
+            ) {
 
+                return "";
 
-        const referrer =
-            snapshot.docs[0];
+            }
 
-
-        /*
-         * Zuia self-referral
-         */
-
-        if (
-            referrer.id === uid
-        ) {
-
-            console.log(
-                "Self referral imezuiwa."
-            );
-
-            return "";
-        }
-
-
-        /*
-         * Hifadhi referral
-         */
-
-        await userRef.set(
-            {
+            await userRef.set({
 
                 referredBy:
                     referralCode,
@@ -2744,21 +918,22 @@ async function hifadhiReferralMpya(uid) {
                         .FieldValue
                         .serverTimestamp()
 
-            },
-            {
+            }, {
                 merge: true
-            }
-        );
+            });
 
+            return referralCode;
 
-        console.log(
-            "Referral imehifadhiwa:",
-            referralCode
-        );
+        } catch (queryError) {
 
+            console.warn(
+                "Referral query haikufanikiwa:",
+                queryError
+            );
 
-        return referralCode;
+            return "";
 
+        }
 
     } catch (error) {
 
@@ -2768,12 +943,14 @@ async function hifadhiReferralMpya(uid) {
         );
 
         return "";
+
     }
+
 }
 
 
 /* =========================================================
-   3.13 - ANDAA REFERRAL BAADA YA LOGIN
+   20. PREPARE REFERRAL AFTER LOGIN
 ========================================================= */
 
 async function andaaReferralBaadaYaLogin() {
@@ -2781,29 +958,19 @@ async function andaaReferralBaadaYaLogin() {
     const user =
         getCurrentUser();
 
-
     if (!user) {
-        return;
-    }
 
+        return;
+
+    }
 
     try {
 
-        /*
-         * Kwanza hakikisha user ana code yake
-         */
-
         await hakikishaReferralCodeYaUser();
-
-
-        /*
-         * Kisha hifadhi aliyemleta
-         */
 
         await hifadhiReferralMpya(
             user.uid
         );
-
 
     } catch (error) {
 
@@ -2811,203 +978,54 @@ async function andaaReferralBaadaYaLogin() {
             "ANDAA REFERRAL ERROR:",
             error
         );
+
     }
+
 }
 
 
 /* =========================================================
-   3.14 - ACCOUNT BUTTON
-========================================================= */
-
-document.addEventListener(
-    "DOMContentLoaded",
-    function() {
-
-        const accountButton =
-            document.getElementById(
-                "accountBtn"
-            );
-
-
-        if (accountButton) {
-
-            /*
-             * Ondoa event ya zamani
-             * kama ipo.
-             */
-
-            accountButton.onclick =
-                function() {
-
-                    funguaAccount();
-
-                };
-        }
-
-    }
-);
-
-
-/* =========================================================
-   3.15 - MWISHO WA SEHEMU YA 3
-========================================================= */
-/* =========================================================
-   ROOMRENT - SEHEMU YA 4
-   BOOKING + PAYMENT REQUEST
-========================================================= */
-
-
-/* =========================================================
-   4.1 - ROOM DATA
-========================================================= */
-
-const ROOMRENT_ROOMS = [
-
-    {
-        roomNumber: "0023",
-        price: 30000,
-        profitPerDay: 1000,
-        durationDays: 40
-    },
-
-    {
-        roomNumber: "0024",
-        price: 70000,
-        profitPerDay: 2333,
-        durationDays: 40
-    },
-
-    {
-        roomNumber: "0025",
-        price: 140000,
-        profitPerDay: 4666,
-        durationDays: 40
-    },
-
-    {
-        roomNumber: "0026",
-        price: 210000,
-        profitPerDay: 6993,
-        durationDays: 40
-    },
-
-    {
-        roomNumber: "0027",
-        price: 280000,
-        profitPerDay: 9324,
-        durationDays: 40
-    },
-
-    {
-        roomNumber: "0028",
-        price: 350000,
-        profitPerDay: 11655,
-        durationDays: 40
-    },
-
-    {
-        roomNumber: "0029",
-        price: 420000,
-        profitPerDay: 13986,
-        durationDays: 40
-    },
-
-    {
-        roomNumber: "0030",
-        price: 490000,
-        profitPerDay: 16317,
-        durationDays: 40
-    },
-
-    {
-        roomNumber: "0031",
-        price: 560000,
-        profitPerDay: 18648,
-        durationDays: 40
-    },
-
-    {
-        roomNumber: "0032",
-        price: 630000,
-        profitPerDay: 20979,
-        durationDays: 40
-    }
-
-];
-
-
-/* =========================================================
-   4.2 - PAYMENT METHODS
-========================================================= */
-
-const ROOMRENT_PAYMENT_METHODS = {
-
-    mixx: {
-
-        name: "MIXX BY YAS",
-
-        phone: "0651590936",
-
-        owner: "HARUNA ISSA HAMAD"
-
-    },
-
-
-    airtel: {
-
-        name: "Airtel Money",
-
-        phone: "0667872515",
-
-        owner: "HARUNA ISSA HAMAD"
-
-    }
-
-};
-
-
-/* =========================================================
-   4.3 - SHOW ROOMS
+   21. ONYESHA VYUMBA
 ========================================================= */
 
 function onyeshaVyumba() {
 
-    const container =
-        document.getElementById(
-            "vyumba"
+    const user =
+        getCurrentUser();
+
+    if (!user) {
+
+        alert(
+            "Tafadhali ingia kwenye account kwanza."
         );
 
+        return;
+
+    }
+
+    const container =
+        getElement("vyumba");
 
     if (!container) {
 
         console.error(
-            "Element #vyumba haipo."
+            "❌ #vyumba haipo."
         );
 
         return;
+
     }
 
+    hideSection(
+        "fomuKodi"
+    );
 
-    /*
-     * Ficha taarifa/account
-     */
-
-    const taarifa =
-        document.getElementById(
-            "taarifaSection"
-        );
-
-
-    if (taarifa) {
-
-        taarifa.style.display =
-            "none";
-    }
-
+    hideSection(
+        "taarifaSection"
+    );
 
     container.style.display =
         "block";
-
 
     container.innerHTML = `
 
@@ -3025,7 +1043,6 @@ function onyeshaVyumba() {
 
     `;
 
-
     ROOMRENT_ROOMS.forEach(
         function(room) {
 
@@ -3033,25 +1050,22 @@ function onyeshaVyumba() {
                 room.profitPerDay *
                 room.durationDays;
 
-
             const card =
                 document.createElement(
                     "div"
                 );
 
-
             card.className =
                 "booking-card";
-
 
             card.innerHTML = `
 
                 <h2>
-                    🏠 Chumba ${escapeHTML(
+                    🏠 Chumba
+                    ${escapeHTML(
                         room.roomNumber
                     )}
                 </h2>
-
 
                 <p>
                     💰 Bei:
@@ -3062,16 +1076,6 @@ function onyeshaVyumba() {
                     </strong>
                 </p>
 
-
-                <p>
-                    📅 Muda:
-                    <strong>
-                        ${room.durationDays}
-                        siku
-                    </strong>
-                </p>
-
-
                 <p>
                     📈 Faida kwa siku:
                     <strong>
@@ -3081,11 +1085,16 @@ function onyeshaVyumba() {
                     </strong>
                 </p>
 
+                <p>
+                    📅 Muda:
+                    <strong>
+                        ${room.durationDays}
+                        siku
+                    </strong>
+                </p>
 
                 <p>
-                    💵 Faida ya siku ${
-                        room.durationDays
-                    }:
+                    💵 Faida ya mzunguko:
                     <strong>
                         TSh ${formatMoney(
                             totalProfit
@@ -3093,18 +1102,14 @@ function onyeshaVyumba() {
                     </strong>
                 </p>
 
-
                 <button
                     class="thibitishaBtn"
-                    onclick="funguaFomuKodi('${escapeHTML(
-                        room.roomNumber
-                    )}')"
+                    onclick="funguaFomuKodi('${room.roomNumber}')"
                 >
                     🏠 Kodi Chumba
                 </button>
 
             `;
-
 
             container.appendChild(
                 card
@@ -3112,14 +1117,22 @@ function onyeshaVyumba() {
 
         }
     );
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+
 }
 
 
 /* =========================================================
-   4.4 - GET ROOM
+   22. PATA CHUMBA
 ========================================================= */
 
-function pataChumba(roomNumber) {
+function pataChumba(
+    roomNumber
+) {
 
     return ROOMRENT_ROOMS.find(
         function(room) {
@@ -3131,18 +1144,20 @@ function pataChumba(roomNumber) {
 
         }
     );
+
 }
 
 
 /* =========================================================
-   4.5 - OPEN BOOKING FORM
+   23. OPEN BOOKING FORM
 ========================================================= */
 
-function funguaFomuKodi(roomNumber) {
+function funguaFomuKodi(
+    roomNumber
+) {
 
     const user =
         getCurrentUser();
-
 
     if (!user) {
 
@@ -3151,89 +1166,54 @@ function funguaFomuKodi(roomNumber) {
         );
 
         return;
+
     }
 
-
     const room =
-        pataChumba(roomNumber);
-
+        pataChumba(
+            roomNumber
+        );
 
     if (!room) {
 
         alert(
-            "Chumba hakikupatikana."
+            "❌ Chumba hakikupatikana."
         );
 
         return;
+
     }
 
+    hideSection(
+        "vyumba"
+    );
+
+    hideSection(
+        "taarifaSection"
+    );
 
     const container =
-        document.getElementById(
-            "fomuKodi"
-        );
-
+        getElement("fomuKodi");
 
     if (!container) {
 
-        console.error(
-            "Element #fomuKodi haipo."
-        );
-
         return;
+
     }
-
-
-    /*
-     * Ficha vyumba
-     */
-
-    const vyumba =
-        document.getElementById(
-            "vyumba"
-        );
-
-
-    if (vyumba) {
-
-        vyumba.style.display =
-            "none";
-    }
-
-
-    /*
-     * Ficha taarifa
-     */
-
-    const taarifa =
-        document.getElementById(
-            "taarifaSection"
-        );
-
-
-    if (taarifa) {
-
-        taarifa.style.display =
-            "none";
-    }
-
 
     container.style.display =
         "block";
-
 
     container.innerHTML = `
 
         <div class="booking-card">
 
             <h2>
-                🏠 Kodi Chumba ${
-                    escapeHTML(
-                        room.roomNumber
-                    )
-                }
+                🏠 Kodi Chumba
+                ${escapeHTML(
+                    room.roomNumber
+                )}
             </h2>
-
 
             <p>
                 💰 Bei:
@@ -3244,7 +1224,6 @@ function funguaFomuKodi(roomNumber) {
                 </strong>
             </p>
 
-
             <p>
                 📅 Muda:
                 <strong>
@@ -3252,7 +1231,6 @@ function funguaFomuKodi(roomNumber) {
                     siku
                 </strong>
             </p>
-
 
             <p>
                 📈 Faida kwa siku:
@@ -3263,14 +1241,11 @@ function funguaFomuKodi(roomNumber) {
                 </strong>
             </p>
 
-
             <hr>
-
 
             <h3>
                 📝 Taarifa za Booking
             </h3>
-
 
             <input
                 type="text"
@@ -3279,7 +1254,6 @@ function funguaFomuKodi(roomNumber) {
                 autocomplete="name"
             >
 
-
             <input
                 type="tel"
                 id="bookingPhone"
@@ -3287,13 +1261,11 @@ function funguaFomuKodi(roomNumber) {
                 autocomplete="tel"
             >
 
-
             <label>
                 <strong>
                     Njia ya malipo
                 </strong>
             </label>
-
 
             <select
                 id="paymentMethod"
@@ -3313,14 +1285,10 @@ function funguaFomuKodi(roomNumber) {
 
             </select>
 
-
             <div
                 id="paymentDetails"
-                style="
-                    margin-top:15px;
-                "
+                style="margin-top:15px;"
             ></div>
-
 
             <button
                 class="thibitishaBtn"
@@ -3329,14 +1297,12 @@ function funguaFomuKodi(roomNumber) {
                 💳 Endelea na Malipo
             </button>
 
-
             <button
                 class="endeleaBtn"
-                onclick="onyeshaVyumba()"
+                id="backToRoomsBtn"
             >
                 ↩️ Rudi Vyumba
             </button>
-
 
             <p
                 id="bookingMessage"
@@ -3350,16 +1316,10 @@ function funguaFomuKodi(roomNumber) {
 
     `;
 
-
-    /*
-     * PAYMENT METHOD EVENT
-     */
-
     const paymentSelect =
-        document.getElementById(
+        getElement(
             "paymentMethod"
         );
-
 
     if (paymentSelect) {
 
@@ -3371,18 +1331,13 @@ function funguaFomuKodi(roomNumber) {
                 );
 
             };
+
     }
 
-
-    /*
-     * BOOKING SUBMIT
-     */
-
     const submitButton =
-        document.getElementById(
+        getElement(
             "submitBookingBtn"
         );
-
 
     if (submitButton) {
 
@@ -3394,13 +1349,31 @@ function funguaFomuKodi(roomNumber) {
                 );
 
             };
+
     }
+
+    const backButton =
+        getElement(
+            "backToRoomsBtn"
+        );
+
+    if (backButton) {
+
+        backButton.onclick =
+            onyeshaVyumba;
+
+    }
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
 
 }
 
 
 /* =========================================================
-   4.6 - PAYMENT DETAILS
+   24. PAYMENT METHODS
 ========================================================= */
 
 function onyeshaPaymentDetails(
@@ -3408,37 +1381,39 @@ function onyeshaPaymentDetails(
 ) {
 
     const area =
-        document.getElementById(
+        getElement(
             "paymentDetails"
         );
 
-
     if (!area) {
-        return;
-    }
 
+        return;
+
+    }
 
     if (!paymentMethod) {
 
-        area.innerHTML = "";
+        area.innerHTML =
+            "";
 
         return;
+
     }
 
-
     const payment =
-        ROOMRENT_PAYMENT_METHODS[
-            paymentMethod
-        ];
-
+        ROOMRENT_SETTINGS
+            .paymentMethods[
+                paymentMethod
+            ];
 
     if (!payment) {
 
-        area.innerHTML = "";
+        area.innerHTML =
+            "";
 
         return;
-    }
 
+    }
 
     area.innerHTML = `
 
@@ -3456,11 +1431,12 @@ function onyeshaPaymentDetails(
                 )}
             </h3>
 
-
             <p>
-                Tuma malipo kwenda:
+                Tuma TSh
+                <strong>
+                    kwenda:
+                </strong>
             </p>
-
 
             <h2>
                 ${escapeHTML(
@@ -3468,9 +1444,8 @@ function onyeshaPaymentDetails(
                 )}
             </h2>
 
-
             <p>
-                Jina:
+                Jina la mpokeaji:
                 <strong>
                     ${escapeHTML(
                         payment.owner
@@ -3478,23 +1453,21 @@ function onyeshaPaymentDetails(
                 </strong>
             </p>
 
-
             <p>
-                Baada ya kulipa, utaingiza
-                <strong>
-                    namba uliyotumia kulipia
-                </strong>
-                hapa kwenye hatua inayofuata.
+                Baada ya kulipa,
+                utaingiza namba uliyotumia
+                kufanya malipo.
             </p>
 
         </div>
 
     `;
+
 }
 
 
 /* =========================================================
-   4.7 - GENERATE BOOKING NUMBER
+   25. BOOKING NUMBER
 ========================================================= */
 
 function generateBookingNumber() {
@@ -3504,24 +1477,52 @@ function generateBookingNumber() {
             .toString()
             .slice(-8);
 
-
     const random =
         Math.floor(
             100 +
             Math.random() * 900
         );
 
-
     return (
         "RR" +
         timestamp +
         random
     );
+
 }
 
 
 /* =========================================================
-   4.8 - CREATE BOOKING
+   26. BOOKING MESSAGE
+========================================================= */
+
+function onyeshaBookingMessage(
+    text,
+    color = "red"
+) {
+
+    const message =
+        getElement(
+            "bookingMessage"
+        );
+
+    if (!message) {
+
+        return;
+
+    }
+
+    message.style.color =
+        color;
+
+    message.textContent =
+        text;
+
+}
+
+
+/* =========================================================
+   27. CREATE BOOKING
 ========================================================= */
 
 async function tengenezaBooking(
@@ -3531,7 +1532,6 @@ async function tengenezaBooking(
     const user =
         getCurrentUser();
 
-
     if (!user) {
 
         alert(
@@ -3539,132 +1539,108 @@ async function tengenezaBooking(
         );
 
         return;
-    }
 
+    }
 
     if (!db) {
 
         alert(
-            "Firestore haijaunganishwa."
+            "❌ Firestore haijaunganishwa."
         );
 
         return;
+
     }
 
-
     const room =
-        pataChumba(roomNumber);
-
+        pataChumba(
+            roomNumber
+        );
 
     if (!room) {
 
         alert(
-            "Chumba hakikupatikana."
+            "❌ Chumba hakikupatikana."
         );
 
         return;
+
     }
 
-
     const nameInput =
-        document.getElementById(
+        getElement(
             "bookingName"
         );
 
-
     const phoneInput =
-        document.getElementById(
+        getElement(
             "bookingPhone"
         );
 
-
     const paymentInput =
-        document.getElementById(
+        getElement(
             "paymentMethod"
         );
 
-
-    const message =
-        document.getElementById(
-            "bookingMessage"
-        );
-
-
     const submitButton =
-        document.getElementById(
+        getElement(
             "submitBookingBtn"
         );
-
 
     const name =
         nameInput
             ? nameInput.value.trim()
             : "";
 
-
     const phone =
         phoneInput
             ? phoneInput.value.trim()
             : "";
-
 
     const paymentMethod =
         paymentInput
             ? paymentInput.value
             : "";
 
-
-    /*
-     * VALIDATION
-     */
-
     if (!name) {
 
         onyeshaBookingMessage(
-            "⚠️ Weka jina lako.",
-            "red"
+            "⚠️ Weka jina lako."
         );
 
         return;
-    }
 
+    }
 
     if (!phone) {
 
         onyeshaBookingMessage(
-            "⚠️ Weka namba yako ya simu.",
-            "red"
+            "⚠️ Weka namba yako ya simu."
         );
 
         return;
-    }
 
+    }
 
     if (phone.length < 9) {
 
         onyeshaBookingMessage(
-            "⚠️ Namba ya simu si sahihi.",
-            "red"
+            "⚠️ Namba ya simu si sahihi."
         );
 
         return;
-    }
 
+    }
 
     if (!paymentMethod) {
 
         onyeshaBookingMessage(
-            "⚠️ Chagua njia ya malipo.",
-            "red"
+            "⚠️ Chagua njia ya malipo."
         );
 
         return;
+
     }
-
-
-    /*
-     * DISABLE BUTTON
-     */
 
     if (submitButton) {
 
@@ -3673,20 +1649,19 @@ async function tengenezaBooking(
 
         submitButton.textContent =
             "⏳ Inahifadhi Booking...";
-    }
 
+    }
 
     try {
 
         const bookingNumber =
             generateBookingNumber();
 
-
         const payment =
-            ROOMRENT_PAYMENT_METHODS[
-                paymentMethod
-            ];
-
+            ROOMRENT_SETTINGS
+                .paymentMethods[
+                    paymentMethod
+                ];
 
         const bookingData = {
 
@@ -3757,11 +1732,6 @@ async function tengenezaBooking(
 
         };
 
-
-        /*
-         * SAVE FIRESTORE
-         */
-
         await db
             .collection("bookings")
             .doc(bookingNumber)
@@ -3769,21 +1739,14 @@ async function tengenezaBooking(
                 bookingData
             );
 
-
         console.log(
-            "Booking imehifadhiwa:",
+            "✅ Booking imehifadhiwa:",
             bookingNumber
         );
-
-
-        /*
-         * ONYESHA PAYMENT FORM
-         */
 
         onyeshaPaymentRequest(
             bookingData
         );
-
 
     } catch (error) {
 
@@ -3792,12 +1755,9 @@ async function tengenezaBooking(
             error
         );
 
-
         onyeshaBookingMessage(
-            "❌ Imeshindikana kuhifadhi booking. Jaribu tena.",
-            "red"
+            "❌ Imeshindikana kuhifadhi booking. Jaribu tena."
         );
-
 
         if (submitButton) {
 
@@ -3806,13 +1766,16 @@ async function tengenezaBooking(
 
             submitButton.textContent =
                 "💳 Endelea na Malipo";
+
         }
+
     }
+
 }
 
 
 /* =========================================================
-   4.9 - PAYMENT REQUEST SCREEN
+   28. PAYMENT REQUEST SCREEN
 ========================================================= */
 
 function onyeshaPaymentRequest(
@@ -3820,24 +1783,39 @@ function onyeshaPaymentRequest(
 ) {
 
     const container =
-        document.getElementById(
+        getElement(
             "fomuKodi"
         );
 
-
     if (!container) {
+
         return;
+
     }
 
+    let payment = null;
 
-    const payment =
-        ROOMRENT_PAYMENT_METHODS[
-            booking.paymentMethod ===
-            "MIXX BY YAS"
-                ? "mixx"
-                : "airtel"
-        ];
+    if (
+        booking.paymentMethod ===
+        "MIXX BY YAS"
+    ) {
 
+        payment =
+            ROOMRENT_SETTINGS
+                .paymentMethods
+                .mixx;
+
+    } else {
+
+        payment =
+            ROOMRENT_SETTINGS
+                .paymentMethods
+                .airtel;
+
+    }
+
+    container.style.display =
+        "block";
 
     container.innerHTML = `
 
@@ -3847,44 +1825,38 @@ function onyeshaPaymentRequest(
                 💳 Malipo ya Booking
             </h2>
 
-
             <p>
+                Booking Number:
                 <strong>
-                    Booking Number:
+                    ${escapeHTML(
+                        booking.bookingNumber
+                    )}
                 </strong>
-                ${escapeHTML(
-                    booking.bookingNumber
-                )}
             </p>
 
-
             <p>
+                Chumba:
                 <strong>
-                    Chumba:
+                    ${escapeHTML(
+                        booking.roomNumber
+                    )}
                 </strong>
-                ${escapeHTML(
-                    booking.roomNumber
-                )}
             </p>
 
-
             <p>
+                Kiasi:
                 <strong>
-                    Kiasi:
+                    TSh ${formatMoney(
+                        booking.roomPrice
+                    )}
                 </strong>
-                TSh ${formatMoney(
-                    booking.roomPrice
-                )}
             </p>
-
 
             <hr>
-
 
             <h3>
                 💳 Fanya Malipo
             </h3>
-
 
             <p>
                 Tuma TSh
@@ -3896,20 +1868,17 @@ function onyeshaPaymentRequest(
                 kwenda:
             </p>
 
-
             <h2>
                 ${escapeHTML(
                     payment.phone
                 )}
             </h2>
 
-
             <p>
                 ${escapeHTML(
                     payment.name
                 )}
             </p>
-
 
             <p>
                 Jina la mpokeaji:
@@ -3920,20 +1889,16 @@ function onyeshaPaymentRequest(
                 </strong>
             </p>
 
-
             <hr>
-
 
             <h3>
                 📱 Baada ya kulipa
             </h3>
 
-
             <p>
                 Weka namba ya simu
                 uliyotumia kufanya malipo.
             </p>
-
 
             <input
                 type="tel"
@@ -3942,14 +1907,12 @@ function onyeshaPaymentRequest(
                 autocomplete="tel"
             >
 
-
             <button
                 class="thibitishaBtn"
                 id="sendPaymentRequestBtn"
             >
                 📤 Tuma Payment Request
             </button>
-
 
             <p
                 id="paymentRequestMessage"
@@ -3958,7 +1921,6 @@ function onyeshaPaymentRequest(
                     margin-top:15px;
                 "
             ></p>
-
 
             <div
                 style="
@@ -3978,7 +1940,7 @@ function onyeshaPaymentRequest(
                 </strong>
 
                 <p>
-                    Admin atakagua malipo yako
+                    Admin atakagua malipo
                     na kuthibitisha booking.
                 </p>
 
@@ -3988,12 +1950,10 @@ function onyeshaPaymentRequest(
 
     `;
 
-
     const sendButton =
-        document.getElementById(
+        getElement(
             "sendPaymentRequestBtn"
         );
-
 
     if (sendButton) {
 
@@ -4005,12 +1965,14 @@ function onyeshaPaymentRequest(
                 );
 
             };
+
     }
+
 }
 
 
 /* =========================================================
-   4.10 - SEND PAYMENT REQUEST
+   29. SEND PAYMENT REQUEST
 ========================================================= */
 
 async function tumaPaymentRequest(
@@ -4020,7 +1982,6 @@ async function tumaPaymentRequest(
     const user =
         getCurrentUser();
 
-
     if (!user) {
 
         alert(
@@ -4028,42 +1989,38 @@ async function tumaPaymentRequest(
         );
 
         return;
-    }
 
+    }
 
     if (!db) {
 
         alert(
-            "Firestore haijaunganishwa."
+            "❌ Firestore haijaunganishwa."
         );
 
         return;
+
     }
 
-
     const input =
-        document.getElementById(
+        getElement(
             "paymentPhoneInput"
         );
 
-
     const message =
-        document.getElementById(
+        getElement(
             "paymentRequestMessage"
         );
 
-
     const button =
-        document.getElementById(
+        getElement(
             "sendPaymentRequestBtn"
         );
-
 
     const paymentPhone =
         input
             ? input.value.trim()
             : "";
-
 
     if (!paymentPhone) {
 
@@ -4074,11 +2031,12 @@ async function tumaPaymentRequest(
 
             message.textContent =
                 "⚠️ Weka namba uliyotumia kulipia.";
+
         }
 
         return;
-    }
 
+    }
 
     if (paymentPhone.length < 9) {
 
@@ -4089,11 +2047,12 @@ async function tumaPaymentRequest(
 
             message.textContent =
                 "⚠️ Namba ya malipo si sahihi.";
+
         }
 
         return;
-    }
 
+    }
 
     if (button) {
 
@@ -4102,36 +2061,31 @@ async function tumaPaymentRequest(
 
         button.textContent =
             "⏳ Inatuma...";
-    }
 
+    }
 
     try {
 
         const bookingRef =
             db
                 .collection("bookings")
-                .doc(bookingNumber);
-
+                .doc(
+                    bookingNumber
+                );
 
         const bookingSnap =
             await bookingRef.get();
-
 
         if (!bookingSnap.exists) {
 
             throw new Error(
                 "Booking haikupatikana."
             );
-        }
 
+        }
 
         const booking =
             bookingSnap.data();
-
-
-        /*
-         * Hakikisha booking ni ya user huyu
-         */
 
         if (
             booking.uid !==
@@ -4141,12 +2095,8 @@ async function tumaPaymentRequest(
             throw new Error(
                 "Huna ruhusa ya booking hii."
             );
+
         }
-
-
-        /*
-         * UPDATE PAYMENT REQUEST
-         */
 
         await bookingRef.update({
 
@@ -4171,39 +2121,46 @@ async function tumaPaymentRequest(
 
         });
 
+        try {
 
-        /*
-         * NOTIFICATION
-         */
+            await db
+                .collection("users")
+                .doc(user.uid)
+                .collection("notifications")
+                .add({
 
-        await db
-            .collection("users")
-            .doc(user.uid)
-            .collection("notifications")
-            .add({
+                    title:
+                        "Payment Request",
 
-                title:
-                    "Payment Request",
+                    message:
+                        "Payment request yako imepokelewa. Subiri uthibitisho wa admin.",
 
-                message:
-                    "Payment request yako imepokelewa. Subiri uthibitisho wa admin.",
+                    bookingNumber:
+                        bookingNumber,
 
-                bookingNumber:
-                    bookingNumber,
+                    type:
+                        "payment",
 
-                type:
-                    "payment",
+                    read:
+                        false,
 
-                read:
-                    false,
+                    createdAt:
+                        firebase.firestore
+                            .FieldValue
+                            .serverTimestamp()
 
-                createdAt:
-                    firebase.firestore
-                        .FieldValue
-                        .serverTimestamp()
+                });
 
-            });
+        } catch (
+            notificationError
+        ) {
 
+            console.warn(
+                "Notification haikuweza kuhifadhiwa:",
+                notificationError
+            );
+
+        }
 
         if (message) {
 
@@ -4235,8 +2192,8 @@ async function tumaPaymentRequest(
                 Subiri admin athibitishe malipo.
 
             `;
-        }
 
+        }
 
         if (button) {
 
@@ -4245,8 +2202,8 @@ async function tumaPaymentRequest(
 
             button.textContent =
                 "✅ Request Imetumwa";
-        }
 
+        }
 
     } catch (error) {
 
@@ -4254,7 +2211,6 @@ async function tumaPaymentRequest(
             "PAYMENT REQUEST ERROR:",
             error
         );
-
 
         if (message) {
 
@@ -4267,8 +2223,8 @@ async function tumaPaymentRequest(
                     error.message ||
                     "Imeshindikana kutuma request."
                 );
-        }
 
+        }
 
         if (button) {
 
@@ -4277,49 +2233,22 @@ async function tumaPaymentRequest(
 
             button.textContent =
                 "📤 Tuma Payment Request";
+
         }
+
     }
+
 }
 
 
 /* =========================================================
-   4.11 - BOOKING MESSAGE
-========================================================= */
-
-function onyeshaBookingMessage(
-    text,
-    color
-) {
-
-    const message =
-        document.getElementById(
-            "bookingMessage"
-        );
-
-
-    if (!message) {
-        return;
-    }
-
-
-    message.style.color =
-        color || "red";
-
-
-    message.textContent =
-        text;
-}
-
-
-/* =========================================================
-   4.12 - BOOKING ZANGU
+   30. BOOKING ZANGU
 ========================================================= */
 
 async function funguaBookingZangu() {
 
     const user =
         getCurrentUser();
-
 
     if (!user) {
 
@@ -4328,49 +2257,30 @@ async function funguaBookingZangu() {
         );
 
         return;
+
     }
 
-
     const section =
-        document.getElementById(
+        getElement(
             "taarifaSection"
         );
 
-
     if (!section) {
+
         return;
+
     }
 
+    hideSection(
+        "vyumba"
+    );
 
-    const vyumba =
-        document.getElementById(
-            "vyumba"
-        );
-
-
-    const fomu =
-        document.getElementById(
-            "fomuKodi"
-        );
-
-
-    if (vyumba) {
-
-        vyumba.style.display =
-            "none";
-    }
-
-
-    if (fomu) {
-
-        fomu.style.display =
-            "none";
-    }
-
+    hideSection(
+        "fomuKodi"
+    );
 
     section.style.display =
         "block";
-
 
     section.innerHTML = `
 
@@ -4388,6 +2298,27 @@ async function funguaBookingZangu() {
 
     `;
 
+    if (!db) {
+
+        section.innerHTML = `
+
+            <div class="booking-card">
+
+                <h2>
+                    📋 Booking Zangu
+                </h2>
+
+                <p style="color:red;">
+                    ❌ Firestore haijaunganishwa.
+                </p>
+
+            </div>
+
+        `;
+
+        return;
+
+    }
 
     try {
 
@@ -4401,7 +2332,6 @@ async function funguaBookingZangu() {
                 )
                 .get();
 
-
         section.innerHTML = `
 
             <div class="booking-card">
@@ -4411,24 +2341,22 @@ async function funguaBookingZangu() {
                 </h2>
 
                 <div id="myBookingsList">
-
                 </div>
 
             </div>
 
         `;
 
-
         const list =
-            document.getElementById(
+            getElement(
                 "myBookingsList"
             );
 
-
         if (!list) {
-            return;
-        }
 
+            return;
+
+        }
 
         if (snapshot.empty) {
 
@@ -4440,38 +2368,45 @@ async function funguaBookingZangu() {
 
                 <button
                     class="thibitishaBtn"
-                    onclick="onyeshaVyumba()"
+                    id="goRoomsFromBookings"
                 >
                     🏠 Angalia Vyumba
                 </button>
 
             `;
 
+            const button =
+                getElement(
+                    "goRoomsFromBookings"
+                );
+
+            if (button) {
+
+                button.onclick =
+                    onyeshaVyumba;
+
+            }
+
             return;
+
         }
 
-
-        const bookings =
-            [];
-
+        const bookings = [];
 
         snapshot.forEach(
             function(doc) {
 
-                bookings.push(
-                    {
-                        id: doc.id,
-                        ...doc.data()
-                    }
-                );
+                bookings.push({
+
+                    id:
+                        doc.id,
+
+                    ...doc.data()
+
+                });
 
             }
         );
-
-
-        /*
-         * Panga mpya kwanza
-         */
 
         bookings.sort(
             function(a, b) {
@@ -4482,21 +2417,21 @@ async function funguaBookingZangu() {
                         ? a.createdAt.toMillis()
                         : 0;
 
-
                 const dateB =
                     b.createdAt &&
                     b.createdAt.toMillis
                         ? b.createdAt.toMillis()
                         : 0;
 
+                return (
+                    dateB - dateA
+                );
 
-                return dateB - dateA;
             }
         );
 
-
-        list.innerHTML = "";
-
+        list.innerHTML =
+            "";
 
         bookings.forEach(
             function(booking) {
@@ -4506,80 +2441,83 @@ async function funguaBookingZangu() {
                         "div"
                     );
 
-
                 card.style.marginBottom =
                     "15px";
-
 
                 card.style.padding =
                     "15px";
 
-
                 card.style.border =
                     "1px solid #ddd";
 
-
                 card.style.borderRadius =
                     "10px";
-
 
                 card.innerHTML = `
 
                     <h3>
                         🏠 Chumba
                         ${escapeHTML(
-                            booking.roomNumber ||
-                            ""
+                            booking.roomNumber || ""
                         )}
                     </h3>
-
 
                     <p>
                         Booking:
                         <strong>
                             ${escapeHTML(
-                                booking.bookingNumber ||
-                                ""
+                                booking.bookingNumber || ""
                             )}
                         </strong>
                     </p>
-
 
                     <p>
                         Kiasi:
                         <strong>
                             TSh
                             ${formatMoney(
-                                booking.roomPrice ||
-                                0
+                                booking.roomPrice || 0
                             )}
                         </strong>
                     </p>
 
+                    <p>
+                        📅 Muda:
+                        <strong>
+                            ${booking.durationDays || 40}
+                            siku
+                        </strong>
+                    </p>
+
+                    <p>
+                        📈 Faida kwa siku:
+                        <strong>
+                            TSh
+                            ${formatMoney(
+                                booking.profitPerDay || 0
+                            )}
+                        </strong>
+                    </p>
 
                     <p>
                         Status:
                         <strong>
                             ${escapeHTML(
-                                booking.status ||
-                                ""
+                                booking.status || ""
                             )}
                         </strong>
                     </p>
-
 
                     <p>
                         Payment:
                         <strong>
                             ${escapeHTML(
-                                booking.paymentStatus ||
-                                ""
+                                booking.paymentStatus || ""
                             )}
                         </strong>
                     </p>
 
                 `;
-
 
                 list.appendChild(
                     card
@@ -4588,14 +2526,12 @@ async function funguaBookingZangu() {
             }
         );
 
-
     } catch (error) {
 
         console.error(
             "BOOKING ZANGU ERROR:",
             error
         );
-
 
         section.innerHTML = `
 
@@ -4605,15 +2541,13 @@ async function funguaBookingZangu() {
                     📋 Booking Zangu
                 </h2>
 
-                <p
-                    style="color:red;"
-                >
+                <p style="color:red;">
                     ❌ Imeshindikana kupakia booking.
                 </p>
 
                 <button
                     class="thibitishaBtn"
-                    onclick="funguaBookingZangu()"
+                    id="retryBookingsBtn"
                 >
                     🔄 Jaribu Tena
                 </button>
@@ -4621,64 +2555,1528 @@ async function funguaBookingZangu() {
             </div>
 
         `;
+
+        const retry =
+            getElement(
+                "retryBookingsBtn"
+            );
+
+        if (retry) {
+
+            retry.onclick =
+                funguaBookingZangu;
+
+        }
+
     }
+
 }
 
 
 /* =========================================================
-   4.13 - BUTTON EVENTS
+   31. ACCOUNT
+========================================================= */
+
+async function funguaAccount() {
+
+    const user =
+        getCurrentUser();
+
+    if (!user) {
+
+        alert(
+            "Tafadhali ingia kwenye account kwanza."
+        );
+
+        return;
+
+    }
+
+    const section =
+        getElement(
+            "taarifaSection"
+        );
+
+    if (!section) {
+
+        return;
+
+    }
+
+    hideSection(
+        "vyumba"
+    );
+
+    hideSection(
+        "fomuKodi"
+    );
+
+    section.style.display =
+        "block";
+
+    section.innerHTML = `
+
+        <div class="booking-card">
+
+            <h2>
+                👤 Account Yangu
+            </h2>
+
+            <p>
+                ⏳ Inapakia taarifa...
+            </p>
+
+        </div>
+
+    `;
+
+    try {
+
+        let data =
+            await pataAccountData();
+
+        const referralCode =
+            await hakikishaReferralCodeYaUser();
+
+        await hifadhiReferralMpya(
+            user.uid
+        );
+
+        data =
+            await pataAccountData();
+
+        if (!data) {
+
+            data = {
+
+                uid:
+                    user.uid,
+
+                email:
+                    user.email || "",
+
+                referralCode:
+                    referralCode || "",
+
+                referralLink:
+                    referralCode
+                        ? pataReferralLink(
+                            referralCode
+                        )
+                        : "",
+
+                referredBy:
+                    "",
+
+                totalCommission:
+                    0,
+
+                totalBookings:
+                    0
+
+            };
+
+        }
+
+        const finalReferralCode =
+            data.referralCode ||
+            referralCode ||
+            "";
+
+        const referralLink =
+            data.referralLink ||
+            (
+                finalReferralCode
+                    ? pataReferralLink(
+                        finalReferralCode
+                    )
+                    : ""
+            );
+
+        section.innerHTML = `
+
+            <div class="booking-card">
+
+                <h2>
+                    👤 Account Yangu
+                </h2>
+
+                <p>
+                    <strong>Email:</strong>
+                </p>
+
+                <p>
+                    ${escapeHTML(
+                        user.email || ""
+                    )}
+                </p>
+
+                <hr>
+
+                <p>
+                    <strong>🆔 UID:</strong>
+                </p>
+
+                <p>
+                    <small>
+                        ${escapeHTML(
+                            user.uid
+                        )}
+                    </small>
+                </p>
+
+                <hr>
+
+                <h3>
+                    🔗 Referral Yangu
+                </h3>
+
+                <p>
+                    Referral Code yako:
+                </p>
+
+                <input
+                    type="text"
+                    id="myReferralCode"
+                    value="${escapeHTML(
+                        finalReferralCode
+                    )}"
+                    readonly
+                >
+
+                <p>
+                    Referral Link yako:
+                </p>
+
+                <input
+                    type="text"
+                    id="myReferralLink"
+                    value="${escapeHTML(
+                        referralLink
+                    )}"
+                    readonly
+                >
+
+                <button
+                    class="thibitishaBtn"
+                    id="copyReferralBtn"
+                >
+                    📋 Copy Referral Link
+                </button>
+
+                <p
+                    id="referralCopyMessage"
+                    style="
+                        text-align:center;
+                        font-weight:bold;
+                    "
+                ></p>
+
+                <hr>
+
+                <h3>
+                    💰 Commission System
+                </h3>
+
+                <p>
+                    🥇 Level A:
+                    <strong>
+                        ${ROOMRENT_SETTINGS.commission.user.A}%
+                    </strong>
+                </p>
+
+                <p>
+                    🥈 Level B:
+                    <strong>
+                        ${ROOMRENT_SETTINGS.commission.user.B}%
+                    </strong>
+                </p>
+
+                <p>
+                    🥉 Level C:
+                    <strong>
+                        ${ROOMRENT_SETTINGS.commission.user.C}%
+                    </strong>
+                </p>
+
+                <hr>
+
+                <h3>
+                    💵 Commission Yako
+                </h3>
+
+                <h2>
+                    TSh
+                    ${formatMoney(
+                        data.totalCommission || 0
+                    )}
+                </h2>
+
+                <p>
+                    📊 Total Bookings:
+                    <strong>
+                        ${data.totalBookings || 0}
+                    </strong>
+                </p>
+
+                <hr>
+
+                <button
+                    class="endeleaBtn"
+                    id="logoutAccountBtn"
+                >
+                    🚪 Toka kwenye Account
+                </button>
+
+            </div>
+
+        `;
+
+        const copyButton =
+            getElement(
+                "copyReferralBtn"
+            );
+
+        if (copyButton) {
+
+            copyButton.onclick =
+                function() {
+
+                    nakiliReferralLink(
+                        referralLink
+                    );
+
+                };
+
+        }
+
+        const logoutButton =
+            getElement(
+                "logoutAccountBtn"
+            );
+
+        if (logoutButton) {
+
+            logoutButton.onclick =
+                tokaRoomRent;
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            "FUNGUA ACCOUNT ERROR:",
+            error
+        );
+
+        section.innerHTML = `
+
+            <div class="booking-card">
+
+                <h2>
+                    👤 Account Yangu
+                </h2>
+
+                <p style="color:red;">
+                    ❌ Imeshindikana kupakia taarifa za Account.
+                </p>
+
+                <button
+                    class="thibitishaBtn"
+                    id="retryAccountBtn"
+                >
+                    🔄 Jaribu Tena
+                </button>
+
+            </div>
+
+        `;
+
+        const retry =
+            getElement(
+                "retryAccountBtn"
+            );
+
+        if (retry) {
+
+            retry.onclick =
+                funguaAccount;
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   32. COPY REFERRAL LINK
+========================================================= */
+
+async function nakiliReferralLink(
+    link
+) {
+
+    const message =
+        getElement(
+            "referralCopyMessage"
+        );
+
+    if (!link) {
+
+        if (message) {
+
+            message.style.color =
+                "red";
+
+            message.textContent =
+                "❌ Referral link haipo.";
+
+        }
+
+        return;
+
+    }
+
+    try {
+
+        await navigator.clipboard.writeText(
+            link
+        );
+
+        if (message) {
+
+            message.style.color =
+                "green";
+
+            message.textContent =
+                "✅ Referral link imenakiliwa.";
+
+        }
+
+    } catch (error) {
+
+        const input =
+            getElement(
+                "myReferralLink"
+            );
+
+        if (input) {
+
+            input.focus();
+
+            input.select();
+
+            try {
+
+                document.execCommand(
+                    "copy"
+                );
+
+                if (message) {
+
+                    message.style.color =
+                        "green";
+
+                    message.textContent =
+                        "✅ Referral link imenakiliwa.";
+
+                }
+
+            } catch (copyError) {
+
+                if (message) {
+
+                    message.style.color =
+                        "red";
+
+                    message.textContent =
+                        "⚠️ Shikilia Referral Link kisha Copy.";
+
+                }
+
+            }
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   33. TAARIFA
+========================================================= */
+
+async function funguaTaarifa() {
+
+    const user =
+        getCurrentUser();
+
+    if (!user) {
+
+        alert(
+            "Tafadhali ingia kwenye account kwanza."
+        );
+
+        return;
+
+    }
+
+    hideSection(
+        "vyumba"
+    );
+
+    hideSection(
+        "fomuKodi"
+    );
+
+    const section =
+        getElement(
+            "taarifaSection"
+        );
+
+    if (!section) {
+
+        return;
+
+    }
+
+    section.style.display =
+        "block";
+
+    section.innerHTML = `
+
+        <div class="booking-card">
+
+            <h2>
+                🔔 Taarifa
+            </h2>
+
+            <p>
+                ⏳ Inapakia...
+            </p>
+
+        </div>
+
+    `;
+
+    if (!db) {
+
+        return;
+
+    }
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("users")
+                .doc(user.uid)
+                .collection("notifications")
+                .orderBy(
+                    "createdAt",
+                    "desc"
+                )
+                .limit(30)
+                .get();
+
+        if (snapshot.empty) {
+
+            section.innerHTML = `
+
+                <div class="booking-card">
+
+                    <h2>
+                        🔔 Taarifa
+                    </h2>
+
+                    <p>
+                        Huna taarifa mpya kwa sasa.
+                    </p>
+
+                </div>
+
+            `;
+
+            return;
+
+        }
+
+        section.innerHTML = `
+
+            <div class="booking-card">
+
+                <h2>
+                    🔔 Taarifa
+                </h2>
+
+                <div id="notificationsList"></div>
+
+            </div>
+
+        `;
+
+        const list =
+            getElement(
+                "notificationsList"
+            );
+
+        snapshot.forEach(
+            function(doc) {
+
+                const notification =
+                    doc.data();
+
+                const item =
+                    document.createElement(
+                        "div"
+                    );
+
+                item.style.padding =
+                    "12px";
+
+                item.style.marginBottom =
+                    "10px";
+
+                item.style.border =
+                    "1px solid #ddd";
+
+                item.style.borderRadius =
+                    "10px";
+
+                item.innerHTML = `
+
+                    <h4>
+                        ${escapeHTML(
+                            notification.title ||
+                            "Taarifa"
+                        )}
+                    </h4>
+
+                    <p>
+                        ${escapeHTML(
+                            notification.message ||
+                            ""
+                        )}
+                    </p>
+
+                `;
+
+                if (list) {
+
+                    list.appendChild(
+                        item
+                    );
+
+                }
+
+            }
+        );
+
+    } catch (error) {
+
+        console.error(
+            "NOTIFICATION ERROR:",
+            error
+        );
+
+        section.innerHTML = `
+
+            <div class="booking-card">
+
+                <h2>
+                    🔔 Taarifa
+                </h2>
+
+                <p>
+                    Huna taarifa mpya kwa sasa.
+                </p>
+
+            </div>
+
+        `;
+
+    }
+
+}
+
+
+/* =========================================================
+   34. WITHDRAWAL
+========================================================= */
+
+function funguaWithdrawal() {
+
+    const user =
+        getCurrentUser();
+
+    if (!user) {
+
+        alert(
+            "Tafadhali ingia kwenye account kwanza."
+        );
+
+        return;
+
+    }
+
+    hideSection(
+        "vyumba"
+    );
+
+    hideSection(
+        "fomuKodi"
+    );
+
+    const section =
+        getElement(
+            "taarifaSection"
+        );
+
+    if (!section) {
+
+        return;
+
+    }
+
+    section.style.display =
+        "block";
+
+    section.innerHTML = `
+
+        <div class="booking-card">
+
+            <h2>
+                💸 Withdrawal
+            </h2>
+
+            <p>
+                Mfumo wa withdrawal utaunganishwa
+                katika hatua inayofuata.
+            </p>
+
+            <p>
+                💰 Commission yako:
+                <strong>
+                    TSh ${formatMoney(
+                        0
+                    )}
+                </strong>
+            </p>
+
+        </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   35. SIGN UP
+========================================================= */
+
+async function jisajiliRoomRent() {
+
+    const emailInput =
+        getElement(
+            "loginEmail"
+        );
+
+    const passwordInput =
+        getElement(
+            "loginPassword"
+        );
+
+    if (!emailInput ||
+        !passwordInput) {
+
+        onyeshaLoginMessage(
+            "❌ Sehemu ya Email au Password haijapatikana."
+        );
+
+        return;
+
+    }
+
+    const email =
+        safishaEmail(
+            emailInput.value
+        );
+
+    const password =
+        String(
+            passwordInput.value || ""
+        ).trim();
+
+    if (!email) {
+
+        onyeshaLoginMessage(
+            "❌ Tafadhali weka Email yako."
+        );
+
+        return;
+
+    }
+
+    if (!password) {
+
+        onyeshaLoginMessage(
+            "❌ Tafadhali weka Password yako."
+        );
+
+        return;
+
+    }
+
+    if (password.length < 6) {
+
+        onyeshaLoginMessage(
+            "❌ Password lazima iwe na angalau herufi/namba 6."
+        );
+
+        return;
+
+    }
+
+    if (!auth) {
+
+        onyeshaLoginMessage(
+            "❌ Firebase Auth haijapatikana."
+        );
+
+        return;
+
+    }
+
+    onyeshaLoginMessage(
+        "⏳ Tunatengeneza account yako...",
+        "success"
+    );
+
+    try {
+
+        const credential =
+            await auth
+                .createUserWithEmailAndPassword(
+                    email,
+                    password
+                );
+
+        const user =
+            credential.user;
+
+        if (!user) {
+
+            throw new Error(
+                "User hakupatikana."
+            );
+
+        }
+
+        if (db) {
+
+            await db
+                .collection("users")
+                .doc(user.uid)
+                .set({
+
+                    uid:
+                        user.uid,
+
+                    email:
+                        user.email,
+
+                    referralCode:
+                        "",
+
+                    referralLink:
+                        "",
+
+                    referredBy:
+                        "",
+
+                    referredByUid:
+                        "",
+
+                    referralType:
+                        "",
+
+                    totalCommission:
+                        0,
+
+                    totalBookings:
+                        0,
+
+                    createdAt:
+                        firebase.firestore
+                            .FieldValue
+                            .serverTimestamp(),
+
+                    updatedAt:
+                        firebase.firestore
+                            .FieldValue
+                            .serverTimestamp()
+
+                }, {
+                    merge: true
+                });
+
+        }
+
+        await hakikishaReferralCodeYaUser();
+
+        await hifadhiReferralMpya(
+            user.uid
+        );
+
+        onyeshaLoginMessage(
+            "✅ Account yako imetengenezwa kikamilifu!",
+            "success"
+        );
+
+        alert(
+            "🎉 Karibu RoomRent!\n\nAccount yako imetengenezwa."
+        );
+
+        passwordInput.value =
+            "";
+
+        setTimeout(
+            function() {
+
+                onyeshaVyumba();
+
+            },
+            500
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Signup Error:",
+            error
+        );
+
+        let message =
+            "❌ Imeshindikana kutengeneza account.";
+
+        if (
+            error.code ===
+            "auth/email-already-in-use"
+        ) {
+
+            message =
+                "❌ Email hii tayari ina account. Tafadhali Ingia.";
+
+        } else if (
+            error.code ===
+            "auth/invalid-email"
+        ) {
+
+            message =
+                "❌ Email uliyoweka si sahihi.";
+
+        } else if (
+            error.code ===
+            "auth/weak-password"
+        ) {
+
+            message =
+                "❌ Password ni dhaifu. Tumia angalau herufi/namba 6.";
+
+        } else if (
+            error.code ===
+            "auth/operation-not-allowed"
+        ) {
+
+            message =
+                "❌ Email/Password Login haijawezeshwa Firebase Console.";
+
+        } else if (error.message) {
+
+            message =
+                "❌ " +
+                error.message;
+
+        }
+
+        onyeshaLoginMessage(
+            message
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   36. SIGN IN
+========================================================= */
+
+async function ingiaRoomRent() {
+
+    const emailInput =
+        getElement(
+            "loginEmail"
+        );
+
+    const passwordInput =
+        getElement(
+            "loginPassword"
+        );
+
+    if (!emailInput ||
+        !passwordInput) {
+
+        onyeshaLoginMessage(
+            "❌ Sehemu ya Email au Password haijapatikana."
+        );
+
+        return;
+
+    }
+
+    const email =
+        safishaEmail(
+            emailInput.value
+        );
+
+    const password =
+        String(
+            passwordInput.value || ""
+        ).trim();
+
+    if (!email) {
+
+        onyeshaLoginMessage(
+            "❌ Tafadhali weka Email yako."
+        );
+
+        return;
+
+    }
+
+    if (!password) {
+
+        onyeshaLoginMessage(
+            "❌ Tafadhali weka Password yako."
+        );
+
+        return;
+
+    }
+
+    if (!auth) {
+
+        onyeshaLoginMessage(
+            "❌ Firebase Auth haijapatikana."
+        );
+
+        return;
+
+    }
+
+    onyeshaLoginMessage(
+        "⏳ Tunaingia RoomRent...",
+        "success"
+    );
+
+    try {
+
+        const credential =
+            await auth
+                .signInWithEmailAndPassword(
+                    email,
+                    password
+                );
+
+        const user =
+            credential.user;
+
+        if (!user) {
+
+            throw new Error(
+                "User hakupatikana."
+            );
+
+        }
+
+        if (db) {
+
+            await db
+                .collection("users")
+                .doc(user.uid)
+                .set({
+
+                    uid:
+                        user.uid,
+
+                    email:
+                        user.email,
+
+                    updatedAt:
+                        firebase.firestore
+                            .FieldValue
+                            .serverTimestamp()
+
+                }, {
+                    merge: true
+                });
+
+        }
+
+        await andaaReferralBaadaYaLogin();
+
+        onyeshaLoginMessage(
+            "✅ Umeingia RoomRent kikamilifu!",
+            "success"
+        );
+
+        alert(
+            "👋 Karibu tena RoomRent!"
+        );
+
+        passwordInput.value =
+            "";
+
+        setTimeout(
+            function() {
+
+                onyeshaVyumba();
+
+            },
+            500
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Login Error:",
+            error
+        );
+
+        let message =
+            "❌ Imeshindikana kuingia.";
+
+        if (
+            error.code ===
+            "auth/user-not-found"
+        ) {
+
+            message =
+                "❌ Email hii haina account.";
+
+        } else if (
+            error.code ===
+            "auth/wrong-password"
+        ) {
+
+            message =
+                "❌ Password si sahihi.";
+
+        } else if (
+            error.code ===
+            "auth/invalid-credential"
+        ) {
+
+            message =
+                "❌ Email au Password si sahihi.";
+
+        } else if (
+            error.code ===
+            "auth/invalid-email"
+        ) {
+
+            message =
+                "❌ Email uliyoweka si sahihi.";
+
+        } else if (error.message) {
+
+            message =
+                "❌ " +
+                error.message;
+
+        }
+
+        onyeshaLoginMessage(
+            message
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   37. SIGN OUT
+========================================================= */
+
+async function tokaRoomRent() {
+
+    if (!auth) {
+
+        return;
+
+    }
+
+    try {
+
+        await auth.signOut();
+
+        onyeshaLoginMessage(
+            "✅ Umetoka kwenye account.",
+            "success"
+        );
+
+        alert(
+            "👋 Umetoka RoomRent."
+        );
+
+        hideSection(
+            "vyumba"
+        );
+
+        hideSection(
+            "fomuKodi"
+        );
+
+        hideSection(
+            "taarifaSection"
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Logout Error:",
+            error
+        );
+
+        alert(
+            "❌ Imeshindikana kutoka."
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   38. ADMIN MODAL OPEN
+========================================================= */
+
+function funguaAdmin() {
+
+    const modal =
+        getElement(
+            "adminLoginModal"
+        );
+
+    if (!modal) {
+
+        return;
+
+    }
+
+    modal.style.display =
+        "flex";
+
+}
+
+
+/* =========================================================
+   39. ADMIN MODAL CLOSE
+========================================================= */
+
+function fungaAdminLogin() {
+
+    const modal =
+        getElement(
+            "adminLoginModal"
+        );
+
+    if (!modal) {
+
+        return;
+
+    }
+
+    modal.style.display =
+        "none";
+
+}
+
+
+/* =========================================================
+   40. ADMIN LOGIN
+========================================================= */
+
+function adminLogin() {
+
+    const username =
+        getElement(
+            "adminUsername"
+        );
+
+    const password =
+        getElement(
+            "adminPassword"
+        );
+
+    const message =
+        getElement(
+            "adminLoginMessage"
+        );
+
+    if (!username ||
+        !password) {
+
+        return;
+
+    }
+
+    const user =
+        username.value.trim();
+
+    const pass =
+        password.value.trim();
+
+    /*
+     * Hapa bado hatujaweka
+     * mfumo wa admin authentication
+     * wa Firestore.
+     *
+     * Hatutumii admin password
+     * ya siri kwenye frontend.
+     */
+
+    if (message) {
+
+        message.style.display =
+            "block";
+
+        message.style.color =
+            "red";
+
+        message.textContent =
+            "⚠️ Admin authentication itaunganishwa kwenye mfumo wa Admin Firebase.";
+
+    }
+
+    console.log(
+        "Admin login attempt:",
+        user,
+        pass ? "Password imewekwa" : "Password haijawekwa"
+    );
+
+}
+
+
+/* =========================================================
+   41. AUTH STATE
+========================================================= */
+
+if (auth) {
+
+    auth.onAuthStateChanged(
+        async function(user) {
+
+            if (user) {
+
+                console.log(
+                    "👤 User aliyeingia:",
+                    user.email
+                );
+
+                console.log(
+                    "🆔 UID:",
+                    user.uid
+                );
+
+                if (db) {
+
+                    try {
+
+                        await db
+                            .collection("users")
+                            .doc(user.uid)
+                            .set({
+
+                                uid:
+                                    user.uid,
+
+                                email:
+                                    user.email || "",
+
+                                lastLogin:
+                                    firebase.firestore
+                                        .FieldValue
+                                        .serverTimestamp(),
+
+                                updatedAt:
+                                    firebase.firestore
+                                        .FieldValue
+                                        .serverTimestamp()
+
+                            }, {
+                                merge: true
+                            });
+
+                    } catch (error) {
+
+                        console.error(
+                            "User Firestore update error:",
+                            error
+                        );
+
+                    }
+
+                }
+
+            } else {
+
+                console.log(
+                    "👤 Hakuna user aliyeingia."
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   42. DOM READY
 ========================================================= */
 
 document.addEventListener(
     "DOMContentLoaded",
     function() {
 
-        /*
-         * VYUMBA
-         */
+        console.log(
+            "🚀 RoomRent DOM imekamilika."
+        );
 
         const roomsButton =
-            document.getElementById(
+            getElement(
                 "angaliaVyumba"
             );
 
+        const bookingsButton =
+            getElement(
+                "bookingZangu"
+            );
+
+        const accountButton =
+            getElement(
+                "accountBtn"
+            );
+
+        const taarifaButton =
+            getElement(
+                "taarifaBtn"
+            );
+
+        const withdrawalButton =
+            getElement(
+                "withdrawalBtn"
+            );
+
+        const signInButton =
+            getElement(
+                "signInBtn"
+            );
+
+        const signUpButton =
+            getElement(
+                "signUpBtn"
+            );
+
+
+        /* VYUMBA */
 
         if (roomsButton) {
 
             roomsButton.onclick =
-                function() {
+                onyeshaVyumba;
 
-                    onyeshaVyumba();
-
-                };
         }
 
 
-        /*
-         * BOOKING ZANGU
-         */
+        /* BOOKING ZANGU */
 
-        const myBookingsButton =
-            document.getElementById(
-                "bookingZangu"
-            );
+        if (bookingsButton) {
 
+            bookingsButton.onclick =
+                funguaBookingZangu;
 
-        if (myBookingsButton) {
-
-            myBookingsButton.onclick =
-                function() {
-
-                    funguaBookingZangu();
-
-                };
         }
+
+
+        /* ACCOUNT */
+
+        if (accountButton) {
+
+            accountButton.onclick =
+                funguaAccount;
+
+        }
+
+
+        /* TAARIFA */
+
+        if (taarifaButton) {
+
+            taarifaButton.onclick =
+                funguaTaarifa;
+
+        }
+
+
+        /* WITHDRAWAL */
+
+        if (withdrawalButton) {
+
+            withdrawalButton.onclick =
+                funguaWithdrawal;
+
+        }
+
+
+        /* SIGN IN */
+
+        if (signInButton) {
+
+            signInButton.onclick =
+                ingiaRoomRent;
+
+        }
+
+
+        /* SIGN UP */
+
+        if (signUpButton) {
+
+            signUpButton.onclick =
+                jisajiliRoomRent;
+
+        }
+
+
+        console.log(
+            "✅ RoomRent buttons zote zimeunganishwa."
+        );
 
     }
 );
 
 
 /* =========================================================
-   4.14 - MWISHO WA SEHEMU YA 4
+   43. SCRIPT LOADED
 ========================================================= */
 
+console.log(
+    "🔥🔥 ROOMRENT SCRIPT NZIMA IMELOADED."
+);

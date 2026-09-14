@@ -2851,4 +2851,1834 @@ document.addEventListener(
 /* =========================================================
    3.15 - MWISHO WA SEHEMU YA 3
 ========================================================= */
+/* =========================================================
+   ROOMRENT - SEHEMU YA 4
+   BOOKING + PAYMENT REQUEST
+========================================================= */
+
+
+/* =========================================================
+   4.1 - ROOM DATA
+========================================================= */
+
+const ROOMRENT_ROOMS = [
+
+    {
+        roomNumber: "0023",
+        price: 30000,
+        profitPerDay: 1000,
+        durationDays: 40
+    },
+
+    {
+        roomNumber: "0024",
+        price: 70000,
+        profitPerDay: 2333,
+        durationDays: 40
+    },
+
+    {
+        roomNumber: "0025",
+        price: 140000,
+        profitPerDay: 4666,
+        durationDays: 40
+    },
+
+    {
+        roomNumber: "0026",
+        price: 210000,
+        profitPerDay: 6993,
+        durationDays: 40
+    },
+
+    {
+        roomNumber: "0027",
+        price: 280000,
+        profitPerDay: 9324,
+        durationDays: 40
+    },
+
+    {
+        roomNumber: "0028",
+        price: 350000,
+        profitPerDay: 11655,
+        durationDays: 40
+    },
+
+    {
+        roomNumber: "0029",
+        price: 420000,
+        profitPerDay: 13986,
+        durationDays: 40
+    },
+
+    {
+        roomNumber: "0030",
+        price: 490000,
+        profitPerDay: 16317,
+        durationDays: 40
+    },
+
+    {
+        roomNumber: "0031",
+        price: 560000,
+        profitPerDay: 18648,
+        durationDays: 40
+    },
+
+    {
+        roomNumber: "0032",
+        price: 630000,
+        profitPerDay: 20979,
+        durationDays: 40
+    }
+
+];
+
+
+/* =========================================================
+   4.2 - PAYMENT METHODS
+========================================================= */
+
+const ROOMRENT_PAYMENT_METHODS = {
+
+    mixx: {
+
+        name: "MIXX BY YAS",
+
+        phone: "0651590936",
+
+        owner: "HARUNA ISSA HAMAD"
+
+    },
+
+
+    airtel: {
+
+        name: "Airtel Money",
+
+        phone: "0667872515",
+
+        owner: "HARUNA ISSA HAMAD"
+
+    }
+
+};
+
+
+/* =========================================================
+   4.3 - SHOW ROOMS
+========================================================= */
+
+function onyeshaVyumba() {
+
+    const container =
+        document.getElementById(
+            "vyumba"
+        );
+
+
+    if (!container) {
+
+        console.error(
+            "Element #vyumba haipo."
+        );
+
+        return;
+    }
+
+
+    /*
+     * Ficha taarifa/account
+     */
+
+    const taarifa =
+        document.getElementById(
+            "taarifaSection"
+        );
+
+
+    if (taarifa) {
+
+        taarifa.style.display =
+            "none";
+    }
+
+
+    container.style.display =
+        "block";
+
+
+    container.innerHTML = `
+
+        <div class="booking-card">
+
+            <h2>
+                🏠 Vyumba vya RoomRent
+            </h2>
+
+            <p>
+                Chagua chumba unachotaka kukodi.
+            </p>
+
+        </div>
+
+    `;
+
+
+    ROOMRENT_ROOMS.forEach(
+        function(room) {
+
+            const totalProfit =
+                room.profitPerDay *
+                room.durationDays;
+
+
+            const card =
+                document.createElement(
+                    "div"
+                );
+
+
+            card.className =
+                "booking-card";
+
+
+            card.innerHTML = `
+
+                <h2>
+                    🏠 Chumba ${escapeHTML(
+                        room.roomNumber
+                    )}
+                </h2>
+
+
+                <p>
+                    💰 Bei:
+                    <strong>
+                        TSh ${formatMoney(
+                            room.price
+                        )}
+                    </strong>
+                </p>
+
+
+                <p>
+                    📅 Muda:
+                    <strong>
+                        ${room.durationDays}
+                        siku
+                    </strong>
+                </p>
+
+
+                <p>
+                    📈 Faida kwa siku:
+                    <strong>
+                        TSh ${formatMoney(
+                            room.profitPerDay
+                        )}
+                    </strong>
+                </p>
+
+
+                <p>
+                    💵 Faida ya siku ${
+                        room.durationDays
+                    }:
+                    <strong>
+                        TSh ${formatMoney(
+                            totalProfit
+                        )}
+                    </strong>
+                </p>
+
+
+                <button
+                    class="thibitishaBtn"
+                    onclick="funguaFomuKodi('${escapeHTML(
+                        room.roomNumber
+                    )}')"
+                >
+                    🏠 Kodi Chumba
+                </button>
+
+            `;
+
+
+            container.appendChild(
+                card
+            );
+
+        }
+    );
+}
+
+
+/* =========================================================
+   4.4 - GET ROOM
+========================================================= */
+
+function pataChumba(roomNumber) {
+
+    return ROOMRENT_ROOMS.find(
+        function(room) {
+
+            return (
+                room.roomNumber ===
+                roomNumber
+            );
+
+        }
+    );
+}
+
+
+/* =========================================================
+   4.5 - OPEN BOOKING FORM
+========================================================= */
+
+function funguaFomuKodi(roomNumber) {
+
+    const user =
+        getCurrentUser();
+
+
+    if (!user) {
+
+        alert(
+            "Tafadhali ingia kwenye account kwanza."
+        );
+
+        return;
+    }
+
+
+    const room =
+        pataChumba(roomNumber);
+
+
+    if (!room) {
+
+        alert(
+            "Chumba hakikupatikana."
+        );
+
+        return;
+    }
+
+
+    const container =
+        document.getElementById(
+            "fomuKodi"
+        );
+
+
+    if (!container) {
+
+        console.error(
+            "Element #fomuKodi haipo."
+        );
+
+        return;
+    }
+
+
+    /*
+     * Ficha vyumba
+     */
+
+    const vyumba =
+        document.getElementById(
+            "vyumba"
+        );
+
+
+    if (vyumba) {
+
+        vyumba.style.display =
+            "none";
+    }
+
+
+    /*
+     * Ficha taarifa
+     */
+
+    const taarifa =
+        document.getElementById(
+            "taarifaSection"
+        );
+
+
+    if (taarifa) {
+
+        taarifa.style.display =
+            "none";
+    }
+
+
+    container.style.display =
+        "block";
+
+
+    container.innerHTML = `
+
+        <div class="booking-card">
+
+            <h2>
+                🏠 Kodi Chumba ${
+                    escapeHTML(
+                        room.roomNumber
+                    )
+                }
+            </h2>
+
+
+            <p>
+                💰 Bei:
+                <strong>
+                    TSh ${formatMoney(
+                        room.price
+                    )}
+                </strong>
+            </p>
+
+
+            <p>
+                📅 Muda:
+                <strong>
+                    ${room.durationDays}
+                    siku
+                </strong>
+            </p>
+
+
+            <p>
+                📈 Faida kwa siku:
+                <strong>
+                    TSh ${formatMoney(
+                        room.profitPerDay
+                    )}
+                </strong>
+            </p>
+
+
+            <hr>
+
+
+            <h3>
+                📝 Taarifa za Booking
+            </h3>
+
+
+            <input
+                type="text"
+                id="bookingName"
+                placeholder="Jina kamili"
+                autocomplete="name"
+            >
+
+
+            <input
+                type="tel"
+                id="bookingPhone"
+                placeholder="Namba ya simu"
+                autocomplete="tel"
+            >
+
+
+            <label>
+                <strong>
+                    Njia ya malipo
+                </strong>
+            </label>
+
+
+            <select
+                id="paymentMethod"
+            >
+
+                <option value="">
+                    -- Chagua njia ya malipo --
+                </option>
+
+                <option value="mixx">
+                    MIXX BY YAS
+                </option>
+
+                <option value="airtel">
+                    Airtel Money
+                </option>
+
+            </select>
+
+
+            <div
+                id="paymentDetails"
+                style="
+                    margin-top:15px;
+                "
+            ></div>
+
+
+            <button
+                class="thibitishaBtn"
+                id="submitBookingBtn"
+            >
+                💳 Endelea na Malipo
+            </button>
+
+
+            <button
+                class="endeleaBtn"
+                onclick="onyeshaVyumba()"
+            >
+                ↩️ Rudi Vyumba
+            </button>
+
+
+            <p
+                id="bookingMessage"
+                style="
+                    text-align:center;
+                    margin-top:15px;
+                "
+            ></p>
+
+        </div>
+
+    `;
+
+
+    /*
+     * PAYMENT METHOD EVENT
+     */
+
+    const paymentSelect =
+        document.getElementById(
+            "paymentMethod"
+        );
+
+
+    if (paymentSelect) {
+
+        paymentSelect.onchange =
+            function() {
+
+                onyeshaPaymentDetails(
+                    this.value
+                );
+
+            };
+    }
+
+
+    /*
+     * BOOKING SUBMIT
+     */
+
+    const submitButton =
+        document.getElementById(
+            "submitBookingBtn"
+        );
+
+
+    if (submitButton) {
+
+        submitButton.onclick =
+            function() {
+
+                tengenezaBooking(
+                    roomNumber
+                );
+
+            };
+    }
+
+}
+
+
+/* =========================================================
+   4.6 - PAYMENT DETAILS
+========================================================= */
+
+function onyeshaPaymentDetails(
+    paymentMethod
+) {
+
+    const area =
+        document.getElementById(
+            "paymentDetails"
+        );
+
+
+    if (!area) {
+        return;
+    }
+
+
+    if (!paymentMethod) {
+
+        area.innerHTML = "";
+
+        return;
+    }
+
+
+    const payment =
+        ROOMRENT_PAYMENT_METHODS[
+            paymentMethod
+        ];
+
+
+    if (!payment) {
+
+        area.innerHTML = "";
+
+        return;
+    }
+
+
+    area.innerHTML = `
+
+        <div
+            style="
+                padding:15px;
+                border:1px solid #ddd;
+                border-radius:10px;
+            "
+        >
+
+            <h3>
+                💳 ${escapeHTML(
+                    payment.name
+                )}
+            </h3>
+
+
+            <p>
+                Tuma malipo kwenda:
+            </p>
+
+
+            <h2>
+                ${escapeHTML(
+                    payment.phone
+                )}
+            </h2>
+
+
+            <p>
+                Jina:
+                <strong>
+                    ${escapeHTML(
+                        payment.owner
+                    )}
+                </strong>
+            </p>
+
+
+            <p>
+                Baada ya kulipa, utaingiza
+                <strong>
+                    namba uliyotumia kulipia
+                </strong>
+                hapa kwenye hatua inayofuata.
+            </p>
+
+        </div>
+
+    `;
+}
+
+
+/* =========================================================
+   4.7 - GENERATE BOOKING NUMBER
+========================================================= */
+
+function generateBookingNumber() {
+
+    const timestamp =
+        Date.now()
+            .toString()
+            .slice(-8);
+
+
+    const random =
+        Math.floor(
+            100 +
+            Math.random() * 900
+        );
+
+
+    return (
+        "RR" +
+        timestamp +
+        random
+    );
+}
+
+
+/* =========================================================
+   4.8 - CREATE BOOKING
+========================================================= */
+
+async function tengenezaBooking(
+    roomNumber
+) {
+
+    const user =
+        getCurrentUser();
+
+
+    if (!user) {
+
+        alert(
+            "Tafadhali ingia kwanza."
+        );
+
+        return;
+    }
+
+
+    if (!db) {
+
+        alert(
+            "Firestore haijaunganishwa."
+        );
+
+        return;
+    }
+
+
+    const room =
+        pataChumba(roomNumber);
+
+
+    if (!room) {
+
+        alert(
+            "Chumba hakikupatikana."
+        );
+
+        return;
+    }
+
+
+    const nameInput =
+        document.getElementById(
+            "bookingName"
+        );
+
+
+    const phoneInput =
+        document.getElementById(
+            "bookingPhone"
+        );
+
+
+    const paymentInput =
+        document.getElementById(
+            "paymentMethod"
+        );
+
+
+    const message =
+        document.getElementById(
+            "bookingMessage"
+        );
+
+
+    const submitButton =
+        document.getElementById(
+            "submitBookingBtn"
+        );
+
+
+    const name =
+        nameInput
+            ? nameInput.value.trim()
+            : "";
+
+
+    const phone =
+        phoneInput
+            ? phoneInput.value.trim()
+            : "";
+
+
+    const paymentMethod =
+        paymentInput
+            ? paymentInput.value
+            : "";
+
+
+    /*
+     * VALIDATION
+     */
+
+    if (!name) {
+
+        onyeshaBookingMessage(
+            "⚠️ Weka jina lako.",
+            "red"
+        );
+
+        return;
+    }
+
+
+    if (!phone) {
+
+        onyeshaBookingMessage(
+            "⚠️ Weka namba yako ya simu.",
+            "red"
+        );
+
+        return;
+    }
+
+
+    if (phone.length < 9) {
+
+        onyeshaBookingMessage(
+            "⚠️ Namba ya simu si sahihi.",
+            "red"
+        );
+
+        return;
+    }
+
+
+    if (!paymentMethod) {
+
+        onyeshaBookingMessage(
+            "⚠️ Chagua njia ya malipo.",
+            "red"
+        );
+
+        return;
+    }
+
+
+    /*
+     * DISABLE BUTTON
+     */
+
+    if (submitButton) {
+
+        submitButton.disabled =
+            true;
+
+        submitButton.textContent =
+            "⏳ Inahifadhi Booking...";
+    }
+
+
+    try {
+
+        const bookingNumber =
+            generateBookingNumber();
+
+
+        const payment =
+            ROOMRENT_PAYMENT_METHODS[
+                paymentMethod
+            ];
+
+
+        const bookingData = {
+
+            bookingNumber:
+                bookingNumber,
+
+            uid:
+                user.uid,
+
+            email:
+                user.email || "",
+
+            customerName:
+                name,
+
+            customerPhone:
+                phone,
+
+            roomNumber:
+                room.roomNumber,
+
+            roomPrice:
+                room.price,
+
+            profitPerDay:
+                room.profitPerDay,
+
+            durationDays:
+                room.durationDays,
+
+            totalProfit:
+                room.profitPerDay *
+                room.durationDays,
+
+            paymentMethod:
+                payment.name,
+
+            paymentReceiver:
+                payment.phone,
+
+            paymentOwner:
+                payment.owner,
+
+            paymentPhone:
+                "",
+
+            paymentStatus:
+                "Waiting Confirmation",
+
+            status:
+                "Waiting Confirmation",
+
+            commissionStatus:
+                "Pending",
+
+            referralCommissionStatus:
+                "Pending",
+
+            createdAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp(),
+
+            updatedAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp()
+
+        };
+
+
+        /*
+         * SAVE FIRESTORE
+         */
+
+        await db
+            .collection("bookings")
+            .doc(bookingNumber)
+            .set(
+                bookingData
+            );
+
+
+        console.log(
+            "Booking imehifadhiwa:",
+            bookingNumber
+        );
+
+
+        /*
+         * ONYESHA PAYMENT FORM
+         */
+
+        onyeshaPaymentRequest(
+            bookingData
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "BOOKING ERROR:",
+            error
+        );
+
+
+        onyeshaBookingMessage(
+            "❌ Imeshindikana kuhifadhi booking. Jaribu tena.",
+            "red"
+        );
+
+
+        if (submitButton) {
+
+            submitButton.disabled =
+                false;
+
+            submitButton.textContent =
+                "💳 Endelea na Malipo";
+        }
+    }
+}
+
+
+/* =========================================================
+   4.9 - PAYMENT REQUEST SCREEN
+========================================================= */
+
+function onyeshaPaymentRequest(
+    booking
+) {
+
+    const container =
+        document.getElementById(
+            "fomuKodi"
+        );
+
+
+    if (!container) {
+        return;
+    }
+
+
+    const payment =
+        ROOMRENT_PAYMENT_METHODS[
+            booking.paymentMethod ===
+            "MIXX BY YAS"
+                ? "mixx"
+                : "airtel"
+        ];
+
+
+    container.innerHTML = `
+
+        <div class="booking-card">
+
+            <h2>
+                💳 Malipo ya Booking
+            </h2>
+
+
+            <p>
+                <strong>
+                    Booking Number:
+                </strong>
+                ${escapeHTML(
+                    booking.bookingNumber
+                )}
+            </p>
+
+
+            <p>
+                <strong>
+                    Chumba:
+                </strong>
+                ${escapeHTML(
+                    booking.roomNumber
+                )}
+            </p>
+
+
+            <p>
+                <strong>
+                    Kiasi:
+                </strong>
+                TSh ${formatMoney(
+                    booking.roomPrice
+                )}
+            </p>
+
+
+            <hr>
+
+
+            <h3>
+                💳 Fanya Malipo
+            </h3>
+
+
+            <p>
+                Tuma TSh
+                <strong>
+                    ${formatMoney(
+                        booking.roomPrice
+                    )}
+                </strong>
+                kwenda:
+            </p>
+
+
+            <h2>
+                ${escapeHTML(
+                    payment.phone
+                )}
+            </h2>
+
+
+            <p>
+                ${escapeHTML(
+                    payment.name
+                )}
+            </p>
+
+
+            <p>
+                Jina la mpokeaji:
+                <strong>
+                    ${escapeHTML(
+                        payment.owner
+                    )}
+                </strong>
+            </p>
+
+
+            <hr>
+
+
+            <h3>
+                📱 Baada ya kulipa
+            </h3>
+
+
+            <p>
+                Weka namba ya simu
+                uliyotumia kufanya malipo.
+            </p>
+
+
+            <input
+                type="tel"
+                id="paymentPhoneInput"
+                placeholder="Namba uliyotumia kulipia"
+                autocomplete="tel"
+            >
+
+
+            <button
+                class="thibitishaBtn"
+                id="sendPaymentRequestBtn"
+            >
+                📤 Tuma Payment Request
+            </button>
+
+
+            <p
+                id="paymentRequestMessage"
+                style="
+                    text-align:center;
+                    margin-top:15px;
+                "
+            ></p>
+
+
+            <div
+                style="
+                    margin-top:20px;
+                    padding:15px;
+                    border:1px solid #ddd;
+                    border-radius:10px;
+                "
+            >
+
+                <p>
+                    ⏳ Status:
+                </p>
+
+                <strong>
+                    Waiting Confirmation
+                </strong>
+
+                <p>
+                    Admin atakagua malipo yako
+                    na kuthibitisha booking.
+                </p>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    const sendButton =
+        document.getElementById(
+            "sendPaymentRequestBtn"
+        );
+
+
+    if (sendButton) {
+
+        sendButton.onclick =
+            function() {
+
+                tumaPaymentRequest(
+                    booking.bookingNumber
+                );
+
+            };
+    }
+}
+
+
+/* =========================================================
+   4.10 - SEND PAYMENT REQUEST
+========================================================= */
+
+async function tumaPaymentRequest(
+    bookingNumber
+) {
+
+    const user =
+        getCurrentUser();
+
+
+    if (!user) {
+
+        alert(
+            "Tafadhali ingia kwanza."
+        );
+
+        return;
+    }
+
+
+    if (!db) {
+
+        alert(
+            "Firestore haijaunganishwa."
+        );
+
+        return;
+    }
+
+
+    const input =
+        document.getElementById(
+            "paymentPhoneInput"
+        );
+
+
+    const message =
+        document.getElementById(
+            "paymentRequestMessage"
+        );
+
+
+    const button =
+        document.getElementById(
+            "sendPaymentRequestBtn"
+        );
+
+
+    const paymentPhone =
+        input
+            ? input.value.trim()
+            : "";
+
+
+    if (!paymentPhone) {
+
+        if (message) {
+
+            message.style.color =
+                "red";
+
+            message.textContent =
+                "⚠️ Weka namba uliyotumia kulipia.";
+        }
+
+        return;
+    }
+
+
+    if (paymentPhone.length < 9) {
+
+        if (message) {
+
+            message.style.color =
+                "red";
+
+            message.textContent =
+                "⚠️ Namba ya malipo si sahihi.";
+        }
+
+        return;
+    }
+
+
+    if (button) {
+
+        button.disabled =
+            true;
+
+        button.textContent =
+            "⏳ Inatuma...";
+    }
+
+
+    try {
+
+        const bookingRef =
+            db
+                .collection("bookings")
+                .doc(bookingNumber);
+
+
+        const bookingSnap =
+            await bookingRef.get();
+
+
+        if (!bookingSnap.exists) {
+
+            throw new Error(
+                "Booking haikupatikana."
+            );
+        }
+
+
+        const booking =
+            bookingSnap.data();
+
+
+        /*
+         * Hakikisha booking ni ya user huyu
+         */
+
+        if (
+            booking.uid !==
+            user.uid
+        ) {
+
+            throw new Error(
+                "Huna ruhusa ya booking hii."
+            );
+        }
+
+
+        /*
+         * UPDATE PAYMENT REQUEST
+         */
+
+        await bookingRef.update({
+
+            paymentPhone:
+                paymentPhone,
+
+            paymentStatus:
+                "Waiting Confirmation",
+
+            status:
+                "Waiting Confirmation",
+
+            paymentRequestedAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp(),
+
+            updatedAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp()
+
+        });
+
+
+        /*
+         * NOTIFICATION
+         */
+
+        await db
+            .collection("users")
+            .doc(user.uid)
+            .collection("notifications")
+            .add({
+
+                title:
+                    "Payment Request",
+
+                message:
+                    "Payment request yako imepokelewa. Subiri uthibitisho wa admin.",
+
+                bookingNumber:
+                    bookingNumber,
+
+                type:
+                    "payment",
+
+                read:
+                    false,
+
+                createdAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
+
+            });
+
+
+        if (message) {
+
+            message.style.color =
+                "green";
+
+            message.innerHTML = `
+
+                ✅ Payment Request imetumwa.
+
+                <br><br>
+
+                Booking Number:
+                <strong>
+                    ${escapeHTML(
+                        bookingNumber
+                    )}
+                </strong>
+
+                <br><br>
+
+                Status:
+                <strong>
+                    Waiting Confirmation
+                </strong>
+
+                <br><br>
+
+                Subiri admin athibitishe malipo.
+
+            `;
+        }
+
+
+        if (button) {
+
+            button.disabled =
+                true;
+
+            button.textContent =
+                "✅ Request Imetumwa";
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "PAYMENT REQUEST ERROR:",
+            error
+        );
+
+
+        if (message) {
+
+            message.style.color =
+                "red";
+
+            message.textContent =
+                "❌ " +
+                (
+                    error.message ||
+                    "Imeshindikana kutuma request."
+                );
+        }
+
+
+        if (button) {
+
+            button.disabled =
+                false;
+
+            button.textContent =
+                "📤 Tuma Payment Request";
+        }
+    }
+}
+
+
+/* =========================================================
+   4.11 - BOOKING MESSAGE
+========================================================= */
+
+function onyeshaBookingMessage(
+    text,
+    color
+) {
+
+    const message =
+        document.getElementById(
+            "bookingMessage"
+        );
+
+
+    if (!message) {
+        return;
+    }
+
+
+    message.style.color =
+        color || "red";
+
+
+    message.textContent =
+        text;
+}
+
+
+/* =========================================================
+   4.12 - BOOKING ZANGU
+========================================================= */
+
+async function funguaBookingZangu() {
+
+    const user =
+        getCurrentUser();
+
+
+    if (!user) {
+
+        alert(
+            "Tafadhali ingia kwenye account kwanza."
+        );
+
+        return;
+    }
+
+
+    const section =
+        document.getElementById(
+            "taarifaSection"
+        );
+
+
+    if (!section) {
+        return;
+    }
+
+
+    const vyumba =
+        document.getElementById(
+            "vyumba"
+        );
+
+
+    const fomu =
+        document.getElementById(
+            "fomuKodi"
+        );
+
+
+    if (vyumba) {
+
+        vyumba.style.display =
+            "none";
+    }
+
+
+    if (fomu) {
+
+        fomu.style.display =
+            "none";
+    }
+
+
+    section.style.display =
+        "block";
+
+
+    section.innerHTML = `
+
+        <div class="booking-card">
+
+            <h2>
+                📋 Booking Zangu
+            </h2>
+
+            <p>
+                ⏳ Inapakia...
+            </p>
+
+        </div>
+
+    `;
+
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("bookings")
+                .where(
+                    "uid",
+                    "==",
+                    user.uid
+                )
+                .get();
+
+
+        section.innerHTML = `
+
+            <div class="booking-card">
+
+                <h2>
+                    📋 Booking Zangu
+                </h2>
+
+                <div id="myBookingsList">
+
+                </div>
+
+            </div>
+
+        `;
+
+
+        const list =
+            document.getElementById(
+                "myBookingsList"
+            );
+
+
+        if (!list) {
+            return;
+        }
+
+
+        if (snapshot.empty) {
+
+            list.innerHTML = `
+
+                <p>
+                    Huna booking bado.
+                </p>
+
+                <button
+                    class="thibitishaBtn"
+                    onclick="onyeshaVyumba()"
+                >
+                    🏠 Angalia Vyumba
+                </button>
+
+            `;
+
+            return;
+        }
+
+
+        const bookings =
+            [];
+
+
+        snapshot.forEach(
+            function(doc) {
+
+                bookings.push(
+                    {
+                        id: doc.id,
+                        ...doc.data()
+                    }
+                );
+
+            }
+        );
+
+
+        /*
+         * Panga mpya kwanza
+         */
+
+        bookings.sort(
+            function(a, b) {
+
+                const dateA =
+                    a.createdAt &&
+                    a.createdAt.toMillis
+                        ? a.createdAt.toMillis()
+                        : 0;
+
+
+                const dateB =
+                    b.createdAt &&
+                    b.createdAt.toMillis
+                        ? b.createdAt.toMillis()
+                        : 0;
+
+
+                return dateB - dateA;
+            }
+        );
+
+
+        list.innerHTML = "";
+
+
+        bookings.forEach(
+            function(booking) {
+
+                const card =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                card.style.marginBottom =
+                    "15px";
+
+
+                card.style.padding =
+                    "15px";
+
+
+                card.style.border =
+                    "1px solid #ddd";
+
+
+                card.style.borderRadius =
+                    "10px";
+
+
+                card.innerHTML = `
+
+                    <h3>
+                        🏠 Chumba
+                        ${escapeHTML(
+                            booking.roomNumber ||
+                            ""
+                        )}
+                    </h3>
+
+
+                    <p>
+                        Booking:
+                        <strong>
+                            ${escapeHTML(
+                                booking.bookingNumber ||
+                                ""
+                            )}
+                        </strong>
+                    </p>
+
+
+                    <p>
+                        Kiasi:
+                        <strong>
+                            TSh
+                            ${formatMoney(
+                                booking.roomPrice ||
+                                0
+                            )}
+                        </strong>
+                    </p>
+
+
+                    <p>
+                        Status:
+                        <strong>
+                            ${escapeHTML(
+                                booking.status ||
+                                ""
+                            )}
+                        </strong>
+                    </p>
+
+
+                    <p>
+                        Payment:
+                        <strong>
+                            ${escapeHTML(
+                                booking.paymentStatus ||
+                                ""
+                            )}
+                        </strong>
+                    </p>
+
+                `;
+
+
+                list.appendChild(
+                    card
+                );
+
+            }
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "BOOKING ZANGU ERROR:",
+            error
+        );
+
+
+        section.innerHTML = `
+
+            <div class="booking-card">
+
+                <h2>
+                    📋 Booking Zangu
+                </h2>
+
+                <p
+                    style="color:red;"
+                >
+                    ❌ Imeshindikana kupakia booking.
+                </p>
+
+                <button
+                    class="thibitishaBtn"
+                    onclick="funguaBookingZangu()"
+                >
+                    🔄 Jaribu Tena
+                </button>
+
+            </div>
+
+        `;
+    }
+}
+
+
+/* =========================================================
+   4.13 - BUTTON EVENTS
+========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        /*
+         * VYUMBA
+         */
+
+        const roomsButton =
+            document.getElementById(
+                "angaliaVyumba"
+            );
+
+
+        if (roomsButton) {
+
+            roomsButton.onclick =
+                function() {
+
+                    onyeshaVyumba();
+
+                };
+        }
+
+
+        /*
+         * BOOKING ZANGU
+         */
+
+        const myBookingsButton =
+            document.getElementById(
+                "bookingZangu"
+            );
+
+
+        if (myBookingsButton) {
+
+            myBookingsButton.onclick =
+                function() {
+
+                    funguaBookingZangu();
+
+                };
+        }
+
+    }
+);
+
+
+/* =========================================================
+   4.14 - MWISHO WA SEHEMU YA 4
+========================================================= */
 

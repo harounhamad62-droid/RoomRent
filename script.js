@@ -1551,29 +1551,12 @@ console.log(
 /* =========================================================
    ROOMRENT - SEHEMU YA 3
    ACCOUNT + REFERRAL SYSTEM
-   =========================================================
-
-   MFUMO:
-   - Account ya mtumiaji
-   - Referral code ya kipekee
-   - Referral link
-   - Referral A / B / C
-   - User Commission:
-       A = 5%
-       B = 2%
-       C = 1%
-   - Admin Referral:
-       RRADMIN
-   - Admin Commission:
-       A = 20%
-       B = 10%
-       C = 5%
-   - FIRESTORE ONLY
+   VERSION: CLEAN
 ========================================================= */
 
 
 /* =========================================================
-   3.1 - HELPER: PATA USER WA SASA
+   3.1 - PATA USER ALIYEINGIA
 ========================================================= */
 
 function getCurrentUser() {
@@ -1587,110 +1570,7 @@ function getCurrentUser() {
 
 
 /* =========================================================
-   3.2 - GENERATE REFERRAL CODE
-========================================================= */
-
-function generateReferralCode(email) {
-
-    let prefix = "RR";
-
-    if (email) {
-
-        const emailName =
-            email.split("@")[0]
-                .replace(/[^a-zA-Z0-9]/g, "")
-                .substring(0, 5)
-                .toUpperCase();
-
-        if (emailName.length >= 2) {
-            prefix = "RR" + emailName;
-        }
-    }
-
-
-    const randomPart =
-        Math.random()
-            .toString(36)
-            .substring(2, 6)
-            .toUpperCase();
-
-
-    return prefix + randomPart;
-}
-
-
-/* =========================================================
-   3.3 - CHECK REFERRAL CODE
-========================================================= */
-
-async function tafutaReferralCode(code) {
-
-    if (!db || !code) {
-        return null;
-    }
-
-
-    const cleanCode =
-        code.trim().toUpperCase();
-
-
-    /* ADMIN REFERRAL */
-
-    if (
-        cleanCode ===
-        ROOMRENT_SETTINGS.adminReferralCode
-    ) {
-
-        return {
-            type: "admin",
-            referralCode: cleanCode
-        };
-    }
-
-
-    try {
-
-        const snapshot =
-            await db
-                .collection("users")
-                .where(
-                    "referralCode",
-                    "==",
-                    cleanCode
-                )
-                .limit(1)
-                .get();
-
-
-        if (snapshot.empty) {
-            return null;
-        }
-
-
-        const doc =
-            snapshot.docs[0];
-
-
-        return {
-            type: "user",
-            uid: doc.id,
-            data: doc.data()
-        };
-
-    } catch (error) {
-
-        console.error(
-            "Hitilafu kutafuta referral:",
-            error
-        );
-
-        return null;
-    }
-}
-
-
-/* =========================================================
-   3.4 - GET REFERRAL CODE FROM URL
+   3.2 - PATA REFERRAL CODE KWENYE URL
 ========================================================= */
 
 function pataReferralKutokaURL() {
@@ -1700,15 +1580,12 @@ function pataReferralKutokaURL() {
         const url =
             new URL(window.location.href);
 
-
         const code =
             url.searchParams.get("ref");
-
 
         if (!code) {
             return "";
         }
-
 
         return code
             .trim()
@@ -1727,51 +1604,62 @@ function pataReferralKutokaURL() {
 
 
 /* =========================================================
-   3.5 - CREATE UNIQUE REFERRAL CODE
+   3.3 - GENERATE REFERRAL CODE
 ========================================================= */
 
-async function tengenezaReferralCodeUnique(email) {
+function generateReferralCode(email) {
 
-    if (!db) {
-        throw new Error(
-            "Firestore haijaunganishwa."
-        );
-    }
+    let prefix = "RR";
 
+    if (email) {
 
-    for (let attempt = 0; attempt < 10; attempt++) {
+        const emailName =
+            email
+                .split("@")[0]
+                .replace(/[^a-zA-Z0-9]/g, "")
+                .substring(0, 5)
+                .toUpperCase();
 
-        const code =
-            generateReferralCode(email);
+        if (emailName.length >= 2) {
 
-
-        const existing =
-            await db
-                .collection("users")
-                .where(
-                    "referralCode",
-                    "==",
-                    code
-                )
-                .limit(1)
-                .get();
-
-
-        if (existing.empty) {
-
-            return code;
+            prefix =
+                "RR" + emailName;
         }
     }
 
 
-    throw new Error(
-        "Imeshindikana kutengeneza referral code ya kipekee."
-    );
+    const randomPart =
+        Math.random()
+            .toString(36)
+            .substring(2, 8)
+            .toUpperCase();
+
+
+    return prefix + randomPart;
 }
 
 
 /* =========================================================
-   3.6 - GET REFERRAL LINK
+   3.4 - GENERATE REFERRAL CODE
+   BILA QUERY YA USERS
+========================================================= */
+
+async function tengenezaReferralCodeUnique(email) {
+
+    /*
+     * Tunatumia random code yenye nafasi kubwa sana
+     * ya kuwa unique.
+     *
+     * Hii inazuia Account kushindwa kwa sababu ya
+     * Firestore query.
+     */
+
+    return generateReferralCode(email);
+}
+
+
+/* =========================================================
+   3.5 - TENGENEZA REFERRAL LINK
 ========================================================= */
 
 function pataReferralLink(code) {
@@ -1783,20 +1671,16 @@ function pataReferralLink(code) {
 
     try {
 
-        const url =
-            new URL(
-                window.location.origin +
-                window.location.pathname
-            );
+        const baseURL =
+            window.location.origin +
+            window.location.pathname;
 
 
-        url.searchParams.set(
-            "ref",
-            code
+        return (
+            baseURL +
+            "?ref=" +
+            encodeURIComponent(code)
         );
-
-
-        return url.toString();
 
     } catch (error) {
 
@@ -1810,100 +1694,7 @@ function pataReferralLink(code) {
 
 
 /* =========================================================
-   3.7 - SAVE REFERRAL INFORMATION
-========================================================= */
-
-async function hifadhiReferralMpya(uid) {
-
-    if (!db || !uid) {
-        return null;
-    }
-
-
-    const userRef =
-        db
-            .collection("users")
-            .doc(uid);
-
-
-    const userSnap =
-        await userRef.get();
-
-
-    if (!userSnap.exists) {
-        return null;
-    }
-
-
-    const userData =
-        userSnap.data();
-
-
-    /* Kama tayari ana referral */
-    if (userData.referredBy) {
-
-        return userData.referredBy;
-    }
-
-
-    const urlReferral =
-        pataReferralKutokaURL();
-
-
-    if (!urlReferral) {
-
-        return "";
-    }
-
-
-    const referral =
-        await tafutaReferralCode(
-            urlReferral
-        );
-
-
-    if (!referral) {
-
-        console.log(
-            "Referral code haikupatikana:",
-            urlReferral
-        );
-
-        return "";
-    }
-
-
-    /* Zuia kutumia referral yake mwenyewe */
-
-    if (
-        userData.referralCode &&
-        userData.referralCode === urlReferral
-    ) {
-
-        return "";
-    }
-
-
-    await userRef.set(
-        {
-            referredBy: urlReferral,
-            referralType: referral.type,
-            updatedAt:
-                firebase.firestore.FieldValue
-                    .serverTimestamp()
-        },
-        {
-            merge: true
-        }
-    );
-
-
-    return urlReferral;
-}
-
-
-/* =========================================================
-   3.8 - HAKIKISHA USER ANA REFERRAL CODE
+   3.6 - HAKIKISHA USER ANA REFERRAL CODE
 ========================================================= */
 
 async function hakikishaReferralCodeYaUser() {
@@ -1912,69 +1703,227 @@ async function hakikishaReferralCodeYaUser() {
         getCurrentUser();
 
 
-    if (!user || !db) {
+    if (!user) {
+
+        console.error(
+            "Hakuna user aliyeingia."
+        );
+
         return null;
     }
 
 
-    const userRef =
-        db
-            .collection("users")
-            .doc(user.uid);
+    if (!db) {
 
+        console.error(
+            "Firestore haijaunganishwa."
+        );
 
-    const userSnap =
-        await userRef.get();
-
-
-    if (!userSnap.exists) {
         return null;
     }
 
 
-    const userData =
-        userSnap.data();
+    try {
+
+        const userRef =
+            db
+                .collection("users")
+                .doc(user.uid);
 
 
-    /* Kama tayari ipo */
-
-    if (userData.referralCode) {
-
-        return userData.referralCode;
-    }
+        const userSnap =
+            await userRef.get();
 
 
-    /* Tengeneza mpya */
+        /*
+         * Kama document haipo
+         */
 
-    const newCode =
-        await tengenezaReferralCodeUnique(
-            user.email
+        if (!userSnap.exists) {
+
+            console.log(
+                "User document haipo. Inatengenezwa..."
+            );
+
+
+            const newCode =
+                await tengenezaReferralCodeUnique(
+                    user.email
+                );
+
+
+            const newLink =
+                pataReferralLink(
+                    newCode
+                );
+
+
+            await userRef.set({
+
+                uid:
+                    user.uid,
+
+                email:
+                    user.email || "",
+
+                referralCode:
+                    newCode,
+
+                referralLink:
+                    newLink,
+
+                referredBy:
+                    "",
+
+                referralType:
+                    "",
+
+                totalCommission:
+                    0,
+
+                totalBookings:
+                    0,
+
+                createdAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp(),
+
+                updatedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
+
+            });
+
+
+            console.log(
+                "User document mpya imetengenezwa."
+            );
+
+
+            return newCode;
+        }
+
+
+        /*
+         * Kama document ipo
+         */
+
+        const userData =
+            userSnap.data();
+
+
+        /*
+         * Kama referral code ipo tayari
+         */
+
+        if (
+            userData.referralCode
+        ) {
+
+            /*
+             * Kama link haipo,
+             * itengeneze.
+             */
+
+            if (!userData.referralLink) {
+
+                const link =
+                    pataReferralLink(
+                        userData.referralCode
+                    );
+
+
+                await userRef.set(
+                    {
+                        referralLink:
+                            link,
+
+                        updatedAt:
+                            firebase.firestore
+                                .FieldValue
+                                .serverTimestamp()
+
+                    },
+                    {
+                        merge: true
+                    }
+                );
+            }
+
+
+            return userData.referralCode;
+        }
+
+
+        /*
+         * Kama document ipo lakini
+         * referralCode haipo
+         */
+
+        const newCode =
+            await tengenezaReferralCodeUnique(
+                user.email
+            );
+
+
+        const newLink =
+            pataReferralLink(
+                newCode
+            );
+
+
+        await userRef.set(
+            {
+
+                referralCode:
+                    newCode,
+
+                referralLink:
+                    newLink,
+
+                totalCommission:
+                    userData.totalCommission || 0,
+
+                totalBookings:
+                    userData.totalBookings || 0,
+
+                updatedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
+
+            },
+            {
+                merge: true
+            }
         );
 
 
-    await userRef.set(
-        {
-            referralCode: newCode,
-
-            referralLink:
-                pataReferralLink(newCode),
-
-            updatedAt:
-                firebase.firestore.FieldValue
-                    .serverTimestamp()
-        },
-        {
-            merge: true
-        }
-    );
+        console.log(
+            "Referral code mpya:",
+            newCode
+        );
 
 
-    return newCode;
+        return newCode;
+
+
+    } catch (error) {
+
+        console.error(
+            "REFERRAL CODE ERROR:",
+            error
+        );
+
+        return null;
+    }
 }
 
 
 /* =========================================================
-   3.9 - ACCOUNT DATA
+   3.7 - PATA ACCOUNT DATA
 ========================================================= */
 
 async function pataAccountData() {
@@ -1983,39 +1932,143 @@ async function pataAccountData() {
         getCurrentUser();
 
 
-    if (!user || !db) {
+    if (!user) {
         return null;
     }
 
 
-    const userRef =
-        db
-            .collection("users")
-            .doc(user.uid);
+    if (!db) {
 
+        console.error(
+            "Firestore haipo."
+        );
 
-    const snapshot =
-        await userRef.get();
-
-
-    if (!snapshot.exists) {
-
-        return {
-            uid: user.uid,
-            email: user.email || "",
-            referralCode: "",
-            referralLink: "",
-            referredBy: "",
-            totalCommission: 0,
-            totalBookings: 0
-        };
+        return null;
     }
 
 
-    return {
-        uid: user.uid,
-        ...snapshot.data()
-    };
+    try {
+
+        const snapshot =
+            await db
+                .collection("users")
+                .doc(user.uid)
+                .get();
+
+
+        /*
+         * Kama user document haipo,
+         * rudisha basic information.
+         */
+
+        if (!snapshot.exists) {
+
+            return {
+
+                uid:
+                    user.uid,
+
+                email:
+                    user.email || "",
+
+                referralCode:
+                    "",
+
+                referralLink:
+                    "",
+
+                referredBy:
+                    "",
+
+                totalCommission:
+                    0,
+
+                totalBookings:
+                    0
+
+            };
+        }
+
+
+        return {
+
+            uid:
+                user.uid,
+
+            ...snapshot.data()
+
+        };
+
+
+    } catch (error) {
+
+        console.error(
+            "ACCOUNT DATA ERROR:",
+            error
+        );
+
+        return null;
+    }
+}
+
+
+/* =========================================================
+   3.8 - ESCAPE HTML
+========================================================= */
+
+function escapeHTML(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return "";
+    }
+
+
+    return String(value)
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+}
+
+
+/* =========================================================
+   3.9 - FORMAT MONEY
+========================================================= */
+
+function formatMoney(amount) {
+
+    const number =
+        Number(amount) || 0;
+
+
+    return number.toLocaleString(
+        "en-US"
+    );
 }
 
 
@@ -2046,15 +2099,46 @@ async function funguaAccount() {
 
 
     if (!section) {
+
+        console.error(
+            "taarifaSection haipo HTML."
+        );
+
         return;
     }
 
+
+    /*
+     * Onyesha section
+     */
 
     section.style.display =
         "block";
 
 
+    /*
+     * Ficha vyumba
+     */
+
+    const vyumba =
+        document.getElementById(
+            "vyumba"
+        );
+
+
+    if (vyumba) {
+
+        vyumba.style.display =
+            "none";
+    }
+
+
+    /*
+     * Onyesha loading
+     */
+
     section.innerHTML = `
+
         <div class="booking-card">
 
             <h2>
@@ -2062,193 +2146,263 @@ async function funguaAccount() {
             </h2>
 
             <p>
-                <strong>Email:</strong><br>
-                ${escapeHTML(user.email || "")}
+                ⏳ Inapakia taarifa...
             </p>
-
-            <p>
-                <strong>UID:</strong><br>
-                <small>
-                    ${escapeHTML(user.uid)}
-                </small>
-            </p>
-
-            <hr>
-
-            <div id="accountReferralArea">
-
-                <p>
-                    ⏳ Inapakia taarifa za referral...
-                </p>
-
-            </div>
-
-            <hr>
-
-            <div id="accountCommissionArea">
-
-                <p>
-                    💰 Commission:
-                    <strong>
-                        TSh 0
-                    </strong>
-                </p>
-
-            </div>
-
-            <button
-                class="endeleaBtn"
-                id="logoutAccountBtn"
-            >
-                🚪 Toka kwenye Account
-            </button>
 
         </div>
+
     `;
-
-
-    await onyeshaReferralAccount();
-
-
-    const logoutButton =
-        document.getElementById(
-            "logoutAccountBtn"
-        );
-
-
-    if (logoutButton) {
-
-        logoutButton.onclick =
-            tokaRoomRent;
-    }
-}
-
-
-/* =========================================================
-   3.11 - DISPLAY REFERRAL ACCOUNT
-========================================================= */
-
-async function onyeshaReferralAccount() {
-
-    const area =
-        document.getElementById(
-            "accountReferralArea"
-        );
-
-
-    if (!area) {
-        return;
-    }
 
 
     try {
 
-        const code =
-            await hakikishaReferralCodeYaUser();
+        /*
+         * Pata account
+         */
 
-
-        const data =
+        let data =
             await pataAccountData();
 
 
+        /*
+         * Hakikisha referral code ipo
+         */
+
+        let referralCode =
+            await hakikishaReferralCodeYaUser();
+
+
+        /*
+         * Kama account haikupatikana
+         */
+
         if (!data) {
 
-            area.innerHTML = `
-                <p>
-                    ⚠️ Taarifa za account hazikupatikana.
-                </p>
-            `;
+            data = {
 
-            return;
+                uid:
+                    user.uid,
+
+                email:
+                    user.email || "",
+
+                referralCode:
+                    referralCode || "",
+
+                referralLink:
+                    referralCode
+                        ? pataReferralLink(
+                            referralCode
+                        )
+                        : "",
+
+                referredBy:
+                    "",
+
+                totalCommission:
+                    0,
+
+                totalBookings:
+                    0
+
+            };
         }
 
 
-        const referralCode =
-            code ||
-            data.referralCode ||
-            "";
+        /*
+         * Tumia code mpya kama
+         * data ya zamani haina code.
+         */
+
+        if (!referralCode) {
+
+            referralCode =
+                data.referralCode || "";
+        }
 
 
         const referralLink =
             data.referralLink ||
-            pataReferralLink(
+            (
                 referralCode
+                    ? pataReferralLink(
+                        referralCode
+                    )
+                    : ""
             );
 
 
-        area.innerHTML = `
+        /*
+         * ACCOUNT UI
+         */
 
-            <h3>
-                🔗 Referral Yangu
-            </h3>
+        section.innerHTML = `
 
-            <p>
-                Kila mteja ana referral code yake.
-            </p>
+            <div class="booking-card">
 
-            <label>
-                <strong>Referral Code</strong>
-            </label>
-
-            <input
-                type="text"
-                value="${escapeHTML(referralCode)}"
-                readonly
-                id="myReferralCode"
-            >
+                <h2>
+                    👤 Account Yangu
+                </h2>
 
 
-            <label>
-                <strong>Referral Link</strong>
-            </label>
+                <p>
+                    <strong>Email:</strong>
+                </p>
 
-            <input
-                type="text"
-                value="${escapeHTML(referralLink)}"
-                readonly
-                id="myReferralLink"
-            >
-
-
-            <button
-                class="thibitishaBtn"
-                id="copyReferralBtn"
-            >
-                📋 Copy Referral Link
-            </button>
+                <p>
+                    ${escapeHTML(
+                        user.email || ""
+                    )}
+                </p>
 
 
-            <p
-                id="referralCopyMessage"
-                style="text-align:center;"
-            ></p>
+                <hr>
 
 
-            <hr>
+                <p>
+                    <strong>🆔 UID:</strong>
+                </p>
+
+                <p>
+                    <small>
+                        ${escapeHTML(
+                            user.uid
+                        )}
+                    </small>
+                </p>
 
 
-            <h3>
-                💰 Mfumo wa Commission
-            </h3>
+                <hr>
 
 
-            <p>
-                🥇 Level A:
-                <strong>5%</strong>
-            </p>
+                <h3>
+                    🔗 Referral Yangu
+                </h3>
 
-            <p>
-                🥈 Level B:
-                <strong>2%</strong>
-            </p>
 
-            <p>
-                🥉 Level C:
-                <strong>1%</strong>
-            </p>
+                <p>
+                    Referral Code yako:
+                </p>
+
+
+                <input
+                    type="text"
+                    id="myReferralCode"
+                    value="${escapeHTML(
+                        referralCode
+                    )}"
+                    readonly
+                >
+
+
+                <p>
+                    Referral Link yako:
+                </p>
+
+
+                <input
+                    type="text"
+                    id="myReferralLink"
+                    value="${escapeHTML(
+                        referralLink
+                    )}"
+                    readonly
+                >
+
+
+                <button
+                    class="thibitishaBtn"
+                    id="copyReferralBtn"
+                >
+                    📋 Copy Referral Link
+                </button>
+
+
+                <p
+                    id="referralCopyMessage"
+                    style="
+                        text-align:center;
+                        font-weight:bold;
+                    "
+                ></p>
+
+
+                <hr>
+
+
+                <h3>
+                    💰 Commission System
+                </h3>
+
+
+                <div>
+
+                    <p>
+                        🥇 Level A:
+                        <strong>
+                            5%
+                        </strong>
+                    </p>
+
+                    <p>
+                        🥈 Level B:
+                        <strong>
+                            2%
+                        </strong>
+                    </p>
+
+                    <p>
+                        🥉 Level C:
+                        <strong>
+                            1%
+                        </strong>
+                    </p>
+
+                </div>
+
+
+                <hr>
+
+
+                <h3>
+                    💵 Commission Yako
+                </h3>
+
+
+                <h2>
+                    TSh
+                    ${formatMoney(
+                        data.totalCommission || 0
+                    )}
+                </h2>
+
+
+                <p>
+                    📊 Total Bookings:
+                    <strong>
+                        ${data.totalBookings || 0}
+                    </strong>
+                </p>
+
+
+                <hr>
+
+
+                <button
+                    class="endeleaBtn"
+                    id="logoutAccountBtn"
+                >
+                    🚪 Toka kwenye Account
+                </button>
+
+            </div>
 
         `;
 
+
+        /*
+         * COPY BUTTON
+         */
 
         const copyButton =
             document.getElementById(
@@ -2259,62 +2413,68 @@ async function onyeshaReferralAccount() {
         if (copyButton) {
 
             copyButton.onclick =
-                async function () {
+                async function() {
 
                     await nakiliReferralLink(
                         referralLink
                     );
+
                 };
         }
 
 
-        const commissionArea =
+        /*
+         * LOGOUT BUTTON
+         */
+
+        const logoutButton =
             document.getElementById(
-                "accountCommissionArea"
+                "logoutAccountBtn"
             );
 
 
-        if (
-            commissionArea &&
-            data.totalCommission !== undefined
-        ) {
+        if (logoutButton) {
 
-            commissionArea.innerHTML = `
-
-                <p>
-                    💰 Commission Yako:
-                </p>
-
-                <h2>
-                    TSh
-                    ${formatMoney(
-                        data.totalCommission || 0
-                    )}
-                </h2>
-
-                <p>
-                    📊 Bookings:
-                    <strong>
-                        ${data.totalBookings || 0}
-                    </strong>
-                </p>
-
-            `;
+            logoutButton.onclick =
+                tokaRoomRent;
         }
+
 
     } catch (error) {
 
         console.error(
-            "Referral Account Error:",
+            "FUNGUA ACCOUNT ERROR:",
             error
         );
 
 
-        area.innerHTML = `
+        section.innerHTML = `
 
-            <p style="color:red;">
-                ❌ Imeshindikana kupakia referral.
-            </p>
+            <div class="booking-card">
+
+                <h2>
+                    👤 Account Yangu
+                </h2>
+
+                <p
+                    style="color:red;"
+                >
+                    ❌ Imeshindikana kupakia
+                    taarifa za Account.
+                </p>
+
+                <p>
+                    Tafadhali jaribu tena.
+                </p>
+
+                <button
+                    class="thibitishaBtn"
+                    onclick="funguaAccount()"
+                >
+                    🔄 Jaribu Tena
+                </button>
+
+            </div>
 
         `;
     }
@@ -2322,7 +2482,7 @@ async function onyeshaReferralAccount() {
 
 
 /* =========================================================
-   3.12 - COPY REFERRAL LINK
+   3.11 - COPY REFERRAL LINK
 ========================================================= */
 
 async function nakiliReferralLink(link) {
@@ -2331,6 +2491,22 @@ async function nakiliReferralLink(link) {
         document.getElementById(
             "referralCopyMessage"
         );
+
+
+    if (!link) {
+
+        if (message) {
+
+            message.style.color =
+                "red";
+
+            message.textContent =
+                "❌ Referral link haipo.";
+
+        }
+
+        return;
+    }
 
 
     try {
@@ -2347,12 +2523,15 @@ async function nakiliReferralLink(link) {
 
             message.textContent =
                 "✅ Referral link imenakiliwa.";
+
         }
 
 
     } catch (error) {
 
-        /* Fallback kwa baadhi ya Android browsers */
+        /*
+         * Fallback ya Android
+         */
 
         const input =
             document.getElementById(
@@ -2363,6 +2542,7 @@ async function nakiliReferralLink(link) {
         if (input) {
 
             input.focus();
+
             input.select();
 
 
@@ -2380,7 +2560,9 @@ async function nakiliReferralLink(link) {
 
                     message.textContent =
                         "✅ Referral link imenakiliwa.";
+
                 }
+
 
             } catch (copyError) {
 
@@ -2390,7 +2572,8 @@ async function nakiliReferralLink(link) {
                         "red";
 
                     message.textContent =
-                        "⚠️ Copy haikufanikiwa. Shikilia link uinakili.";
+                        "⚠️ Shikilia Referral Link kisha Copy.";
+
                 }
             }
         }
@@ -2399,46 +2582,198 @@ async function nakiliReferralLink(link) {
 
 
 /* =========================================================
-   3.13 - ESCAPE HTML
+   3.12 - HIFADHI REFERRAL YA MTUMIAJI MPYA
 ========================================================= */
 
-function escapeHTML(value) {
+async function hifadhiReferralMpya(uid) {
 
-    if (
-        value === null ||
-        value === undefined
-    ) {
+    if (!uid || !db) {
         return "";
     }
 
 
-    return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    try {
+
+        const userRef =
+            db
+                .collection("users")
+                .doc(uid);
+
+
+        const userSnap =
+            await userRef.get();
+
+
+        if (!userSnap.exists) {
+            return "";
+        }
+
+
+        const userData =
+            userSnap.data();
+
+
+        /*
+         * Kama tayari ana referredBy,
+         * usibadilishe.
+         */
+
+        if (
+            userData.referredBy
+        ) {
+
+            return userData.referredBy;
+        }
+
+
+        /*
+         * Pata referral kutoka URL
+         */
+
+        const referralCode =
+            pataReferralKutokaURL();
+
+
+        if (!referralCode) {
+
+            return "";
+        }
+
+
+        /*
+         * Zuia RRADMIN hapa haitahitaji
+         * user document.
+         */
+
+        if (
+            referralCode ===
+            ROOMRENT_SETTINGS
+                .adminReferralCode
+        ) {
+
+            await userRef.set(
+                {
+
+                    referredBy:
+                        referralCode,
+
+                    referralType:
+                        "admin",
+
+                    updatedAt:
+                        firebase.firestore
+                            .FieldValue
+                            .serverTimestamp()
+
+                },
+                {
+                    merge: true
+                }
+            );
+
+
+            return referralCode;
+        }
+
+
+        /*
+         * Tafuta user mwenye code hiyo
+         */
+
+        const snapshot =
+            await db
+                .collection("users")
+                .where(
+                    "referralCode",
+                    "==",
+                    referralCode
+                )
+                .limit(1)
+                .get();
+
+
+        if (snapshot.empty) {
+
+            console.log(
+                "Referral code haipo:",
+                referralCode
+            );
+
+            return "";
+        }
+
+
+        const referrer =
+            snapshot.docs[0];
+
+
+        /*
+         * Zuia self-referral
+         */
+
+        if (
+            referrer.id === uid
+        ) {
+
+            console.log(
+                "Self referral imezuiwa."
+            );
+
+            return "";
+        }
+
+
+        /*
+         * Hifadhi referral
+         */
+
+        await userRef.set(
+            {
+
+                referredBy:
+                    referralCode,
+
+                referredByUid:
+                    referrer.id,
+
+                referralType:
+                    "user",
+
+                updatedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
+
+            },
+            {
+                merge: true
+            }
+        );
+
+
+        console.log(
+            "Referral imehifadhiwa:",
+            referralCode
+        );
+
+
+        return referralCode;
+
+
+    } catch (error) {
+
+        console.error(
+            "HIFADHI REFERRAL ERROR:",
+            error
+        );
+
+        return "";
+    }
 }
 
 
 /* =========================================================
-   3.14 - FORMAT MONEY
-========================================================= */
-
-function formatMoney(amount) {
-
-    const number =
-        Number(amount) || 0;
-
-
-    return number.toLocaleString(
-        "en-US"
-    );
-}
-
-
-/* =========================================================
-   3.15 - PREPARE REFERRAL AFTER LOGIN
+   3.13 - ANDAA REFERRAL BAADA YA LOGIN
 ========================================================= */
 
 async function andaaReferralBaadaYaLogin() {
@@ -2455,15 +2790,14 @@ async function andaaReferralBaadaYaLogin() {
     try {
 
         /*
-         * Hakikisha ana referral code yake
+         * Kwanza hakikisha user ana code yake
          */
 
         await hakikishaReferralCodeYaUser();
 
 
         /*
-         * Hifadhi aliyemleta kama
-         * referral link ilitumika
+         * Kisha hifadhi aliyemleta
          */
 
         await hifadhiReferralMpya(
@@ -2474,7 +2808,7 @@ async function andaaReferralBaadaYaLogin() {
     } catch (error) {
 
         console.error(
-            "Referral initialization error:",
+            "ANDAA REFERRAL ERROR:",
             error
         );
     }
@@ -2482,105 +2816,12 @@ async function andaaReferralBaadaYaLogin() {
 
 
 /* =========================================================
-   3.16 - ON AUTH STATE CHANGED
-   UPDATE YA SEHEMU YA 2
-========================================================= */
-
-if (auth) {
-
-    auth.onAuthStateChanged(
-        async function(user) {
-
-            if (!user) {
-                return;
-            }
-
-
-            try {
-
-                /*
-                 * Hakikisha document ya user ipo
-                 */
-
-                if (db) {
-
-                    await db
-                        .collection("users")
-                        .doc(user.uid)
-                        .set(
-                            {
-                                uid: user.uid,
-
-                                email:
-                                    user.email || "",
-
-                                updatedAt:
-                                    firebase.firestore
-                                        .FieldValue
-                                        .serverTimestamp(),
-
-                                lastLogin:
-                                    firebase.firestore
-                                        .FieldValue
-                                        .serverTimestamp()
-                            },
-                            {
-                                merge: true
-                            }
-                        );
-                }
-
-
-                /*
-                 * Anzisha referral
-                 */
-
-                await andaaReferralBaadaYaLogin();
-
-
-                console.log(
-                    "RoomRent user:",
-                    user.email
-                );
-
-
-            } catch (error) {
-
-                console.error(
-                    "Auth state error:",
-                    error
-                );
-            }
-
-        }
-    );
-}
-
-
-/* =========================================================
-   3.17 - REFERRAL URL CHECK
+   3.14 - ACCOUNT BUTTON
 ========================================================= */
 
 document.addEventListener(
     "DOMContentLoaded",
     function() {
-
-        const referral =
-            pataReferralKutokaURL();
-
-
-        if (referral) {
-
-            console.log(
-                "Referral code imeonekana:",
-                referral
-            );
-        }
-
-
-        /*
-         * Account button
-         */
 
         const accountButton =
             document.getElementById(
@@ -2590,8 +2831,17 @@ document.addEventListener(
 
         if (accountButton) {
 
+            /*
+             * Ondoa event ya zamani
+             * kama ipo.
+             */
+
             accountButton.onclick =
-                funguaAccount;
+                function() {
+
+                    funguaAccount();
+
+                };
         }
 
     }
@@ -2599,5 +2849,6 @@ document.addEventListener(
 
 
 /* =========================================================
-   MWISHO WA SEHEMU YA 3
+   3.15 - MWISHO WA SEHEMU YA 3
 ========================================================= */
+

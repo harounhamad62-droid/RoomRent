@@ -3900,68 +3900,115 @@ function fungaAdminLogin() {
 
 }
 
-
 /* =========================================================
    40. ADMIN LOGIN
 ========================================================= */
 
-function adminLogin() {
-
-    const username =
-        getElement(
-            "adminUsername"
-        );
-
-    const password =
-        getElement(
-            "adminPassword"
-        );
+async function adminLogin() {
 
     const message =
-        getElement(
-            "adminLoginMessage"
+        getElement("adminLoginMessage");
+
+    try {
+
+        const user =
+            getCurrentUser();
+
+        /* ================================================
+           CHECK LOGIN
+        ================================================ */
+
+        if (!user) {
+
+            if (message) {
+
+                message.style.display = "block";
+                message.style.color = "red";
+
+                message.textContent =
+                    "❌ Tafadhali ingia RoomRent kwanza.";
+            }
+
+            return;
+        }
+
+
+        /* ================================================
+           CHECK ADMIN EMAIL
+        ================================================ */
+
+        const adminEmail =
+            "harounhamad62@gmail.com";
+
+        const userEmail =
+            (user.email || "").toLowerCase().trim();
+
+
+        if (userEmail !== adminEmail) {
+
+            if (message) {
+
+                message.style.display = "block";
+                message.style.color = "red";
+
+                message.textContent =
+                    "❌ Account hii haina ruhusa ya Admin.";
+            }
+
+            return;
+        }
+
+
+        /* ================================================
+           ADMIN VERIFIED
+        ================================================ */
+
+        console.log(
+            "✅ ADMIN VERIFIED:",
+            userEmail
         );
 
-    if (!username ||
-        !password) {
 
-        return;
+        if (message) {
+
+            message.style.display = "block";
+            message.style.color = "green";
+
+            message.textContent =
+                "✅ Admin imethibitishwa. Inafungua Dashboard...";
+        }
+
+
+        /* ================================================
+           CLOSE LOGIN MODAL
+        ================================================ */
+
+        setTimeout(() => {
+
+            fungaAdminLogin();
+
+            funguaAdminDashboard();
+
+        }, 500);
+
+
+    } catch (error) {
+
+        console.error(
+            "ADMIN LOGIN ERROR:",
+            error
+        );
+
+        if (message) {
+
+            message.style.display = "block";
+            message.style.color = "red";
+
+            message.textContent =
+                "❌ Imeshindikana kuthibitisha Admin.";
+        }
 
     }
-
-    const user =
-        username.value.trim();
-
-    const pass =
-        password.value.trim();
-
-    /*
-     * Hapa bado hatujaweka
-     * mfumo wa admin authentication
-     * wa Firestore.
-     *
-     * Hatutumii admin password
-     * ya siri kwenye frontend.
-     */
-
-    if (message) {
-
-        message.style.display =
-            "block";
-
-        message.style.color =
-            "red";
-
-        message.textContent =
-            "⚠️ Admin authentication itaunganishwa kwenye mfumo wa Admin Firebase.";
-
-    }
-
-    console.log(
-        "Admin login attempt:",
-        user,
-        pass ? "Password imewekwa" : "Password haijawekwa"
-    );
 
 }
 

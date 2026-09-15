@@ -4221,3 +4221,893 @@ document.addEventListener(
 console.log(
     "🔥🔥 ROOMRENT SCRIPT NZIMA IMELOADED."
 );
+/* =========================================================
+   41. ADMIN DASHBOARD
+========================================================= */
+
+async function funguaAdminDashboard() {
+
+    const user = getCurrentUser();
+
+    if (!user) {
+        alert("❌ Tafadhali ingia kwanza.");
+        return;
+    }
+
+    const adminEmail =
+        "harounhamad62@gmail.com";
+
+    if (
+        (user.email || "").toLowerCase().trim()
+        !== adminEmail
+    ) {
+        alert("❌ Huna ruhusa ya Admin.");
+        return;
+    }
+
+    let dashboard =
+        getElement("adminDashboard");
+
+    if (!dashboard) {
+
+        dashboard =
+            document.createElement("section");
+
+        dashboard.id =
+            "adminDashboard";
+
+        dashboard.style.padding =
+            "20px";
+
+        dashboard.style.background =
+            "#f5f5f5";
+
+        document.querySelector("main")
+            .appendChild(dashboard);
+    }
+
+    dashboard.style.display =
+        "block";
+
+    dashboard.innerHTML = `
+        <div class="booking-card">
+
+            <h2>🔐 RoomRent Admin</h2>
+
+            <p>
+                👤 Admin:
+                <strong>${adminEmail}</strong>
+            </p>
+
+            <hr>
+
+            <h3>📋 Bookings</h3>
+
+            <div id="adminBookingsList">
+                ⏳ Inapakia bookings...
+            </div>
+
+            <br>
+
+            <button
+                onclick="fungaAdminDashboard()"
+                class="endeleaBtn">
+                ❌ Funga Admin
+            </button>
+
+        </div>
+    `;
+
+    await pakiaAdminBookings();
+}
+
+
+/* =========================================================
+   42. LOAD ADMIN BOOKINGS
+========================================================= */
+
+async function pakiaAdminBookings() {
+
+    const container =
+        getElement("adminBookingsList");
+
+    if (!container) return;
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("bookings")
+                .orderBy(
+                    "createdAt",
+                    "desc"
+                )
+                .get();
+
+        if (snapshot.empty) {
+
+            container.innerHTML = `
+                <p>
+                    📭 Hakuna booking bado.
+                </p>
+            `;
+
+            return;
+        }
+
+        let html = "";
+
+        snapshot.forEach(doc => {
+
+            const booking =
+                doc.data();
+
+            const status =
+                booking.status ||
+                "Waiting Confirmation";
+
+            const paymentStatus =
+                booking.paymentStatus ||
+                "Waiting Confirmation";
+
+            html += `
+
+                <div
+                    class="booking-card"
+                    style="
+                        background:white;
+                        margin-bottom:15px;
+                        padding:15px;
+                        border-radius:10px;
+                    "
+                >
+
+                    <h3>
+                        🏠 Booking
+                        ${booking.bookingNumber || doc.id}
+                    </h3>
+
+                    <p>
+                        👤 <strong>Mteja:</strong>
+                        ${booking.customerName || "-"}
+                    </p>
+
+                    <p>
+                        📱 <strong>Simu:</strong>
+                        ${booking.customerPhone || "-"}
+                    </p>
+
+                    <p>
+                        🏠 <strong>Chumba:</strong>
+                        ${booking.roomNumber || "-"}
+                    </p>
+
+                    <p>
+                        💰 <strong>Kiasi:</strong>
+                        TSh ${formatMoney(
+                            booking.roomPrice || 0
+                        )}
+                    </p>
+
+                    <p>
+                        📲 <strong>Njia ya malipo:</strong>
+                        ${booking.paymentMethod || "-"}
+                    </p>
+
+                    <p>
+                        📞 <strong>Namba iliyotumika kulipia:</strong>
+                        ${booking.paymentPhone || "Haijawekwa"}
+                    </p>
+
+                    <p>
+                        💳 <strong>Payment Status:</strong>
+                        ${paymentStatus}
+                    </p>
+
+                    <p>
+                        📋 <strong>Booking Status:</strong>
+                        ${status}
+                    </p>
+
+                    <hr>
+
+                    ${
+                        status ===
+                        "Waiting Confirmation"
+                        ?
+                        `
+                        <button
+                            onclick="adminConfirmBooking('${doc.id}')"
+                            style="margin:5px;"
+                        >
+                            ✅ Confirm Payment
+                        </button>
+
+                        <button
+                            onclick="adminRejectBooking('${doc.id}')"
+                            style="margin:5px;"
+                        >
+                            ❌ Reject Payment
+                        </button>
+                        `
+                        :
+                        `
+                        <p>
+                            ℹ️ Booking hii tayari
+                            imefanyiwa uamuzi.
+                        </p>
+                        `
+                    }
+
+                </div>
+            `;
+        });
+
+        container.innerHTML =
+            html;
+
+    } catch (error) {
+
+        console.error(
+            "ADMIN BOOKINGS ERROR:",
+            error
+        );
+
+        container.innerHTML = `
+            <p style="color:red;">
+                ❌ Imeshindikana kupakia bookings.
+                <br>
+                ${error.message}
+            </p>
+        `;
+    }
+}
+
+
+/* =========================================================
+   43. ADMIN CONFIRM BOOKING
+========================================================= */
+
+async function adminConfirmBooking(
+    bookingId
+) {
+
+    const user =
+        getCurrentUser();
+
+    if (!user) {
+
+        alert(
+            "❌ Tafadhali ingia kwanza."
+        );
+
+        return;
+    }
+
+    if (
+        (user.email || "").toLowerCase().trim()
+        !== "harounhamad62@gmail.com"
+    ) {
+
+        alert(
+            "❌ Huna ruhusa ya Admin."
+        );
+
+        return;
+    }
+
+    const thibitisha =
+        confirm(
+            "Unataka kuthibitisha malipo ya booking hii?"
+        );
+
+    if (!thibitisha) return;
+
+    try {
+
+        await db
+            .collection("bookings")
+            .doc(bookingId)
+            .update({
+
+                status:
+                    "Confirmed",
+
+                paymentStatus:
+                    "Confirmed",
+
+                commissionStatus:
+                    "Pending",
+
+                referralCommissionStatus:
+                    "Pending",
+
+                confirmedBy:
+                    user.uid,
+
+                confirmedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp(),
+
+                updatedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
+            });
+
+        alert(
+            "✅ Payment imethibitishwa."
+        );
+
+        await pakiaAdminBookings();
+
+    } catch (error) {
+
+        console.error(
+            "CONFIRM ERROR:",
+            error
+        );
+
+        alert(
+            "❌ Imeshindikana kuthibitisha: "
+            + error.message
+        );
+    }
+}
+
+
+/* =========================================================
+   44. ADMIN REJECT BOOKING
+========================================================= */
+
+async function adminRejectBooking(
+    bookingId
+) {
+
+    const user =
+        getCurrentUser();
+
+    if (!user) {
+
+        alert(
+            "❌ Tafadhali ingia kwanza."
+        );
+
+        return;
+    }
+
+    if (
+        (user.email || "").toLowerCase().trim()
+        !== "harounhamad62@gmail.com"
+    ) {
+
+        alert(
+            "❌ Huna ruhusa ya Admin."
+        );
+
+        return;
+    }
+
+    const thibitisha =
+        confirm(
+            "Unataka kukataa payment ya booking hii?"
+        );
+
+    if (!thibitisha) return;
+
+    try {
+
+        await db
+            .collection("bookings")
+            .doc(bookingId)
+            .update({
+
+                status:
+                    "Rejected",
+
+                paymentStatus:
+                    "Rejected",
+
+                commissionStatus:
+                    "Rejected",
+
+                referralCommissionStatus:
+                    "Rejected",
+
+                rejectedBy:
+                    user.uid,
+
+                rejectedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp(),
+
+                updatedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
+            });
+
+        alert(
+            "❌ Payment imekataliwa."
+        );
+
+        await pakiaAdminBookings();
+
+    } catch (error) {
+
+        console.error(
+            "REJECT ERROR:",
+            error
+        );
+
+        alert(
+            "❌ Imeshindikana kukataa: "
+            + error.message
+        );
+    }
+}
+
+
+/* =========================================================
+   45. CLOSE ADMIN DASHBOARD
+========================================================= */
+
+function fungaAdminDashboard() {
+
+    const dashboard =
+        getElement(
+            "adminDashboard"
+        );
+
+    if (!dashboard) return;
+
+    dashboard.style.display =
+        "none";
+                           }/* =========================================================
+   41. ADMIN DASHBOARD
+========================================================= */
+
+async function funguaAdminDashboard() {
+
+    const user = getCurrentUser();
+
+    if (!user) {
+        alert("❌ Tafadhali ingia kwanza.");
+        return;
+    }
+
+    const adminEmail =
+        "harounhamad62@gmail.com";
+
+    if (
+        (user.email || "").toLowerCase().trim()
+        !== adminEmail
+    ) {
+        alert("❌ Huna ruhusa ya Admin.");
+        return;
+    }
+
+    let dashboard =
+        getElement("adminDashboard");
+
+    if (!dashboard) {
+
+        dashboard =
+            document.createElement("section");
+
+        dashboard.id =
+            "adminDashboard";
+
+        dashboard.style.padding =
+            "20px";
+
+        dashboard.style.background =
+            "#f5f5f5";
+
+        document.querySelector("main")
+            .appendChild(dashboard);
+    }
+
+    dashboard.style.display =
+        "block";
+
+    dashboard.innerHTML = `
+        <div class="booking-card">
+
+            <h2>🔐 RoomRent Admin</h2>
+
+            <p>
+                👤 Admin:
+                <strong>${adminEmail}</strong>
+            </p>
+
+            <hr>
+
+            <h3>📋 Bookings</h3>
+
+            <div id="adminBookingsList">
+                ⏳ Inapakia bookings...
+            </div>
+
+            <br>
+
+            <button
+                onclick="fungaAdminDashboard()"
+                class="endeleaBtn">
+                ❌ Funga Admin
+            </button>
+
+        </div>
+    `;
+
+    await pakiaAdminBookings();
+}
+
+
+/* =========================================================
+   42. LOAD ADMIN BOOKINGS
+========================================================= */
+
+async function pakiaAdminBookings() {
+
+    const container =
+        getElement("adminBookingsList");
+
+    if (!container) return;
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("bookings")
+                .orderBy(
+                    "createdAt",
+                    "desc"
+                )
+                .get();
+
+        if (snapshot.empty) {
+
+            container.innerHTML = `
+                <p>
+                    📭 Hakuna booking bado.
+                </p>
+            `;
+
+            return;
+        }
+
+        let html = "";
+
+        snapshot.forEach(doc => {
+
+            const booking =
+                doc.data();
+
+            const status =
+                booking.status ||
+                "Waiting Confirmation";
+
+            const paymentStatus =
+                booking.paymentStatus ||
+                "Waiting Confirmation";
+
+            html += `
+
+                <div
+                    class="booking-card"
+                    style="
+                        background:white;
+                        margin-bottom:15px;
+                        padding:15px;
+                        border-radius:10px;
+                    "
+                >
+
+                    <h3>
+                        🏠 Booking
+                        ${booking.bookingNumber || doc.id}
+                    </h3>
+
+                    <p>
+                        👤 <strong>Mteja:</strong>
+                        ${booking.customerName || "-"}
+                    </p>
+
+                    <p>
+                        📱 <strong>Simu:</strong>
+                        ${booking.customerPhone || "-"}
+                    </p>
+
+                    <p>
+                        🏠 <strong>Chumba:</strong>
+                        ${booking.roomNumber || "-"}
+                    </p>
+
+                    <p>
+                        💰 <strong>Kiasi:</strong>
+                        TSh ${formatMoney(
+                            booking.roomPrice || 0
+                        )}
+                    </p>
+
+                    <p>
+                        📲 <strong>Njia ya malipo:</strong>
+                        ${booking.paymentMethod || "-"}
+                    </p>
+
+                    <p>
+                        📞 <strong>Namba iliyotumika kulipia:</strong>
+                        ${booking.paymentPhone || "Haijawekwa"}
+                    </p>
+
+                    <p>
+                        💳 <strong>Payment Status:</strong>
+                        ${paymentStatus}
+                    </p>
+
+                    <p>
+                        📋 <strong>Booking Status:</strong>
+                        ${status}
+                    </p>
+
+                    <hr>
+
+                    ${
+                        status ===
+                        "Waiting Confirmation"
+                        ?
+                        `
+                        <button
+                            onclick="adminConfirmBooking('${doc.id}')"
+                            style="margin:5px;"
+                        >
+                            ✅ Confirm Payment
+                        </button>
+
+                        <button
+                            onclick="adminRejectBooking('${doc.id}')"
+                            style="margin:5px;"
+                        >
+                            ❌ Reject Payment
+                        </button>
+                        `
+                        :
+                        `
+                        <p>
+                            ℹ️ Booking hii tayari
+                            imefanyiwa uamuzi.
+                        </p>
+                        `
+                    }
+
+                </div>
+            `;
+        });
+
+        container.innerHTML =
+            html;
+
+    } catch (error) {
+
+        console.error(
+            "ADMIN BOOKINGS ERROR:",
+            error
+        );
+
+        container.innerHTML = `
+            <p style="color:red;">
+                ❌ Imeshindikana kupakia bookings.
+                <br>
+                ${error.message}
+            </p>
+        `;
+    }
+}
+
+
+/* =========================================================
+   43. ADMIN CONFIRM BOOKING
+========================================================= */
+
+async function adminConfirmBooking(
+    bookingId
+) {
+
+    const user =
+        getCurrentUser();
+
+    if (!user) {
+
+        alert(
+            "❌ Tafadhali ingia kwanza."
+        );
+
+        return;
+    }
+
+    if (
+        (user.email || "").toLowerCase().trim()
+        !== "harounhamad62@gmail.com"
+    ) {
+
+        alert(
+            "❌ Huna ruhusa ya Admin."
+        );
+
+        return;
+    }
+
+    const thibitisha =
+        confirm(
+            "Unataka kuthibitisha malipo ya booking hii?"
+        );
+
+    if (!thibitisha) return;
+
+    try {
+
+        await db
+            .collection("bookings")
+            .doc(bookingId)
+            .update({
+
+                status:
+                    "Confirmed",
+
+                paymentStatus:
+                    "Confirmed",
+
+                commissionStatus:
+                    "Pending",
+
+                referralCommissionStatus:
+                    "Pending",
+
+                confirmedBy:
+                    user.uid,
+
+                confirmedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp(),
+
+                updatedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
+            });
+
+        alert(
+            "✅ Payment imethibitishwa."
+        );
+
+        await pakiaAdminBookings();
+
+    } catch (error) {
+
+        console.error(
+            "CONFIRM ERROR:",
+            error
+        );
+
+        alert(
+            "❌ Imeshindikana kuthibitisha: "
+            + error.message
+        );
+    }
+}
+
+
+/* =========================================================
+   44. ADMIN REJECT BOOKING
+========================================================= */
+
+async function adminRejectBooking(
+    bookingId
+) {
+
+    const user =
+        getCurrentUser();
+
+    if (!user) {
+
+        alert(
+            "❌ Tafadhali ingia kwanza."
+        );
+
+        return;
+    }
+
+    if (
+        (user.email || "").toLowerCase().trim()
+        !== "harounhamad62@gmail.com"
+    ) {
+
+        alert(
+            "❌ Huna ruhusa ya Admin."
+        );
+
+        return;
+    }
+
+    const thibitisha =
+        confirm(
+            "Unataka kukataa payment ya booking hii?"
+        );
+
+    if (!thibitisha) return;
+
+    try {
+
+        await db
+            .collection("bookings")
+            .doc(bookingId)
+            .update({
+
+                status:
+                    "Rejected",
+
+                paymentStatus:
+                    "Rejected",
+
+                commissionStatus:
+                    "Rejected",
+
+                referralCommissionStatus:
+                    "Rejected",
+
+                rejectedBy:
+                    user.uid,
+
+                rejectedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp(),
+
+                updatedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
+            });
+
+        alert(
+            "❌ Payment imekataliwa."
+        );
+
+        await pakiaAdminBookings();
+
+    } catch (error) {
+
+        console.error(
+            "REJECT ERROR:",
+            error
+        );
+
+        alert(
+            "❌ Imeshindikana kukataa: "
+            + error.message
+        );
+    }
+}
+
+
+/* =========================================================
+   45. CLOSE ADMIN DASHBOARD
+========================================================= */
+
+function fungaAdminDashboard() {
+
+    const dashboard =
+        getElement(
+            "adminDashboard"
+        );
+
+    if (!dashboard) return;
+
+    dashboard.style.display =
+        "none";
+}
+

@@ -1520,72 +1520,50 @@ function onyeshaBookingMessage(
 
 }
 
-
 /* =========================================================
    27. CREATE BOOKING
 ========================================================= */
 
-async function tengenezaBooking(
-    roomNumber
-) {
+async function tengenezaBooking(roomNumber) {
 
-    const user =
-        getCurrentUser();
+    console.log("🚀 tengenezaBooking imeanza:", roomNumber);
+
+    const user = getCurrentUser();
 
     if (!user) {
 
-        alert(
-            "Tafadhali ingia kwanza."
-        );
+        alert("Tafadhali ingia kwanza.");
 
         return;
-
     }
 
     if (!db) {
 
-        alert(
-            "❌ Firestore haijaunganishwa."
-        );
+        alert("❌ Firestore haijaunganishwa.");
 
         return;
-
     }
 
-    const room =
-        pataChumba(
-            roomNumber
-        );
+    const room = pataChumba(roomNumber);
 
     if (!room) {
 
-        alert(
-            "❌ Chumba hakikupatikana."
-        );
+        alert("❌ Chumba hakikupatikana.");
 
         return;
-
     }
 
     const nameInput =
-        getElement(
-            "bookingName"
-        );
+        getElement("bookingName");
 
     const phoneInput =
-        getElement(
-            "bookingPhone"
-        );
+        getElement("bookingPhone");
 
     const paymentInput =
-        getElement(
-            "paymentMethod"
-        );
+        getElement("paymentMethod");
 
     const submitButton =
-        getElement(
-            "submitBookingBtn"
-        );
+        getElement("submitBookingBtn");
 
     const name =
         nameInput
@@ -1599,8 +1577,19 @@ async function tengenezaBooking(
 
     const paymentMethod =
         paymentInput
-            ? paymentInput.value
+            ? paymentInput.value.trim()
             : "";
+
+    console.log("BOOKING DATA:", {
+        name: name,
+        phone: phone,
+        paymentMethod: paymentMethod,
+        room: room
+    });
+
+    /* =====================================================
+       VALIDATION
+    ===================================================== */
 
     if (!name) {
 
@@ -1609,7 +1598,6 @@ async function tengenezaBooking(
         );
 
         return;
-
     }
 
     if (!phone) {
@@ -1619,7 +1607,6 @@ async function tengenezaBooking(
         );
 
         return;
-
     }
 
     if (phone.length < 9) {
@@ -1629,7 +1616,6 @@ async function tengenezaBooking(
         );
 
         return;
-
     }
 
     if (!paymentMethod) {
@@ -1639,13 +1625,56 @@ async function tengenezaBooking(
         );
 
         return;
-
     }
+
+    /* =====================================================
+       PAYMENT METHOD
+    ===================================================== */
+
+    const paymentSettings =
+        ROOMRENT_SETTINGS &&
+        ROOMRENT_SETTINGS.paymentMethods
+            ? ROOMRENT_SETTINGS.paymentMethods
+            : null;
+
+    if (!paymentSettings) {
+
+        console.error(
+            "ROOMRENT_SETTINGS.paymentMethods haipo."
+        );
+
+        onyeshaBookingMessage(
+            "❌ Mfumo wa malipo haujapatikana."
+        );
+
+        return;
+    }
+
+    const payment =
+        paymentSettings[paymentMethod];
+
+    if (!payment) {
+
+        console.error(
+            "Payment method haijapatikana:",
+            paymentMethod,
+            paymentSettings
+        );
+
+        onyeshaBookingMessage(
+            "❌ Njia ya malipo haijapatikana. Tafadhali chagua tena."
+        );
+
+        return;
+    }
+
+    /* =====================================================
+       DISABLE BUTTON
+    ===================================================== */
 
     if (submitButton) {
 
-        submitButton.disabled =
-            true;
+        submitButton.disabled = true;
 
         submitButton.textContent =
             "⏳ Inahifadhi Booking...";
@@ -1654,14 +1683,29 @@ async function tengenezaBooking(
 
     try {
 
+        /* =================================================
+           GENERATE BOOKING NUMBER
+        ================================================= */
+
         const bookingNumber =
             generateBookingNumber();
 
-        const payment =
-            ROOMRENT_SETTINGS
-                .paymentMethods[
-                    paymentMethod
-                ];
+        if (!bookingNumber) {
+
+            throw new Error(
+                "Booking number haijatengenezwa."
+            );
+
+        }
+
+        console.log(
+            "📋 Booking Number:",
+            bookingNumber
+        );
+
+        /* =================================================
+           BOOKING DATA
+        ================================================= */
 
         const bookingData = {
 
@@ -1684,26 +1728,30 @@ async function tengenezaBooking(
                 room.roomNumber,
 
             roomPrice:
-                room.price,
+                Number(room.price) || 0,
 
             profitPerDay:
-                room.profitPerDay,
+                Number(room.profitPerDay) || 0,
 
             durationDays:
-                room.durationDays,
+                Number(room.durationDays) || 40,
 
             totalProfit:
-                room.profitPerDay *
-                room.durationDays,
+                (
+                    Number(room.profitPerDay) || 0
+                ) *
+                (
+                    Number(room.durationDays) || 40
+                ),
 
             paymentMethod:
-                payment.name,
+                payment.name || paymentMethod,
 
             paymentReceiver:
-                payment.phone,
+                payment.phone || "",
 
             paymentOwner:
-                payment.owner,
+                payment.owner || "",
 
             paymentPhone:
                 "",
@@ -1721,28 +1769,35 @@ async function tengenezaBooking(
                 "Pending",
 
             createdAt:
-                firebase.firestore
-                    .FieldValue
-                    .serverTimestamp(),
+                firebase.firestore.FieldValue.serverTimestamp(),
 
             updatedAt:
-                firebase.firestore
-                    .FieldValue
-                    .serverTimestamp()
+                firebase.firestore.FieldValue.serverTimestamp()
 
         };
+
+        console.log(
+            "📦 Booking inayotumwa Firestore:",
+            bookingData
+        );
+
+        /* =================================================
+           SAVE TO FIRESTORE
+        ================================================= */
 
         await db
             .collection("bookings")
             .doc(bookingNumber)
-            .set(
-                bookingData
-            );
+            .set(bookingData);
 
         console.log(
-            "✅ Booking imehifadhiwa:",
+            "✅ FIRESTORE: Booking imehifadhiwa:",
             bookingNumber
         );
+
+        /* =================================================
+           SHOW PAYMENT REQUEST
+        ================================================= */
 
         onyeshaPaymentRequest(
             bookingData
@@ -1751,12 +1806,51 @@ async function tengenezaBooking(
     } catch (error) {
 
         console.error(
-            "BOOKING ERROR:",
+            "❌ BOOKING ERROR:",
             error
         );
 
+        console.error(
+            "❌ ERROR CODE:",
+            error.code
+        );
+
+        console.error(
+            "❌ ERROR MESSAGE:",
+            error.message
+        );
+
+        let ujumbe =
+            "❌ Imeshindikana kuhifadhi booking.";
+
+        if (error.code === "permission-denied") {
+
+            ujumbe =
+                "❌ Firestore imekataa kuhifadhi booking. Tatizo liko kwenye Firestore Rules.";
+
+        } else if (
+            error.code === "failed-precondition"
+        ) {
+
+            ujumbe =
+                "❌ Firestore bado haijaandaliwa vizuri.";
+
+        } else if (
+            error.code === "unavailable"
+        ) {
+
+            ujumbe =
+                "❌ Hakuna muunganisho mzuri wa Firestore. Angalia Internet.";
+
+        } else if (error.message) {
+
+            ujumbe +=
+                " " + error.message;
+
+        }
+
         onyeshaBookingMessage(
-            "❌ Imeshindikana kuhifadhi booking. Jaribu tena."
+            ujumbe
         );
 
         if (submitButton) {

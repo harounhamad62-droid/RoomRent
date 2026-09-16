@@ -4026,7 +4026,7 @@ async function adminLogin() {
             "✅ ADMIN VERIFIED:",
             userEmail
         );
-
+await wekaAdminReferralLink();
 
         if (message) {
 

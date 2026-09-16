@@ -515,7 +515,684 @@ function simamishaMainWallet() {
     }
 
         }
+/* =========================================================
+   WITHDRAWAL - CUSTOMER
+   ========================================================= */
 
+async function funguaWithdrawal() {
+
+    const user = getCurrentUser();
+
+    if (!user) {
+        alert("Tafadhali ingia kwenye account kwanza.");
+        return;
+    }
+
+    const section = getElement("withdrawalSection");
+
+    if (!section) {
+        console.error("❌ #withdrawalSection haipo kwenye HTML.");
+        return;
+    }
+
+    /* FICHA SEHEMU NYENGINE */
+    hideSection("vyumba");
+    hideSection("fomuKodi");
+    hideSection("taarifaSection");
+
+    section.style.display = "block";
+
+    section.innerHTML = `
+        <div class="booking-card">
+
+            <h2>💸 Toa Pesa</h2>
+
+            <div id="withdrawalWalletInfo">
+                <p>⏳ Inapakia Salio Kuu...</p>
+            </div>
+
+            <hr>
+
+            <label for="withdrawalAmount">
+                💰 Kiasi cha kutoa
+            </label>
+
+            <input
+                type="number"
+                id="withdrawalAmount"
+                placeholder="Mfano: 10000"
+                min="1"
+                step="1"
+            >
+
+            <br><br>
+
+            <label for="withdrawalMethod">
+                📱 Njia ya kupokea pesa
+            </label>
+
+            <select id="withdrawalMethod">
+
+                <option value="">
+                    -- Chagua njia --
+                </option>
+
+                <option value="MIXX BY YAS">
+                    MIXX BY YAS
+                </option>
+
+                <option value="Airtel Money">
+                    Airtel Money
+                </option>
+
+            </select>
+
+            <br><br>
+
+            <label for="withdrawalPhone">
+                📞 Namba ya simu
+            </label>
+
+            <input
+                type="tel"
+                id="withdrawalPhone"
+                placeholder="Mfano: 0651234567"
+                maxlength="10"
+            >
+
+            <br><br>
+
+            <button
+                id="submitWithdrawalBtn"
+                type="button"
+                onclick="tumaWithdrawal()"
+            >
+                💸 Tuma Ombi la Kutoa Pesa
+            </button>
+
+            <div id="withdrawalMessage"
+                 style="margin-top:15px;">
+            </div>
+
+        </div>
+
+        <div
+            class="booking-card"
+            id="withdrawalHistory"
+            style="margin-top:20px;"
+        >
+            <h3>📋 Historia ya Withdrawal</h3>
+            <p>⏳ Inapakia...</p>
+        </div>
+    `;
+
+    await pakiaWithdrawalData();
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
+
+
+/* =========================================================
+   PAKIA SALIO + HISTORIA
+========================================================= */
+
+async function pakiaWithdrawalData() {
+
+    const user = getCurrentUser();
+
+    if (!user || !db) return;
+
+    try {
+
+        const walletRef =
+            db.collection("wallets").doc(user.uid);
+
+        const walletSnap =
+            await walletRef.get();
+
+        let wallet = {
+            balance: 0,
+            totalWithdrawn: 0,
+            pendingWithdrawal: 0
+        };
+
+        if (walletSnap.exists) {
+            wallet = walletSnap.data();
+        }
+
+        const balance =
+            Number(wallet.balance || 0);
+
+        const totalWithdrawn =
+            Number(wallet.totalWithdrawn || 0);
+
+        const pendingWithdrawal =
+            Number(wallet.pendingWithdrawal || 0);
+
+        const info =
+            getElement("withdrawalWalletInfo");
+
+        if (info) {
+
+            info.innerHTML = `
+                <div style="
+                    padding:15px;
+                    border-radius:10px;
+                    background:#f5f5f5;
+                ">
+
+                    <h3>💰 Salio Kuu</h3>
+
+                    <h2>
+                        TSh ${formatMoney(balance)}
+                    </h2>
+
+                    <p>
+                        💸 Jumla iliyotolewa:
+                        <strong>
+                            TSh ${formatMoney(totalWithdrawn)}
+                        </strong>
+                    </p>
+
+                    <p>
+                        ⏳ Withdrawal inayosubiri:
+                        <strong>
+                            TSh ${formatMoney(pendingWithdrawal)}
+                        </strong>
+                    </p>
+
+                </div>
+            `;
+        }
+
+        await pakiaHistoriaWithdrawal();
+
+    } catch (error) {
+
+        console.error(
+            "❌ Withdrawal data error:",
+            error
+        );
+
+        const info =
+            getElement("withdrawalWalletInfo");
+
+        if (info) {
+
+            info.innerHTML = `
+                <p style="color:red;">
+                    Imeshindikana kupakia Salio Kuu.
+                </p>
+            `;
+        }
+    }
+}
+
+
+/* =========================================================
+   TUMA WITHDRAWAL
+========================================================= */
+
+async function tumaWithdrawal() {
+
+    const user = getCurrentUser();
+
+    if (!user || !db) {
+        alert("Tafadhali ingia kwanza.");
+        return;
+    }
+
+    const amountInput =
+        getElement("withdrawalAmount");
+
+    const methodInput =
+        getElement("withdrawalMethod");
+
+    const phoneInput =
+        getElement("withdrawalPhone");
+
+    const message =
+        getElement("withdrawalMessage");
+
+    const button =
+        getElement("submitWithdrawalBtn");
+
+
+    const amount =
+        Number(amountInput?.value || 0);
+
+    const method =
+        methodInput?.value || "";
+
+    const phone =
+        (phoneInput?.value || "").trim();
+
+
+    if (amount <= 0) {
+
+        if (message) {
+            message.innerHTML =
+                `<p style="color:red;">
+                    Tafadhali weka kiasi sahihi.
+                </p>`;
+        }
+
+        return;
+    }
+
+
+    if (!method) {
+
+        if (message) {
+            message.innerHTML =
+                `<p style="color:red;">
+                    Tafadhali chagua njia ya malipo.
+                </p>`;
+        }
+
+        return;
+    }
+
+
+    if (!/^[0-9]{10}$/.test(phone)) {
+
+        if (message) {
+            message.innerHTML =
+                `<p style="color:red;">
+                    Tafadhali weka namba ya simu yenye tarakimu 10.
+                </p>`;
+        }
+
+        return;
+    }
+
+
+    try {
+
+        if (button) {
+            button.disabled = true;
+            button.textContent =
+                "⏳ Inatuma ombi...";
+        }
+
+
+        /*
+         * READ WALLET
+         *
+         * Muhimu:
+         * HATUPUNGUZI SALIO HAPA.
+         * Admin ndiye atakayeshughulikia
+         * uthibitisho baadaye.
+         */
+
+        const walletRef =
+            db.collection("wallets").doc(user.uid);
+
+        const walletSnap =
+            await walletRef.get();
+
+        if (!walletSnap.exists) {
+            throw new Error(
+                "Wallet haijapatikana."
+            );
+        }
+
+        const wallet =
+            walletSnap.data();
+
+        const balance =
+            Number(wallet.balance || 0);
+
+        const pendingWithdrawal =
+            Number(wallet.pendingWithdrawal || 0);
+
+        const availableBalance =
+            balance - pendingWithdrawal;
+
+
+        if (amount > availableBalance) {
+
+            if (message) {
+                message.innerHTML =
+                    `<p style="color:red;">
+                        ❌ Salio lako linalopatikana
+                        halitoshi kwa kiasi hicho.
+                    </p>`;
+            }
+
+            return;
+        }
+
+
+        /* CREATE UNIQUE WITHDRAWAL NUMBER */
+
+        const withdrawalNumber =
+            "WD" +
+            Date.now().toString().slice(-10);
+
+
+        /* USER DATA */
+
+        let userData = {};
+
+        try {
+
+            const userSnap =
+                await db
+                    .collection("users")
+                    .doc(user.uid)
+                    .get();
+
+            if (userSnap.exists) {
+                userData = userSnap.data();
+            }
+
+        } catch (userError) {
+
+            console.warn(
+                "User data haikupatikana:",
+                userError
+            );
+        }
+
+
+        /* SAVE REQUEST */
+
+        await db
+            .collection("withdrawals")
+            .doc(withdrawalNumber)
+            .set({
+
+                withdrawalNumber,
+
+                uid: user.uid,
+
+                name:
+                    userData.name ||
+                    user.displayName ||
+                    "",
+
+                email:
+                    user.email ||
+                    userData.email ||
+                    "",
+
+                phone:
+
+                    userData.phone ||
+                    "",
+
+                amount,
+
+                method,
+
+                paymentPhone: phone,
+
+                status: "pending",
+
+                createdAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp(),
+
+                updatedAt:
+                    firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
+
+            });
+
+
+        /*
+         * UPDATE ONLY PENDING AMOUNT
+         *
+         * HATUGUSI BALANCE.
+         */
+
+        await walletRef.set({
+
+            pendingWithdrawal:
+                pendingWithdrawal + amount,
+
+            updatedAt:
+                firebase.firestore
+                    .FieldValue
+                    .serverTimestamp()
+
+        }, {
+            merge: true
+        });
+
+
+        if (message) {
+
+            message.innerHTML = `
+                <div style="
+                    padding:15px;
+                    border-radius:10px;
+                    background:#e8f5e9;
+                ">
+
+                    <strong>
+                        ✅ Ombi limetumwa!
+                    </strong>
+
+                    <p>
+                        Namba ya Withdrawal:
+                        <strong>
+                            ${escapeHTML(withdrawalNumber)}
+                        </strong>
+                    </p>
+
+                    <p>
+                        Kiasi:
+                        <strong>
+                            TSh ${formatMoney(amount)}
+                        </strong>
+                    </p>
+
+                    <p>
+                        Njia:
+                        <strong>
+                            ${escapeHTML(method)}
+                        </strong>
+                    </p>
+
+                    <p>
+                        Ombi lako linasubiri
+                        uthibitisho wa Admin.
+                    </p>
+
+                </div>
+            `;
+
+        }
+
+
+        /* CLEAR FORM */
+
+        if (amountInput) {
+            amountInput.value = "";
+        }
+
+        if (methodInput) {
+            methodInput.value = "";
+        }
+
+        if (phoneInput) {
+            phoneInput.value = "";
+        }
+
+
+        await pakiaWithdrawalData();
+
+
+    } catch (error) {
+
+        console.error(
+            "❌ Tuma Withdrawal error:",
+            error
+        );
+
+        if (message) {
+
+            message.innerHTML = `
+                <p style="color:red;">
+                    ❌ Imeshindikana kutuma ombi:
+                    ${escapeHTML(
+                        error.message ||
+                        "Hitilafu isiyojulikana."
+                    )}
+                </p>
+            `;
+        }
+
+    } finally {
+
+        if (button) {
+
+            button.disabled = false;
+
+            button.textContent =
+                "💸 Tuma Ombi la Kutoa Pesa";
+        }
+    }
+}
+
+
+/* =========================================================
+   HISTORIA YA WITHDRAWAL
+========================================================= */
+
+async function pakiaHistoriaWithdrawal() {
+
+    const user = getCurrentUser();
+
+    if (!user || !db) return;
+
+    const container =
+        getElement("withdrawalHistory");
+
+    if (!container) return;
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("withdrawals")
+                .where("uid", "==", user.uid)
+                .get();
+
+
+        if (snapshot.empty) {
+
+            container.innerHTML = `
+                <h3>📋 Historia ya Withdrawal</h3>
+                <p>
+                    Bado hujafanya withdrawal yoyote.
+                </p>
+            `;
+
+            return;
+        }
+
+
+        const withdrawals =
+            snapshot.docs
+                .map(doc => doc.data())
+                .sort((a, b) => {
+
+                    const aTime =
+                        a.createdAt?.toMillis?.() || 0;
+
+                    const bTime =
+                        b.createdAt?.toMillis?.() || 0;
+
+                    return bTime - aTime;
+                });
+
+
+        let html = `
+            <h3>📋 Historia ya Withdrawal</h3>
+        `;
+
+
+        withdrawals.forEach(function(item) {
+
+            let statusText =
+                "⏳ Pending";
+
+            if (item.status === "approved") {
+                statusText =
+                    "✅ Approved";
+            }
+
+            if (item.status === "rejected") {
+                statusText =
+                    "❌ Rejected";
+            }
+
+            html += `
+
+                <div style="
+                    padding:12px 0;
+                    border-bottom:1px solid #ddd;
+                ">
+
+                    <strong>
+                        ${escapeHTML(
+                            item.withdrawalNumber || ""
+                        )}
+                    </strong>
+
+                    <p>
+                        💰 TSh
+                        ${formatMoney(
+                            Number(item.amount || 0)
+                        )}
+                    </p>
+
+                    <p>
+                        📱
+                        ${escapeHTML(
+                            item.method || ""
+                        )}
+                        -
+                        ${escapeHTML(
+                            item.paymentPhone || ""
+                        )}
+                    </p>
+
+                    <p>
+                        ${statusText}
+                    </p>
+
+                </div>
+            `;
+        });
+
+
+        container.innerHTML = html;
+
+
+    } catch (error) {
+
+        console.error(
+            "❌ Historia withdrawal error:",
+            error
+        );
+
+        container.innerHTML = `
+            <h3>📋 Historia ya Withdrawal</h3>
+            <p style="color:red;">
+                Imeshindikana kupakia historia.
+            </p>
+        `;
+    }
+}
 /* =========================================================
    4. VYUMBA VYA ROOMRENT
 ========================================================= */

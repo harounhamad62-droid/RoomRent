@@ -167,56 +167,7 @@ const ROOMRENT_SETTINGS = {
     }
 
 };
-/* =========================================================
-   ROOMRENT - MAIN WALLET
-========================================================= */
-
-async function hakikishaMainWallet(uid) {
-
-    if (!uid || !db) return null;
-
-    const walletRef =
-        db.collection("wallets").doc(uid);
-
-    const snap =
-        await walletRef.get();
-
-    if (!snap.exists) {
-
-        const walletData = {
-
-            uid: uid,
-
-            balance: 0,
-
-            bookingEarnings: 0,
-
-            referralCommission: 0,
-
-            totalEarned: 0,
-
-            totalWithdrawn: 0,
-
-            pendingWithdrawal: 0,
-
-            createdAt:
-                firebase.firestore.FieldValue
-                .serverTimestamp(),
-
-            updatedAt:
-                firebase.firestore.FieldValue
-                .serverTimestamp()
-
-        };
-
-        await walletRef.set(walletData);
-
-        return walletData;
-    }
-
-    return snap.data();
-}
-
+            
 
 /* =========================================================
    ONGEZA FEDHA KWENYE MAIN WALLET
@@ -440,12 +391,7 @@ function onyeshaMainWallet(wallet) {
                 💸 Toa Pesa
             </button>
 
-        </div>
-    `;
-}
-
-
-/* =========================================================
+    /* ========================================================
    SIKILIZA MAIN WALLET
 ========================================================= */
 
@@ -591,14 +537,14 @@ async function funguaWithdrawal() {
             </label>
 
 
-            <input
-                type="number"
-                id="withdrawalAmount"
-                placeholder="Mfano: 10000"
-                min="1"
-                step="1"
-            >
 
+<input
+    type="number"
+    id="withdrawalAmount"
+    placeholder="Mfano: 3000"
+    min="3000"
+    step="1"
+>
 
             <br><br>
 
@@ -8173,6 +8119,7 @@ function simamishaWallet() {
     }
                             }
 
+
 /* =========================================================
    AUTO START MAIN WALLET
 ========================================================= */
@@ -8209,56 +8156,7 @@ if (auth) {
 
             if (wallet) {
 
-                wallet.style.display =
-                    "none";
-
-                wallet.innerHTML = "";
-
-            }
-
-        }
-
-    });
-
-               }/* =========================================================
-   AUTO START MAIN WALLET
-========================================================= */
-
-if (auth) {
-
-    auth.onAuthStateChanged(async function(user) {
-
-        if (user) {
-
-            try {
-
-                await anzishaMainWallet();
-
-                console.log(
-                    "✅ Main Wallet imeanzishwa."
-                );
-
-            } catch (error) {
-
-                console.error(
-                    "❌ Imeshindikana kuanzisha Main Wallet:",
-                    error
-                );
-
-            }
-
-        } else {
-
-            simamishaMainWallet();
-
-            const wallet =
-                getElement("mainWallet");
-
-            if (wallet) {
-
-                wallet.style.display =
-                    "none";
-
+                wallet.style.display = "none";
                 wallet.innerHTML = "";
 
             }

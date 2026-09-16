@@ -6308,4 +6308,507 @@ async function createAdminReferralCommission(
     );
 }
 
+/* =========================================================
+   ROOMRENT - MAIN WALLET & WITHDRAWAL
+========================================================= */
+
+let walletListener = null;
+
+/* ---------------------------------------------------------
+   1. GET / CREATE USER WALLET
+--------------------------------------------------------- */
+
+async function ensureUserWallet(uid) {
+    if (!uid) return null;
+
+    const walletRef = db.collection("wallets").doc(uid);
+    const walletSnap = await walletRef.get();
+
+    if (!walletSnap.exists) {
+        const walletData = {
+            uid: uid,
+            balance: 0,
+            totalEarned: 0,
+            totalWithdrawn: 0,
+            pendingWithdrawal: 0,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        await walletRef.set(walletData);
+
+        return walletData;
+    }
+
+    return walletSnap.data();
+}
+
+
+/* ---------------------------------------------------------
+   2. LISTEN TO MAIN WALLET
+--------------------------------------------------------- */
+
+function sikilizaMainWallet() {
+
+    if (!currentUser) {
+        console.log("Hakuna user aliyeingia.");
+        return;
+    }
+
+    if (walletListener) {
+        walletListener();
+        walletListener = null;
+    }
+
+    const walletRef = db.collection("wallets").doc(currentUser.uid);
+
+    walletListener = walletRef.onSnapshot(
+        async (doc) => {
+
+            if (!doc.exists) {
+                await ensureUserWallet(currentUser.uid);
+                return;
+            }
+
+            const wallet = doc.data();
+
+            const balance = Number(wallet.balance || 0);
+            const totalEarned = Number(wallet.totalEarned || 0);
+            const totalWithdrawn = Number(wallet.totalWithdrawn || 0);
+            const pendingWithdrawal =
+                Number(wallet.pendingWithdrawal || 0);
+
+            onyeshaWallet(
+                balance,
+                totalEarned,
+                totalWithdrawn,
+                pendingWithdrawal
+            );
+        },
+
+        (error) => {
+            console.error(
+                "Wallet listener error:",
+                error
+            );
+        }
+    );
+}
+
+
+/* ---------------------------------------------------------
+   3. DISPLAY WALLET
+--------------------------------------------------------- */
+
+function onyeshaWallet(
+    balance,
+    totalEarned,
+    totalWithdrawn,
+    pendingWithdrawal
+) {
+
+    const walletContainer =
+        document.getElementById("mainWallet");
+
+    if (!walletContainer) return;
+
+    walletContainer.innerHTML = `
+
+        <div class="wallet-card">
+
+            <h2>💰 Salio Kuu</h2>
+
+            <div class="wallet-balance">
+                TSh ${formatMoney(balance)}
+            </div>
+
+            <p>
+                Salio lako kuu la RoomRent
+            </p>
+
+            <div class="wallet-stats">
+
+                <div>
+                    <strong>
+                        TSh ${formatMoney(totalEarned)}
+                    </strong>
+                    <span>
+                        Jumla Iliyopatikana
+                    </span>
+                </div>
+
+                <div>
+                    <strong>
+                        TSh ${formatMoney(totalWithdrawn)}
+                    </strong>
+                    <span>
+                        Jumla Iliyotolewa
+                    </span>
+                </div>
+
+                <div>
+                    <strong>
+                        TSh ${formatMoney(pendingWithdrawal)}
+                    </strong>
+                    <span>
+                        Withdrawal Pending
+                    </span>
+                </div>
+
+            </div>
+
+            <button
+                type="button"
+                onclick="funguaWithdrawal()"
+            >
+                💸 Toa Pesa
+            </button>
+
+        </div>
+    `;
+}
+
+
+/* ---------------------------------------------------------
+   4. MONEY FORMAT
+--------------------------------------------------------- */
+
+function formatMoney(amount) {
+
+    return Number(amount || 0).toLocaleString(
+        "en-US"
+    );
+}
+
+
+/* ---------------------------------------------------------
+   5. OPEN WITHDRAWAL
+--------------------------------------------------------- */
+
+function funguaWithdrawal() {
+
+    const container =
+        document.getElementById("withdrawalSection");
+
+    if (!container) {
+        console.error(
+            "withdrawalSection haipo kwenye HTML."
+        );
+        return;
+    }
+
+    container.style.display = "block";
+
+    container.innerHTML = `
+
+        <div class="withdrawal-card">
+
+            <h2>💸 Toa Pesa</h2>
+
+            <p>
+                Tumia Salio Kuu lako kuomba malipo.
+            </p>
+
+            <label>
+                Njia ya Malipo
+            </label>
+
+            <select id="withdrawalMethod">
+
+                <option value="">
+                    Chagua njia
+                </option>
+
+                <option value="AIRTEL_MONEY">
+                    Airtel Money
+                </option>
+
+                <option value="MIXX_BY_YAS">
+                    Mixx by Yas
+                </option>
+
+            </select>
+
+            <label>
+                Namba ya Simu
+            </label>
+
+            <input
+                type="tel"
+                id="withdrawalPhone"
+                placeholder="Mfano: 067xxxxxxx"
+            >
+
+            <label>
+                Kiasi
+            </label>
+
+            <input
+                type="number"
+                id="withdrawalAmount"
+                placeholder="Mfano: 3000"
+                min="3000"
+            >
+
+            <button
+                type="button"
+                onclick="tumaWithdrawal()"
+            >
+                Tuma Ombi
+            </button>
+
+            <button
+                type="button"
+                onclick="fungaWithdrawal()"
+            >
+                Funga
+            </button>
+
+            <p id="withdrawalMessage"></p>
+
+        </div>
+    `;
+}
+
+
+/* ---------------------------------------------------------
+   6. CLOSE WITHDRAWAL
+--------------------------------------------------------- */
+
+function fungaWithdrawal() {
+
+    const container =
+        document.getElementById("withdrawalSection");
+
+    if (container) {
+        container.style.display = "none";
+        container.innerHTML = "";
+    }
+}
+
+
+/* ---------------------------------------------------------
+   7. SEND WITHDRAWAL REQUEST
+--------------------------------------------------------- */
+
+async function tumaWithdrawal() {
+
+    if (!currentUser) {
+        alert(
+            "Tafadhali ingia kwenye akaunti kwanza."
+        );
+        return;
+    }
+
+    const method =
+        document.getElementById(
+            "withdrawalMethod"
+        ).value;
+
+    const phone =
+        document.getElementById(
+            "withdrawalPhone"
+        ).value.trim();
+
+    const amount =
+        Number(
+            document.getElementById(
+                "withdrawalAmount"
+            ).value
+        );
+
+    const message =
+        document.getElementById(
+            "withdrawalMessage"
+        );
+
+    if (!method) {
+        message.textContent =
+            "❌ Chagua njia ya malipo.";
+        return;
+    }
+
+    if (!phone) {
+        message.textContent =
+            "❌ Weka namba ya simu.";
+        return;
+    }
+
+    if (!amount || amount < 3000) {
+        message.textContent =
+            "❌ Kiasi cha chini ni TSh 3,000.";
+        return;
+    }
+
+    try {
+
+        message.textContent =
+            "⏳ Inatuma ombi...";
+
+        const walletRef =
+            db.collection("wallets")
+              .doc(currentUser.uid);
+
+        const withdrawalRef =
+            db.collection("withdrawals")
+              .doc();
+
+        await db.runTransaction(
+            async (transaction) => {
+
+                const walletSnap =
+                    await transaction.get(
+                        walletRef
+                    );
+
+                if (!walletSnap.exists) {
+                    throw new Error(
+                        "Wallet haijapatikana."
+                    );
+                }
+
+                const wallet =
+                    walletSnap.data();
+
+                const balance =
+                    Number(
+                        wallet.balance || 0
+                    );
+
+                if (amount > balance) {
+                    throw new Error(
+                        "INSUFFICIENT_BALANCE"
+                    );
+                }
+
+                transaction.update(
+                    walletRef,
+                    {
+                        balance:
+                            balance - amount,
+
+                        pendingWithdrawal:
+                            Number(
+                                wallet.pendingWithdrawal || 0
+                            ) + amount,
+
+                        updatedAt:
+                            firebase.firestore
+                            .FieldValue
+                            .serverTimestamp()
+                    }
+                );
+
+                transaction.set(
+                    withdrawalRef,
+                    {
+                        withdrawalId:
+                            withdrawalRef.id,
+
+                        uid:
+                            currentUser.uid,
+
+                        name:
+                            currentUserData?.name || "",
+
+                        email:
+                            currentUser.email || "",
+
+                        method:
+                            method,
+
+                        phone:
+                            phone,
+
+                        amount:
+                            amount,
+
+                        status:
+                            "pending",
+
+                        createdAt:
+                            firebase.firestore
+                            .FieldValue
+                            .serverTimestamp(),
+
+                        updatedAt:
+                            firebase.firestore
+                            .FieldValue
+                            .serverTimestamp()
+                    }
+                );
+            }
+        );
+
+        message.textContent =
+            "✅ Ombi lako limetumwa kwa admin.";
+
+        document.getElementById(
+            "withdrawalPhone"
+        ).value = "";
+
+        document.getElementById(
+            "withdrawalAmount"
+        ).value = "";
+
+    } catch (error) {
+
+        console.error(
+            "Withdrawal error:",
+            error
+        );
+
+        if (
+            error.message ===
+            "INSUFFICIENT_BALANCE"
+        ) {
+
+            message.textContent =
+                "❌ Salio lako halitoshi.";
+        } else {
+
+            message.textContent =
+                "❌ Imeshindikana kutuma ombi. Jaribu tena.";
+        }
+    }
+}
+
+
+/* ---------------------------------------------------------
+   8. START WALLET AFTER LOGIN
+--------------------------------------------------------- */
+
+async function anzishaWallet() {
+
+    if (!currentUser) return;
+
+    try {
+
+        await ensureUserWallet(
+            currentUser.uid
+        );
+
+        sikilizaMainWallet();
+
+    } catch (error) {
+
+        console.error(
+            "Wallet initialization error:",
+            error
+        );
+    }
+}
+
+
+/* ---------------------------------------------------------
+   9. STOP WALLET AFTER LOGOUT
+--------------------------------------------------------- */
+
+function simamishaWallet() {
+
+    if (walletListener) {
+        walletListener();
+        walletListener = null;
+    }
+                            }
 

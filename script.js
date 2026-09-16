@@ -167,7 +167,354 @@ const ROOMRENT_SETTINGS = {
     }
 
 };
+/* =========================================================
+   ROOMRENT - MAIN WALLET
+========================================================= */
 
+async function hakikishaMainWallet(uid) {
+
+    if (!uid || !db) return null;
+
+    const walletRef =
+        db.collection("wallets").doc(uid);
+
+    const snap =
+        await walletRef.get();
+
+    if (!snap.exists) {
+
+        const walletData = {
+
+            uid: uid,
+
+            balance: 0,
+
+            bookingEarnings: 0,
+
+            referralCommission: 0,
+
+            totalEarned: 0,
+
+            totalWithdrawn: 0,
+
+            pendingWithdrawal: 0,
+
+            createdAt:
+                firebase.firestore.FieldValue
+                .serverTimestamp(),
+
+            updatedAt:
+                firebase.firestore.FieldValue
+                .serverTimestamp()
+
+        };
+
+        await walletRef.set(walletData);
+
+        return walletData;
+    }
+
+    return snap.data();
+}
+
+
+/* =========================================================
+   ONGEZA FEDHA KWENYE MAIN WALLET
+========================================================= */
+
+async function ongezaMainWallet(
+    uid,
+    amount,
+    source = "other"
+) {
+
+    if (!uid || !db) {
+        throw new Error(
+            "User au Firestore haipo."
+        );
+    }
+
+    amount = Number(amount || 0);
+
+    if (amount <= 0) {
+        return;
+    }
+
+    const walletRef =
+        db.collection("wallets").doc(uid);
+
+    await db.runTransaction(
+        async (transaction) => {
+
+            const snap =
+                await transaction.get(walletRef);
+
+            let wallet = {};
+
+            if (snap.exists) {
+                wallet = snap.data();
+            }
+
+            const oldBalance =
+                Number(wallet.balance || 0);
+
+            const oldTotalEarned =
+                Number(wallet.totalEarned || 0);
+
+            const oldBookingEarnings =
+                Number(
+                    wallet.bookingEarnings || 0
+                );
+
+            const oldReferralCommission =
+                Number(
+                    wallet.referralCommission || 0
+                );
+
+            let bookingEarnings =
+                oldBookingEarnings;
+
+            let referralCommission =
+                oldReferralCommission;
+
+
+            if (source === "booking") {
+
+                bookingEarnings += amount;
+
+            } else if (source === "referral") {
+
+                referralCommission += amount;
+
+            }
+
+
+            transaction.set(
+                walletRef,
+                {
+
+                    uid: uid,
+
+                    balance:
+                        oldBalance + amount,
+
+                    bookingEarnings:
+                        bookingEarnings,
+
+                    referralCommission:
+                        referralCommission,
+
+                    totalEarned:
+                        oldTotalEarned + amount,
+
+                    updatedAt:
+                        firebase.firestore
+                        .FieldValue
+                        .serverTimestamp()
+
+                },
+                {
+                    merge: true
+                }
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   ONYESHA MAIN WALLET
+========================================================= */
+
+function onyeshaMainWallet(wallet) {
+
+    const container =
+        getElement("mainWallet");
+
+    if (!container) return;
+
+    const balance =
+        Number(wallet.balance || 0);
+
+    const bookingEarnings =
+        Number(
+            wallet.bookingEarnings || 0
+        );
+
+    const referralCommission =
+        Number(
+            wallet.referralCommission || 0
+        );
+
+    const totalEarned =
+        Number(
+            wallet.totalEarned || 0
+        );
+
+    const totalWithdrawn =
+        Number(
+            wallet.totalWithdrawn || 0
+        );
+
+    const pendingWithdrawal =
+        Number(
+            wallet.pendingWithdrawal || 0
+        );
+
+
+    container.style.display =
+        "block";
+
+    container.innerHTML = `
+
+        <div class="booking-card">
+
+            <h2>💰 Salio Kuu</h2>
+
+            <div style="
+                font-size:32px;
+                font-weight:bold;
+                margin:15px 0;
+            ">
+
+                TSh ${formatMoney(balance)}
+
+            </div>
+
+            <p>
+                Salio lako kuu la RoomRent
+            </p>
+
+            <hr>
+
+            <p>
+                🏠 Booking:
+                <strong>
+                    TSh ${formatMoney(
+                        bookingEarnings
+                    )}
+                </strong>
+            </p>
+
+            <p>
+                👥 Referral:
+                <strong>
+                    TSh ${formatMoney(
+                        referralCommission
+                    )}
+                </strong>
+            </p>
+
+            <p>
+                📈 Jumla iliyopatikana:
+                <strong>
+                    TSh ${formatMoney(
+                        totalEarned
+                    )}
+                </strong>
+            </p>
+
+            <p>
+                💸 Jumla iliyotolewa:
+                <strong>
+                    TSh ${formatMoney(
+                        totalWithdrawn
+                    )}
+                </strong>
+            </p>
+
+            <p>
+                ⏳ Withdrawal pending:
+                <strong>
+                    TSh ${formatMoney(
+                        pendingWithdrawal
+                    )}
+                </strong>
+            </p>
+
+            <button
+                class="thibitishaBtn"
+                onclick="funguaWithdrawal()"
+            >
+                💸 Toa Pesa
+            </button>
+
+        </div>
+    `;
+}
+
+
+/* =========================================================
+   SIKILIZA MAIN WALLET
+========================================================= */
+
+let mainWalletUnsubscribe = null;
+
+async function anzishaMainWallet() {
+
+    const user =
+        getCurrentUser();
+
+    if (!user) return;
+
+    await hakikishaMainWallet(
+        user.uid
+    );
+
+    if (mainWalletUnsubscribe) {
+
+        mainWalletUnsubscribe();
+
+        mainWalletUnsubscribe = null;
+
+    }
+
+    mainWalletUnsubscribe =
+        db.collection("wallets")
+          .doc(user.uid)
+          .onSnapshot(
+
+            function(snapshot) {
+
+                if (!snapshot.exists) {
+
+                    return;
+                }
+
+                onyeshaMainWallet(
+                    snapshot.data()
+                );
+
+            },
+
+            function(error) {
+
+                console.error(
+                    "MAIN WALLET ERROR:",
+                    error
+                );
+
+            }
+          );
+}
+
+
+/* =========================================================
+   SIMAMISHA MAIN WALLET
+========================================================= */
+
+function simamishaMainWallet() {
+
+    if (mainWalletUnsubscribe) {
+
+        mainWalletUnsubscribe();
+
+        mainWalletUnsubscribe = null;
+    }
+
+        }
 
 /* =========================================================
    4. VYUMBA VYA ROOMRENT

@@ -3072,7 +3072,9 @@ async function funguaBookingZangu() {
 
 }
 
-/* =========================================================
+
+
+        /* =========================================================
    31. ACCOUNT
 ========================================================= */
 
@@ -3092,41 +3094,28 @@ async function funguaAccount() {
     }
 
     const section =
-        getElement(
-            "taarifaSection"
-        );
+        getElement("taarifaSection");
 
     if (!section) {
-
         return;
-
     }
 
-    hideSection(
-        "vyumba"
-    );
+    hideSection("vyumba");
+    hideSection("fomuKodi");
 
-    hideSection(
-        "fomuKodi"
-    );
-
-    section.style.display =
-        "block";
+    section.style.display = "block";
 
     section.innerHTML = `
 
         <div class="booking-card">
 
-            <h2>
-                👤 Account Yangu
-            </h2>
+            <h2>👤 Account Yangu</h2>
 
             <p>
                 ⏳ Inapakia taarifa...
             </p>
 
         </div>
-
     `;
 
     try {
@@ -3178,7 +3167,6 @@ async function funguaAccount() {
                     0
 
             };
-
         }
 
         const finalReferralCode =
@@ -3201,49 +3189,84 @@ async function funguaAccount() {
            MAIN WALLET
         ================================================= */
 
-        await hakikishaMainWallet(
-            user.uid
-        );
-
-        const walletRef =
-            db.collection(
-                "wallets"
-            ).doc(
-                user.uid
-            );
-
-        const walletSnap =
-            await walletRef.get();
-
         let wallet = {
 
-            balance:
-                0,
+            balance: 0,
 
-            bookingEarnings:
-                0,
+            bookingEarnings: 0,
 
-            referralCommission:
-                0,
+            referralCommission: 0,
 
-            totalEarned:
-                0,
+            totalEarned: 0,
 
-            totalWithdrawn:
-                0,
+            totalWithdrawn: 0,
 
-            pendingWithdrawal:
-                0
+            pendingWithdrawal: 0
 
         };
 
-        if (walletSnap.exists) {
 
-            wallet =
-                walletSnap.data();
+        /*
+           Wallet ikipata error, Account isianguke.
+        */
 
+        try {
+
+            if (typeof hakikishaMainWallet === "function") {
+
+                await hakikishaMainWallet(
+                    user.uid
+                );
+
+            }
+
+            const walletRef =
+                db.collection("wallets")
+                  .doc(user.uid);
+
+            const walletSnap =
+                await walletRef.get();
+
+            if (walletSnap.exists) {
+
+                wallet =
+                    walletSnap.data();
+
+            }
+
+        } catch (walletError) {
+
+            console.error(
+                "MAIN WALLET ERROR:",
+                walletError
+            );
+
+            /*
+               Account itaendelea kuonekana
+               hata kama Wallet ina tatizo.
+            */
+
+            wallet = {
+
+                balance: 0,
+
+                bookingEarnings: 0,
+
+                referralCommission: 0,
+
+                totalEarned: 0,
+
+                totalWithdrawn: 0,
+
+                pendingWithdrawal: 0
+
+            };
         }
 
+
+        /* =================================================
+           WALLET VALUES
+        ================================================= */
 
         const mainBalance =
             Number(
@@ -3277,7 +3300,7 @@ async function funguaAccount() {
 
 
         /* =================================================
-           DISPLAY ACCOUNT + MAIN WALLET
+           DISPLAY ACCOUNT
         ================================================= */
 
         section.innerHTML = `
@@ -3366,7 +3389,7 @@ async function funguaAccount() {
             </div>
 
 
-            <!-- ACCOUNT -->
+            <!-- ACCOUNT DETAILS -->
 
             <div class="booking-card">
 
@@ -3610,9 +3633,9 @@ async function funguaAccount() {
 
     }
 
-}
-      
+               }
 
+        
         
 
 /* =========================================================

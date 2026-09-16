@@ -737,7 +737,8 @@ async function pakiaWithdrawalData() {
 ========================================================= */
 
 async function tumaWithdrawal() {
-
+console.log("🔥 TUMA WITHDRAWAL IMEITWA");
+alert("🔥 Button ya Tuma Ombi imefanya kazi.");
     const user = getCurrentUser();
 
     if (!user || !db) {

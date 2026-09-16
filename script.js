@@ -399,8 +399,7 @@ function onyeshaMainWallet(wallet) {
             </p>
 
             <p>
-                👥 Referral:
-                <strong>
+                👥 Referral    <strong>
                     TSh ${formatMoney(
                         referralCommission
                     )}
@@ -650,10 +649,18 @@ async function funguaWithdrawal() {
            <button
     id="submitWithdrawalBtn"
     type="button"
-    onclick="alert('🔥 TUMA OMBI BUTTON INAFANYA KAZI!')"
+    style="
+        position:relative;
+        z-index:99999;
+        pointer-events:auto;
+        display:block;
+        width:100%;
+        min-height:55px;
+        cursor:pointer;
+    "
 >
     💸 Tuma Ombi la Kutoa Pesa
-</button> 
+</button>
 
 
             <!-- UJUMBE -->
@@ -705,25 +712,20 @@ async function funguaWithdrawal() {
     }
 
 
-    submitWithdrawalBtn.addEventListener(
-        "click",
-        function () {
+const testButton =
+    document.getElementById("submitWithdrawalBtn");
 
-            console.log(
-                "🔥 TUMA OMBI BUTTON IMEBONYEZWA"
-            );
+if (testButton) {
 
-            alert(
-                "🔥 Button ya Tuma Ombi imefanya kazi."
-            );
+    testButton.onclick = function () {
 
+        alert(
+            "🔥 TUMA OMBI INAFANYA KAZI!"
+        );
 
-            /* ITAENDELEA KWENYE FUNCTION YA WITHDRAWAL */
+    };
 
-            tumaWithdrawal();
-
-        }
-    );
+}
 
 
     /* PAKIA TAARIFA */

@@ -3072,7 +3072,6 @@ async function funguaBookingZangu() {
 
 }
 
-
 /* =========================================================
    31. ACCOUNT
 ========================================================= */
@@ -3131,6 +3130,10 @@ async function funguaAccount() {
     `;
 
     try {
+
+        /* =================================================
+           ACCOUNT DATA
+        ================================================= */
 
         let data =
             await pataAccountData();
@@ -3193,7 +3196,177 @@ async function funguaAccount() {
                     : ""
             );
 
+
+        /* =================================================
+           MAIN WALLET
+        ================================================= */
+
+        await hakikishaMainWallet(
+            user.uid
+        );
+
+        const walletRef =
+            db.collection(
+                "wallets"
+            ).doc(
+                user.uid
+            );
+
+        const walletSnap =
+            await walletRef.get();
+
+        let wallet = {
+
+            balance:
+                0,
+
+            bookingEarnings:
+                0,
+
+            referralCommission:
+                0,
+
+            totalEarned:
+                0,
+
+            totalWithdrawn:
+                0,
+
+            pendingWithdrawal:
+                0
+
+        };
+
+        if (walletSnap.exists) {
+
+            wallet =
+                walletSnap.data();
+
+        }
+
+
+        const mainBalance =
+            Number(
+                wallet.balance || 0
+            );
+
+        const bookingEarnings =
+            Number(
+                wallet.bookingEarnings || 0
+            );
+
+        const referralCommission =
+            Number(
+                wallet.referralCommission || 0
+            );
+
+        const totalEarned =
+            Number(
+                wallet.totalEarned || 0
+            );
+
+        const totalWithdrawn =
+            Number(
+                wallet.totalWithdrawn || 0
+            );
+
+        const pendingWithdrawal =
+            Number(
+                wallet.pendingWithdrawal || 0
+            );
+
+
+        /* =================================================
+           DISPLAY ACCOUNT + MAIN WALLET
+        ================================================= */
+
         section.innerHTML = `
+
+            <!-- MAIN WALLET -->
+
+            <div
+                class="booking-card"
+                id="accountMainWallet"
+            >
+
+                <h2>
+                    💰 Salio Kuu
+                </h2>
+
+                <div style="
+                    font-size:34px;
+                    font-weight:bold;
+                    margin:18px 0;
+                ">
+
+                    TSh ${formatMoney(
+                        mainBalance
+                    )}
+
+                </div>
+
+                <p>
+                    Salio lako kuu la RoomRent
+                </p>
+
+                <hr>
+
+                <p>
+                    🏠 Booking:
+                    <strong>
+                        TSh ${formatMoney(
+                            bookingEarnings
+                        )}
+                    </strong>
+                </p>
+
+                <p>
+                    👥 Referral:
+                    <strong>
+                        TSh ${formatMoney(
+                            referralCommission
+                        )}
+                    </strong>
+                </p>
+
+                <p>
+                    📈 Jumla iliyopatikana:
+                    <strong>
+                        TSh ${formatMoney(
+                            totalEarned
+                        )}
+                    </strong>
+                </p>
+
+                <p>
+                    💸 Jumla iliyotolewa:
+                    <strong>
+                        TSh ${formatMoney(
+                            totalWithdrawn
+                        )}
+                    </strong>
+                </p>
+
+                <p>
+                    ⏳ Withdrawal pending:
+                    <strong>
+                        TSh ${formatMoney(
+                            pendingWithdrawal
+                        )}
+                    </strong>
+                </p>
+
+                <button
+                    class="thibitishaBtn"
+                    id="accountWithdrawalBtn"
+                >
+                    💸 Toa Pesa
+                </button>
+
+            </div>
+
+
+            <!-- ACCOUNT -->
 
             <div class="booking-card">
 
@@ -3332,6 +3505,32 @@ async function funguaAccount() {
 
         `;
 
+
+        /* =================================================
+           WITHDRAWAL BUTTON
+        ================================================= */
+
+        const withdrawalButton =
+            getElement(
+                "accountWithdrawalBtn"
+            );
+
+        if (withdrawalButton) {
+
+            withdrawalButton.onclick =
+                function() {
+
+                    funguaWithdrawal();
+
+                };
+
+        }
+
+
+        /* =================================================
+           COPY REFERRAL
+        ================================================= */
+
         const copyButton =
             getElement(
                 "copyReferralBtn"
@@ -3349,6 +3548,11 @@ async function funguaAccount() {
                 };
 
         }
+
+
+        /* =================================================
+           LOGOUT
+        ================================================= */
 
         const logoutButton =
             getElement(
@@ -3407,7 +3611,9 @@ async function funguaAccount() {
     }
 
 }
+      
 
+        
 
 /* =========================================================
    32. COPY REFERRAL LINK

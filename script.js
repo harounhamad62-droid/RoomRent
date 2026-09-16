@@ -947,7 +947,66 @@ async function hifadhiReferralMpya(uid) {
     }
 
 }
+/* =========================================================
+   ADMIN REFERRAL LINK
+========================================================= */
 
+async function wekaAdminReferralLink() {
+
+    const ADMIN_UID =
+        "1kj3K591EHhHAOiSoxIp1xGve2x1";
+
+    const ADMIN_REFERRAL_CODE =
+        "RRADMIN";
+
+    const adminRef =
+        db.collection("users").doc(ADMIN_UID);
+
+    const adminSnap =
+        await adminRef.get();
+
+    if (!adminSnap.exists) {
+        console.warn(
+            "⚠️ Admin user document haipo."
+        );
+        return;
+    }
+
+    const baseUrl =
+        window.location.origin +
+        window.location.pathname;
+
+    const adminReferralLink =
+        baseUrl +
+        "?ref=" +
+        ADMIN_REFERRAL_CODE;
+
+    await adminRef.set({
+
+        referralCode:
+            ADMIN_REFERRAL_CODE,
+
+        referralLink:
+            adminReferralLink,
+
+        referralType:
+            "admin",
+
+        updatedAt:
+            firebase.firestore.FieldValue
+                .serverTimestamp()
+
+    }, {
+        merge: true
+    });
+
+    console.log(
+        "✅ Admin referral link:",
+        adminReferralLink
+    );
+
+    return adminReferralLink;
+       }
 
 /* =========================================================
    20. PREPARE REFERRAL AFTER LOGIN

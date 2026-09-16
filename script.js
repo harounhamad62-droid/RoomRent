@@ -7159,3 +7159,99 @@ function simamishaWallet() {
     }
                             }
 
+/* =========================================================
+   AUTO START MAIN WALLET
+========================================================= */
+
+if (auth) {
+
+    auth.onAuthStateChanged(async function(user) {
+
+        if (user) {
+
+            try {
+
+                await anzishaMainWallet();
+
+                console.log(
+                    "✅ Main Wallet imeanzishwa."
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "❌ Imeshindikana kuanzisha Main Wallet:",
+                    error
+                );
+
+            }
+
+        } else {
+
+            simamishaMainWallet();
+
+            const wallet =
+                getElement("mainWallet");
+
+            if (wallet) {
+
+                wallet.style.display =
+                    "none";
+
+                wallet.innerHTML = "";
+
+            }
+
+        }
+
+    });
+
+               }/* =========================================================
+   AUTO START MAIN WALLET
+========================================================= */
+
+if (auth) {
+
+    auth.onAuthStateChanged(async function(user) {
+
+        if (user) {
+
+            try {
+
+                await anzishaMainWallet();
+
+                console.log(
+                    "✅ Main Wallet imeanzishwa."
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "❌ Imeshindikana kuanzisha Main Wallet:",
+                    error
+                );
+
+            }
+
+        } else {
+
+            simamishaMainWallet();
+
+            const wallet =
+                getElement("mainWallet");
+
+            if (wallet) {
+
+                wallet.style.display =
+                    "none";
+
+                wallet.innerHTML = "";
+
+            }
+
+        }
+
+    });
+
+}
+

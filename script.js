@@ -5495,7 +5495,7 @@ async function adminConfirmBooking(bookingId) {
 
     if (
         (user.email || "").toLowerCase().trim()
-        !== "harounhamad@gmail.com"
+        !== "harounhamad62@gmail.com"
     ) {
         alert("❌ Huna ruhusa ya Admin.");
         return;

@@ -514,10 +514,11 @@ function simamishaMainWallet() {
         mainWalletUnsubscribe = null;
     }
 
-        }
+        }                      
+
 /* =========================================================
    WITHDRAWAL - CUSTOMER
-   ========================================================= */
+========================================================= */
 
 async function funguaWithdrawal() {
 
@@ -528,34 +529,68 @@ async function funguaWithdrawal() {
         return;
     }
 
-    const section = getElement("withdrawalSection");
+    const section =
+        getElement("withdrawalSection");
 
     if (!section) {
-        console.error("❌ #withdrawalSection haipo kwenye HTML.");
+        console.error(
+            "❌ #withdrawalSection haipo kwenye HTML."
+        );
         return;
     }
 
-    /* FICHA SEHEMU NYENGINE */
+
+    /* FICHA SEHEMU NYINGINE */
+
     hideSection("vyumba");
     hideSection("fomuKodi");
     hideSection("taarifaSection");
 
+
+    /* ONESHA WITHDRAWAL */
+
     section.style.display = "block";
 
+
+    /* HTML YA WITHDRAWAL */
+
     section.innerHTML = `
+
         <div class="booking-card">
 
-            <h2>💸 Toa Pesa</h2>
+            <button
+                type="button"
+                onclick="
+                    document.getElementById(
+                        'withdrawalSection'
+                    ).style.display='none';
+                "
+            >
+                ✕ Funga
+            </button>
+
+
+            <h2>
+                💸 Toa Pesa
+            </h2>
+
 
             <div id="withdrawalWalletInfo">
-                <p>⏳ Inapakia Salio Kuu...</p>
+
+                <p>
+                    ⏳ Inapakia Salio Kuu...
+                </p>
+
             </div>
+
 
             <hr>
 
-            <label for="withdrawalAmount">
+
+            <label>
                 💰 Kiasi cha kutoa
             </label>
+
 
             <input
                 type="number"
@@ -565,11 +600,14 @@ async function funguaWithdrawal() {
                 step="1"
             >
 
+
             <br><br>
 
-            <label for="withdrawalMethod">
+
+            <label>
                 📱 Njia ya kupokea pesa
             </label>
+
 
             <select id="withdrawalMethod">
 
@@ -587,11 +625,14 @@ async function funguaWithdrawal() {
 
             </select>
 
+
             <br><br>
 
-            <label for="withdrawalPhone">
+
+            <label>
                 📞 Namba ya simu
             </label>
+
 
             <input
                 type="tel"
@@ -600,40 +641,103 @@ async function funguaWithdrawal() {
                 maxlength="10"
             >
 
+
             <br><br>
+
+
+            <!-- TUMA OMBI -->
 
             <button
                 id="submitWithdrawalBtn"
                 type="button"
-                onclick="tumaWithdrawal()"
             >
                 💸 Tuma Ombi la Kutoa Pesa
             </button>
 
-            <div id="withdrawalMessage"
-                 style="margin-top:15px;">
-            </div>
+
+            <!-- UJUMBE -->
+
+            <div
+                id="withdrawalMessage"
+                style="margin-top:15px;"
+            ></div>
 
         </div>
+
 
         <div
             class="booking-card"
             id="withdrawalHistory"
             style="margin-top:20px;"
         >
-            <h3>📋 Historia ya Withdrawal</h3>
-            <p>⏳ Inapakia...</p>
+
+            <h3>
+                📋 Historia ya Withdrawal
+            </h3>
+
+            <p>
+                ⏳ Inapakia...
+            </p>
+
         </div>
     `;
 
+
+    /* =====================================================
+       MUHIMU:
+       CONNECT BUTTON BAADA YA HTML KUTENGENEZWA
+    ===================================================== */
+
+    const submitWithdrawalBtn =
+        document.getElementById(
+            "submitWithdrawalBtn"
+        );
+
+
+    if (!submitWithdrawalBtn) {
+
+        console.error(
+            "❌ submitWithdrawalBtn haijapatikana."
+        );
+
+        return;
+    }
+
+
+    submitWithdrawalBtn.addEventListener(
+        "click",
+        function () {
+
+            console.log(
+                "🔥 TUMA OMBI BUTTON IMEBONYEZWA"
+            );
+
+            alert(
+                "🔥 Button ya Tuma Ombi imefanya kazi."
+            );
+
+
+            /* ITAENDELEA KWENYE FUNCTION YA WITHDRAWAL */
+
+            tumaWithdrawal();
+
+        }
+    );
+
+
+    /* PAKIA TAARIFA */
+
     await pakiaWithdrawalData();
+
+
+    /* SCROLL JUU */
 
     window.scrollTo({
         top: 0,
         behavior: "smooth"
     });
-}
 
+}
 
 /* =========================================================
    PAKIA SALIO + HISTORIA

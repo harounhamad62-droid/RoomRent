@@ -647,12 +647,13 @@ async function funguaWithdrawal() {
 
             <!-- TUMA OMBI -->
 
-            <button
-                id="submitWithdrawalBtn"
-                type="button"
-            >
-                💸 Tuma Ombi la Kutoa Pesa
-            </button>
+           <button
+    id="submitWithdrawalBtn"
+    type="button"
+    onclick="alert('🔥 TUMA OMBI BUTTON INAFANYA KAZI!')"
+>
+    💸 Tuma Ombi la Kutoa Pesa
+</button> 
 
 
             <!-- UJUMBE -->

@@ -167,7 +167,51 @@ const ROOMRENT_SETTINGS = {
     }
 
 };
-            
+/* =========================================================
+   ROOMRENT - MAIN WALLET
+========================================================= */
+
+async function hakikishaMainWallet(uid) {
+
+    if (!uid || !db) return null;
+
+    const walletRef =
+        db.collection("wallets").doc(uid);
+
+    const snap =
+        await walletRef.get();
+
+    if (!snap.exists) {
+
+        const walletData = {
+
+            uid: uid,
+
+            balance: 0,
+
+            bookingEarnings: 0,
+
+            referralCommission: 0,
+
+            totalEarned: 0,
+
+            totalWithdrawn: 0,
+
+            pendingWithdrawal: 
+updatedAt:
+                firebase.firestore.FieldValue
+                .serverTimestamp()
+
+        };
+
+        await walletRef.set(walletData);
+
+        return walletData;
+    }
+
+    return snap.data();
+}
+firebase.firestore.FieldValue            
 
 /* =========================================================
    ONGEZA FEDHA KWENYE MAIN WALLET

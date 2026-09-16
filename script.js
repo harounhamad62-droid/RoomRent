@@ -5479,39 +5479,50 @@ async function pakiaAdminBookings() {
         `;
     }
 }
-
 /* =========================================================
-   43. ADMIN CONFIRM BOOKING + REFERRAL COMMISSION
+   43. ADMIN CONFIRM + COMMISSION PROCESSING
 ========================================================= */
 
 async function adminConfirmBooking(bookingId) {
 
     const user = getCurrentUser();
 
+    /* =====================================================
+       1. HAKIKI ADMIN
+    ===================================================== */
+
     if (!user) {
         alert("❌ Tafadhali ingia kwanza.");
         return;
     }
 
-    if (
-        (user.email || "").toLowerCase().trim()
-        !== "harounhamad62@gmail.com"
-    ) {
+    const ADMIN_UID =
+        "1kj3K591EHhHAOiSoxIp1xGve2x1";
+
+    if (user.uid !== ADMIN_UID) {
         alert("❌ Huna ruhusa ya Admin.");
         return;
     }
 
+
+    /* =====================================================
+       2. CONFIRM
+    ===================================================== */
+
     const thibitisha = confirm(
-        "Unataka kuthibitisha malipo ya booking hii?"
+        "Unataka kuthibitisha payment ya booking hii?"
     );
 
-    if (!thibitisha) return;
+    if (!thibitisha) {
+        return;
+    }
+
 
     try {
 
-        /* =====================================================
-           1. PATA BOOKING
-        ===================================================== */
+        /* =================================================
+           3. PATA BOOKING
+        ================================================= */
 
         const bookingRef =
             db.collection("bookings").doc(bookingId);
@@ -5520,45 +5531,75 @@ async function adminConfirmBooking(bookingId) {
             await bookingRef.get();
 
         if (!bookingSnap.exists) {
-            alert("❌ Booking haikupatikana.");
+
+            alert(
+                "❌ Booking haikupatikana."
+            );
+
             return;
         }
 
-        const booking = bookingSnap.data();
+        const booking =
+            bookingSnap.data();
 
 
-        /* =====================================================
-           2. ZUIA CONFIRM YA PILI
-        ===================================================== */
+        /* =================================================
+           4. ZUIA BOOKING ILIYOKATALIWA
+        ================================================= */
+
+        if (booking.status === "Rejected") {
+
+            alert(
+                "❌ Booking hii tayari imekataliwa."
+            );
+
+            return;
+        }
+
+
+        /* =================================================
+           5. KAMA PAYMENT IMETHIBITISHWA NA
+              COMMISSION IMEKAMILIKA
+        ================================================= */
 
         if (
             booking.status === "Confirmed" &&
-            booking.paymentStatus === "Confirmed"
+            booking.paymentStatus === "Confirmed" &&
+            booking.commissionStatus === "Completed"
         ) {
+
             alert(
-                "⚠️ Booking hii tayari imethibitishwa."
+                "⚠️ Booking hii tayari imethibitishwa " +
+                "na commission zimekamilika."
             );
+
             return;
         }
 
 
-        /* =====================================================
-           3. CONFIRM PAYMENT
-        ===================================================== */
+        /* =================================================
+           6. CONFIRM PAYMENT
+        ================================================= */
 
         await bookingRef.update({
 
-            status: "Confirmed",
+            status:
+                "Confirmed",
 
-            paymentStatus: "Confirmed",
+            paymentStatus:
+                "Confirmed",
 
-            commissionStatus: "Pending",
+            commissionStatus:
+                "Processing",
 
-            referralCommissionStatus: "Pending",
+            referralCommissionStatus:
+                "Processing",
 
-            confirmedBy: user.uid,
+            confirmedBy:
+                user.uid,
 
             confirmedAt:
+                booking.confirmedAt ||
                 firebase.firestore.FieldValue.serverTimestamp(),
 
             updatedAt:
@@ -5566,25 +5607,34 @@ async function adminConfirmBooking(bookingId) {
         });
 
 
-        /* =====================================================
-           4. TENGENEZA COMMISSION
-        ===================================================== */
+        /* =================================================
+           7. CHAKATA COMMISSION
+        ================================================= */
 
-        await tengenezaCommissionsKwaBooking(
-            bookingId,
-            booking
-        );
+        const result =
+            await tengenezaCommissionsKwaBooking(
+                bookingId,
+                booking
+            );
 
 
-        /* =====================================================
-           5. WEKA COMMISSION STATUS
-        ===================================================== */
+        /* =================================================
+           8. MALIZA PROCESSING
+        ================================================= */
 
         await bookingRef.update({
 
-            commissionStatus: "Completed",
+            commissionStatus:
+                "Completed",
 
-            referralCommissionStatus: "Completed",
+            referralCommissionStatus:
+                "Completed",
+
+            userCommissionCount:
+                result.userCommissionCount,
+
+            adminCommissionCount:
+                result.adminCommissionCount,
 
             commissionProcessedAt:
                 firebase.firestore.FieldValue.serverTimestamp(),
@@ -5594,27 +5644,71 @@ async function adminConfirmBooking(bookingId) {
         });
 
 
+        /* =================================================
+           9. UJUMBE
+        ================================================= */
+
         alert(
             "✅ Payment imethibitishwa.\n\n" +
-            "💰 Referral commissions zimechakatwa."
+            "💰 User commissions: " +
+            result.userCommissionCount + "\n" +
+            "🔐 Admin commissions: " +
+            result.adminCommissionCount
         );
 
 
-        /* =====================================================
-           6. REFRESH ADMIN
-        ===================================================== */
+        /* =================================================
+           10. REFRESH ADMIN BOOKINGS
+        ================================================= */
 
         await pakiaAdminBookings();
+
 
     } catch (error) {
 
         console.error(
-            "CONFIRM + COMMISSION ERROR:",
+            "ADMIN CONFIRM ERROR:",
             error
         );
 
+
+        /* ================================================
+           Payment inaweza kuwa Confirmed lakini commission
+           ikashindwa. Tunaweka status Failed ili Admin
+           aweze kujaribu tena.
+        ================================================= */
+
+        try {
+
+            await db
+                .collection("bookings")
+                .doc(bookingId)
+                .update({
+
+                    commissionStatus:
+                        "Failed",
+
+                    referralCommissionStatus:
+                        "Failed",
+
+                    commissionError:
+                        error.message || "Unknown error",
+
+                    updatedAt:
+                        firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+        } catch (updateError) {
+
+            console.error(
+                "STATUS UPDATE ERROR:",
+                updateError
+            );
+        }
+
+
         alert(
-            "❌ Payment imethibitishwa lakini " +
+            "❌ Payment imekuwa Confirmed lakini " +
             "commission haijakamilika.\n\n" +
             error.message
         );
@@ -5623,7 +5717,7 @@ async function adminConfirmBooking(bookingId) {
 
 
 /* =========================================================
-   43B. REFERRAL CHAIN + COMMISSION ENGINE
+   43B. REFERRAL COMMISSION ENGINE
 ========================================================= */
 
 async function tengenezaCommissionsKwaBooking(
@@ -5631,11 +5725,13 @@ async function tengenezaCommissionsKwaBooking(
     booking
 ) {
 
-    const customerUid = booking.uid;
+    const customerUid =
+        booking.uid;
 
     if (!customerUid) {
+
         throw new Error(
-            "Booking haina UID ya customer."
+            "Booking haina customer UID."
         );
     }
 
@@ -5644,275 +5740,241 @@ async function tengenezaCommissionsKwaBooking(
        PATA CUSTOMER
     ===================================================== */
 
-    const customerRef =
-        db.collection("users").doc(customerUid);
-
     const customerSnap =
-        await customerRef.get();
+        await db
+            .collection("users")
+            .doc(customerUid)
+            .get();
+
 
     if (!customerSnap.exists) {
+
         throw new Error(
             "Customer account haikupatikana."
         );
     }
+
 
     const customer =
         customerSnap.data();
 
 
     /* =====================================================
-       CUSTOMER REFERRER
+       REFERRAL CODE YA CUSTOMER
     ===================================================== */
 
     let currentReferralCode =
-        (customer.referredBy || "").trim();
+        String(
+            customer.referredBy || ""
+        ).trim();
+
+
+    let userCommissionCount = 0;
+
+    let adminCommissionCount = 0;
 
 
     /* =====================================================
-       ADMIN REFERRAL
-       
-       Kama customer ametumia RRADMIN,
-       Admin ndiye referral source.
-       
-       Hatutengenezi User A/B/C kwa Admin.
-       Admin commission itahesabiwa kupitia
-       Admin referral logic hapa chini.
+       LEVELS
     ===================================================== */
 
-    if (
-        currentReferralCode ===
-        ROOMRENT_SETTINGS.adminReferralCode
+    const levels = [
+        "A",
+        "B",
+        "C"
+    ];
+
+
+    const visitedUsers =
+        new Set();
+
+    visitedUsers.add(
+        customerUid
+    );
+
+
+    /* =====================================================
+       TRAVERSE REFERRAL CHAIN
+       
+       A = 5%
+       B = 2%
+       C = 1%
+
+       Admin:
+       A = 20%
+       B = 10%
+       C = 5%
+    ===================================================== */
+
+    for (
+        let i = 0;
+        i < levels.length;
+        i++
     ) {
 
-        await createAdminReferralCommission(
-            bookingId,
-            customerUid,
-            booking,
-            "A"
-        );
-
-        console.log(
-            "✅ Booking imetokana na RRADMIN."
-        );
-
-        return;
-    }
+        const level =
+            levels[i];
 
 
-    /* =====================================================
-       KAMA HAKUNA REFERRER
-    ===================================================== */
-
-    if (!currentReferralCode) {
-
-        console.log(
-            "ℹ️ Customer hana referral."
-        );
-
-        return;
-    }
+        if (!currentReferralCode) {
+            break;
+        }
 
 
-    /* =====================================================
-       LEVEL A
-    ===================================================== */
-
-    let levelAUid = null;
-    let levelAData = null;
-
-    const levelAQuery =
-        await db
-            .collection("users")
-            .where(
-                "referralCode",
-                "==",
-                currentReferralCode
-            )
-            .limit(1)
-            .get();
-
-
-    if (!levelAQuery.empty) {
-
-        const levelADoc =
-            levelAQuery.docs[0];
-
-        levelAUid =
-            levelADoc.id;
-
-        levelAData =
-            levelADoc.data();
-
-
-        await createCommissionIfNotExists(
-            bookingId,
-            customerUid,
-            levelAUid,
-            "A",
-            ROOMRENT_SETTINGS.commission.user.A,
-            booking
-        );
-    }
-
-
-    /* =====================================================
-       KAMA LEVEL A HAKUPATIKANA
-    ===================================================== */
-
-    if (!levelAUid) {
-
-        console.warn(
-            "⚠️ Level A haikupatikana:",
+        const normalizedCode =
             currentReferralCode
-        );
-
-        return;
-    }
+                .toUpperCase();
 
 
-    /* =====================================================
-       LEVEL B
-    ===================================================== */
+        /* =================================================
+           ADMIN REFERRAL
+           
+           Kama RRADMIN ipo kwenye nafasi ya level hiyo,
+           Admin anapata commission ya level hiyo.
+        ================================================= */
 
-    let levelBUid = null;
-    let levelBData = null;
+        if (
+            normalizedCode ===
+            String(
+                ROOMRENT_SETTINGS.adminReferralCode
+            ).toUpperCase()
+        ) {
 
-    const levelBReferralCode =
-        (levelAData.referredBy || "").trim();
+            await createAdminReferralCommission(
+                bookingId,
+                customerUid,
+                booking,
+                level
+            );
+
+            adminCommissionCount++;
+
+            console.log(
+                "✅ Admin referral:",
+                level
+            );
+
+            /* Admin ndiye mwisho wa chain */
+            break;
+        }
 
 
-    if (
-        levelBReferralCode &&
-        levelBReferralCode !==
-        ROOMRENT_SETTINGS.adminReferralCode
-    ) {
+        /* =================================================
+           TAFUTA USER KWA REFERRAL CODE
+        ================================================= */
 
-        const levelBQuery =
+        const referrerQuery =
             await db
                 .collection("users")
                 .where(
                     "referralCode",
                     "==",
-                    levelBReferralCode
+                    currentReferralCode
                 )
                 .limit(1)
                 .get();
 
 
-        if (!levelBQuery.empty) {
+        if (referrerQuery.empty) {
 
-            const levelBDoc =
-                levelBQuery.docs[0];
-
-            levelBUid =
-                levelBDoc.id;
-
-            levelBData =
-                levelBDoc.data();
-
-
-            await createCommissionIfNotExists(
-                bookingId,
-                customerUid,
-                levelBUid,
-                "B",
-                ROOMRENT_SETTINGS.commission.user.B,
-                booking
+            console.warn(
+                "⚠️ Referral code haikupatikana:",
+                currentReferralCode
             );
+
+            break;
         }
-    }
 
 
-    /* =====================================================
-       LEVEL C
-    ===================================================== */
+        const referrerDoc =
+            referrerQuery.docs[0];
 
-    let levelCUid = null;
 
-    if (levelBUid && levelBData) {
+        const referrerUid =
+            referrerDoc.id;
 
-        const levelCReferralCode =
-            (levelBData.referredBy || "").trim();
 
+        const referrerData =
+            referrerDoc.data();
+
+
+        /* =================================================
+           ZUIA SELF REFERRAL / LOOP
+        ================================================= */
 
         if (
-            levelCReferralCode &&
-            levelCReferralCode !==
-            ROOMRENT_SETTINGS.adminReferralCode
+            visitedUsers.has(
+                referrerUid
+            )
         ) {
 
-            const levelCQuery =
-                await db
-                    .collection("users")
-                    .where(
-                        "referralCode",
-                        "==",
-                        levelCReferralCode
-                    )
-                    .limit(1)
-                    .get();
+            console.warn(
+                "⚠️ Referral loop imegundulika."
+            );
 
-
-            if (!levelCQuery.empty) {
-
-                const levelCDoc =
-                    levelCQuery.docs[0];
-
-                levelCUid =
-                    levelCDoc.id;
-
-
-                await createCommissionIfNotExists(
-                    bookingId,
-                    customerUid,
-                    levelCUid,
-                    "C",
-                    ROOMRENT_SETTINGS.commission.user.C,
-                    booking
-                );
-            }
+            break;
         }
+
+
+        visitedUsers.add(
+            referrerUid
+        );
+
+
+        /* =================================================
+           USER COMMISSION
+        ================================================= */
+
+        await createCommissionIfNotExists(
+            bookingId,
+            customerUid,
+            referrerUid,
+            level,
+            ROOMRENT_SETTINGS
+                .commission
+                .user[level],
+            booking,
+            currentReferralCode
+        );
+
+
+        userCommissionCount++;
+
+
+        /* =================================================
+           NENDA LEVEL INAYOFUATA
+        ================================================= */
+
+        currentReferralCode =
+            String(
+                referrerData.referredBy || ""
+            ).trim();
     }
-
-
-    /* =====================================================
-       ADMIN COMMISSION
-       
-       Admin ana commission kulingana na
-       hatua iliyopatikana kwenye referral chain.
-    ===================================================== */
-
-    await createAdminReferralCommission(
-        bookingId,
-        customerUid,
-        booking,
-        "A"
-    );
-
-    await createAdminReferralCommission(
-        bookingId,
-        customerUid,
-        booking,
-        "B"
-    );
-
-    await createAdminReferralCommission(
-        bookingId,
-        customerUid,
-        booking,
-        "C"
-    );
 
 
     console.log(
-        "✅ Referral chain imechakatwa:",
-        bookingId
+        "✅ Commission processing complete:",
+        {
+            bookingId,
+            userCommissionCount,
+            adminCommissionCount
+        }
     );
+
+
+    return {
+
+        userCommissionCount:
+            userCommissionCount,
+
+        adminCommissionCount:
+            adminCommissionCount
+    };
 }
 
 
 /* =========================================================
-   43C. USER COMMISSION
+   43C. CREATE USER COMMISSION
 ========================================================= */
 
 async function createCommissionIfNotExists(
@@ -5921,10 +5983,13 @@ async function createCommissionIfNotExists(
     receiverUid,
     level,
     percentage,
-    booking
+    booking,
+    referralCode
 ) {
 
-    if (!receiverUid) return;
+    if (!receiverUid) {
+        return;
+    }
 
 
     const commissionId =
@@ -5943,27 +6008,11 @@ async function createCommissionIfNotExists(
         await commissionRef.get();
 
 
-    /* =====================================================
-       ZUIA DUPLICATE
-    ===================================================== */
-
-    if (existing.exists) {
-
-        console.log(
-            "ℹ️ User commission tayari ipo:",
-            commissionId
+    const bookingAmount =
+        Number(
+            booking.roomPrice || 0
         );
 
-        return;
-    }
-
-
-    /* =====================================================
-       HESABU
-    ===================================================== */
-
-    const bookingAmount =
-        Number(booking.roomPrice || 0);
 
     const commissionAmount =
         Math.round(
@@ -5974,42 +6023,58 @@ async function createCommissionIfNotExists(
 
 
     /* =====================================================
-       SAVE
+       COMMISSION
     ===================================================== */
 
-    await commissionRef.set({
+    if (!existing.exists) {
 
-        bookingId:
-            bookingId,
+        await commissionRef.set({
 
-        uid:
-            receiverUid,
+            bookingId:
+                bookingId,
 
-        customerUid:
-            customerUid,
+            uid:
+                receiverUid,
 
-        level:
-            level,
+            customerUid:
+                customerUid,
 
-        percentage:
-            Number(percentage),
+            level:
+                level,
 
-        amount:
-            commissionAmount,
+            percentage:
+                Number(percentage),
 
-        currency:
-            "TSh",
+            amount:
+                commissionAmount,
 
-        status:
-            "Available",
+            currency:
+                "TSh",
 
-        createdAt:
-            firebase.firestore.FieldValue.serverTimestamp()
-    });
+            status:
+                "Available",
+
+            referralCode:
+                referralCode || "",
+
+            createdAt:
+                firebase.firestore.FieldValue
+                    .serverTimestamp()
+        });
+
+
+        console.log(
+            "✅ User commission created:",
+            commissionId
+        );
+    }
 
 
     /* =====================================================
        NOTIFICATION
+       
+       Tunatumia ID ile ile ya commission ili
+       notification isijirudie.
     ===================================================== */
 
     const notificationRef =
@@ -6017,52 +6082,60 @@ async function createCommissionIfNotExists(
             .collection("users")
             .doc(receiverUid)
             .collection("notifications")
-            .doc();
+            .doc(commissionId);
 
 
-    await notificationRef.set({
-
-        title:
-            "💰 Commission Mpya",
-
-        message:
-            "Umepokea commission ya Level " +
-            level +
-            " ya TSh " +
-            formatMoney(commissionAmount) +
-            " kutoka booking " +
-            bookingId,
-
-        type:
-            "commission",
-
-        bookingId:
-            bookingId,
-
-        level:
-            level,
-
-        amount:
-            commissionAmount,
-
-        read:
-            false,
-
-        createdAt:
-            firebase.firestore.FieldValue.serverTimestamp()
-    });
+    const notificationSnap =
+        await notificationRef.get();
 
 
-    console.log(
-        "✅ User commission:",
-        level,
-        commissionAmount
-    );
+    if (!notificationSnap.exists) {
+
+        await notificationRef.set({
+
+            title:
+                "💰 Commission Mpya",
+
+            message:
+                "Umepokea commission ya Level " +
+                level +
+                " ya TSh " +
+                formatMoney(
+                    commissionAmount
+                ) +
+                " kutoka booking " +
+                bookingId,
+
+            type:
+                "commission",
+
+            bookingId:
+                bookingId,
+
+            level:
+                level,
+
+            amount:
+                commissionAmount,
+
+            read:
+                false,
+
+            createdAt:
+                firebase.firestore.FieldValue
+                    .serverTimestamp()
+        });
+
+
+        console.log(
+            "🔔 Notification ya commission imetumwa."
+        );
+    }
 }
 
 
 /* =========================================================
-   43D. ADMIN REFERRAL COMMISSION
+   43D. CREATE ADMIN COMMISSION
 ========================================================= */
 
 async function createAdminReferralCommission(
@@ -6072,6 +6145,10 @@ async function createAdminReferralCommission(
     level
 ) {
 
+    const ADMIN_UID =
+        "1kj3K591EHhHAOiSoxIp1xGve2x1";
+
+
     const percentage =
         Number(
             ROOMRENT_SETTINGS
@@ -6080,11 +6157,15 @@ async function createAdminReferralCommission(
         );
 
 
-    if (!percentage) return;
+    if (!percentage) {
+        return;
+    }
 
 
     const bookingAmount =
-        Number(booking.roomPrice || 0);
+        Number(
+            booking.roomPrice || 0
+        );
 
 
     const amount =
@@ -6127,13 +6208,16 @@ async function createAdminReferralCommission(
 
 
     /* =====================================================
-       SAVE ADMIN COMMISSION
+       SAVE
     ===================================================== */
 
     await commissionRef.set({
 
         bookingId:
             bookingId,
+
+        uid:
+            ADMIN_UID,
 
         customerUid:
             customerUid,
@@ -6154,14 +6238,14 @@ async function createAdminReferralCommission(
             "Available",
 
         createdAt:
-            firebase.firestore.FieldValue.serverTimestamp()
+            firebase.firestore.FieldValue
+                .serverTimestamp()
     });
 
 
     console.log(
-        "✅ Admin commission:",
-        level,
-        amount
+        "✅ Admin commission created:",
+        commissionId
     );
 }
 

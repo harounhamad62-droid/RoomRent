@@ -6,6 +6,8 @@ const roomsRouter = require("./rooms");
 const bookingsRouter = require("./bookings");
 const paymentsRouter = require("./payments");
 const packagesRouter = require("./packages");
+const packagePurchasesRouter = require("./packagePurchases");
+const withdrawalsRouter = require("./withdrawals");
 
 const app = express();
 
@@ -47,6 +49,22 @@ app.use("/api/payments", paymentsRouter);
 // PACKAGES
 // ===============================
 app.use("/api/packages", packagesRouter);
+
+// ===============================
+// PACKAGE PURCHASES
+// ===============================
+app.use(
+  "/api/package-purchases",
+  packagePurchasesRouter
+);
+
+// ===============================
+// WITHDRAWALS
+// ===============================
+app.use(
+  "/api/withdrawals",
+  withdrawalsRouter
+);
 
 // ===============================
 // 404 HANDLER

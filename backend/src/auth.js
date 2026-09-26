@@ -44,7 +44,7 @@ async function createReferralCode(name) {
 }
 
 // =====================================
-// REGISTER
+// REGISTER CUSTOMER
 // =====================================
 router.post("/register", async (req, res) => {
   try {
@@ -71,7 +71,9 @@ router.post("/register", async (req, res) => {
     }
 
     const normalizedEmail =
-      String(email).trim().toLowerCase();
+      String(email)
+        .trim()
+        .toLowerCase();
 
     const existingUser =
       await prisma.user.findUnique({
@@ -86,10 +88,6 @@ router.post("/register", async (req, res) => {
           "Email already registered"
       });
     }
-
-    // =================================
-    // FIND REFERRER
-    // =================================
 
     let referredById = null;
 
@@ -126,7 +124,8 @@ router.post("/register", async (req, res) => {
     const user =
       await prisma.user.create({
         data: {
-          name: String(name).trim(),
+          name:
+            String(name).trim(),
 
           email:
             normalizedEmail,
@@ -139,7 +138,8 @@ router.post("/register", async (req, res) => {
           password:
             hashedPassword,
 
-          role: "CUSTOMER",
+          role:
+            "CUSTOMER",
 
           referralCode:
             newReferralCode,
@@ -147,10 +147,6 @@ router.post("/register", async (req, res) => {
           referredById
         }
       });
-
-    // =================================
-    // RESPONSE
-    // =================================
 
     res.status(201).json({
       message:
@@ -358,6 +354,168 @@ router.get(
       res.status(401).json({
         message:
           "Invalid or expired token"
+      });
+    }
+  }
+);
+
+// =====================================
+// ADMIN LOGIN
+// =====================================
+// Admin credentials come from environment
+// variables, NOT from GitHub/source code.
+//
+// Required:
+// ADMIN_EMAIL
+// ADMIN_PASSWORD
+//
+// On successful login, the system creates
+// or updates the corresponding database
+// user as ADMIN.
+router.post(
+  "/admin-login",
+  async (req, res) => {
+    try {
+      const {
+        email,
+        password
+      } = req.body;
+
+      const adminEmail =
+        process.env.ADMIN_EMAIL;
+
+      const adminPassword =
+        process.env.ADMIN_PASSWORD;
+
+      if (
+        !adminEmail ||
+        !adminPassword
+      ) {
+        return res.status(503).json({
+          message:
+            "Admin login is not configured"
+        });
+      }
+
+      if (
+        String(email)
+          .trim()
+          .toLowerCase() !==
+        String(adminEmail)
+          .trim()
+          .toLowerCase()
+      ) {
+        return res.status(401).json({
+          message:
+            "Invalid admin credentials"
+        });
+      }
+
+      if (
+        String(password) !==
+        String(adminPassword)
+      ) {
+        return res.status(401).json({
+          message:
+            "Invalid admin credentials"
+        });
+      }
+
+      const normalizedEmail =
+        String(adminEmail)
+          .trim()
+          .toLowerCase();
+
+      let admin =
+        await prisma.user.findUnique({
+          where: {
+            email: normalizedEmail
+          }
+        });
+
+      const hashedPassword =
+        await bcrypt.hash(
+          adminPassword,
+          12
+        );
+
+      if (!admin) {
+        const referralCode =
+          await createReferralCode(
+            "ADMIN"
+          );
+
+        admin =
+          await prisma.user.create({
+            data: {
+              name:
+                "RoomRent Admin",
+
+              email:
+                normalizedEmail,
+
+              password:
+                hashedPassword,
+
+              role:
+                "ADMIN",
+
+              referralCode
+            }
+          });
+      } else if (
+        admin.role !== "ADMIN"
+      ) {
+        admin =
+          await prisma.user.update({
+            where: {
+              id: admin.id
+            },
+
+            data: {
+              role:
+                "ADMIN",
+
+              password:
+                hashedPassword
+            }
+          });
+      }
+
+      const token =
+        jwt.sign(
+          {
+            id: admin.id,
+            role: "ADMIN"
+          },
+          JWT_SECRET,
+          {
+            expiresIn: "7d"
+          }
+        );
+
+      res.json({
+        message:
+          "Admin login successful",
+
+        token,
+
+        user: {
+          id: admin.id,
+          name: admin.name,
+          email: admin.email,
+          role: admin.role
+        }
+      });
+    } catch (error) {
+      console.error(
+        "Admin login error:",
+        error
+      );
+
+      res.status(500).json({
+        message:
+          "Admin login failed"
       });
     }
   }

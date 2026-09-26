@@ -1,113 +1,366 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { PrismaClient } = require("@prisma/client");
 
 const router = express.Router();
+const prisma = new PrismaClient();
 
-const users = [];
+const JWT_SECRET =
+  process.env.JWT_SECRET || "development-secret";
 
+// =====================================
+// CREATE UNIQUE REFERRAL CODE
+// =====================================
+async function createReferralCode(name) {
+  const prefix =
+    String(name || "USER")
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .toUpperCase()
+      .slice(0, 4) || "USER";
+
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const random = Math.floor(
+      100000 + Math.random() * 900000
+    );
+
+    const code = `${prefix}${random}`;
+
+    const existing =
+      await prisma.user.findUnique({
+        where: {
+          referralCode: code
+        }
+      });
+
+    if (!existing) {
+      return code;
+    }
+  }
+
+  throw new Error(
+    "Failed to generate unique referral code"
+  );
+}
+
+// =====================================
+// REGISTER
+// =====================================
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, phone, password } = req.body;
+    const {
+      name,
+      email,
+      phone,
+      password,
+      referralCode
+    } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
-        message: "Name, email and password are required"
+        message:
+          "Name, email and password are required"
       });
     }
 
-    const existingUser = users.find(
-      user => user.email.toLowerCase() === email.toLowerCase()
-    );
+    if (String(password).length < 6) {
+      return res.status(400).json({
+        message:
+          "Password must be at least 6 characters"
+      });
+    }
+
+    const normalizedEmail =
+      String(email).trim().toLowerCase();
+
+    const existingUser =
+      await prisma.user.findUnique({
+        where: {
+          email: normalizedEmail
+        }
+      });
 
     if (existingUser) {
       return res.status(409).json({
-        message: "Email already registered"
+        message:
+          "Email already registered"
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // =================================
+    // FIND REFERRER
+    // =================================
 
-    const user = {
-      id: String(users.length + 1),
-      name,
-      email: email.toLowerCase(),
-      phone: phone || null,
-      password: hashedPassword,
-      role: "CUSTOMER"
-    };
+    let referredById = null;
 
-    users.push(user);
+    if (referralCode) {
+      const normalizedReferralCode =
+        String(referralCode)
+          .trim()
+          .toUpperCase();
+
+      const referrer =
+        await prisma.user.findUnique({
+          where: {
+            referralCode:
+              normalizedReferralCode
+          }
+        });
+
+      if (!referrer) {
+        return res.status(400).json({
+          message:
+            "Invalid referral code"
+        });
+      }
+
+      referredById = referrer.id;
+    }
+
+    const hashedPassword =
+      await bcrypt.hash(password, 10);
+
+    const newReferralCode =
+      await createReferralCode(name);
+
+    const user =
+      await prisma.user.create({
+        data: {
+          name: String(name).trim(),
+
+          email:
+            normalizedEmail,
+
+          phone:
+            phone
+              ? String(phone).trim()
+              : null,
+
+          password:
+            hashedPassword,
+
+          role: "CUSTOMER",
+
+          referralCode:
+            newReferralCode,
+
+          referredById
+        }
+      });
+
+    // =================================
+    // RESPONSE
+    // =================================
 
     res.status(201).json({
-      message: "Account created successfully",
+      message:
+        "Account created successfully",
+
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         phone: user.phone,
-        role: user.role
+        role: user.role,
+        referralCode:
+          user.referralCode
       }
     });
   } catch (error) {
+    console.error(
+      "Registration error:",
+      error
+    );
+
     res.status(500).json({
-      message: "Registration failed"
+      message:
+        "Registration failed"
     });
   }
 });
 
+// =====================================
+// LOGIN
+// =====================================
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const {
+      email,
+      password
+    } = req.body;
 
-    const user = users.find(
-      user => user.email === email.toLowerCase()
-    );
+    if (!email || !password) {
+      return res.status(400).json({
+        message:
+          "Email and password are required"
+      });
+    }
+
+    const normalizedEmail =
+      String(email)
+        .trim()
+        .toLowerCase();
+
+    const user =
+      await prisma.user.findUnique({
+        where: {
+          email: normalizedEmail
+        }
+      });
 
     if (!user) {
       return res.status(401).json({
-        message: "Invalid email or password"
+        message:
+          "Invalid email or password"
       });
     }
 
-    const validPassword = await bcrypt.compare(
-      password,
-      user.password
-    );
+    const validPassword =
+      await bcrypt.compare(
+        password,
+        user.password
+      );
 
     if (!validPassword) {
       return res.status(401).json({
-        message: "Invalid email or password"
+        message:
+          "Invalid email or password"
       });
     }
 
-    const token = jwt.sign(
-      {
-        id: user.id,
-        role: user.role
-      },
-      process.env.JWT_SECRET || "development-secret",
-      {
-        expiresIn: "7d"
-      }
-    );
+    const token =
+      jwt.sign(
+        {
+          id: user.id,
+          role: user.role
+        },
+        JWT_SECRET,
+        {
+          expiresIn: "7d"
+        }
+      );
 
     res.json({
-      message: "Login successful",
+      message:
+        "Login successful",
+
       token,
+
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         phone: user.phone,
-        role: user.role
+        role: user.role,
+        referralCode:
+          user.referralCode
       }
     });
   } catch (error) {
+    console.error(
+      "Login error:",
+      error
+    );
+
     res.status(500).json({
-      message: "Login failed"
+      message:
+        "Login failed"
     });
   }
 });
+
+// =====================================
+// GET MY REFERRAL INFORMATION
+// =====================================
+router.get(
+  "/referral",
+  async (req, res) => {
+    try {
+      const authHeader =
+        req.headers.authorization;
+
+      if (
+        !authHeader ||
+        !authHeader.startsWith(
+          "Bearer "
+        )
+      ) {
+        return res.status(401).json({
+          message:
+            "Authentication required"
+        });
+      }
+
+      const token =
+        authHeader.split(" ")[1];
+
+      const decoded =
+        jwt.verify(
+          token,
+          JWT_SECRET
+        );
+
+      const user =
+        await prisma.user.findUnique({
+          where: {
+            id: decoded.id
+          },
+
+          include: {
+            referrals: {
+              select: {
+                id: true,
+                name: true,
+                createdAt: true
+              }
+            }
+          }
+        });
+
+      if (!user) {
+        return res.status(404).json({
+          message:
+            "User not found"
+        });
+      }
+
+      const appUrl =
+        process.env.APP_URL ||
+        "https://roomrent.app";
+
+      const referralLink =
+        `${appUrl}/register?ref=${encodeURIComponent(
+          user.referralCode
+        )}`;
+
+      res.json({
+        success: true,
+
+        referral: {
+          referralCode:
+            user.referralCode,
+
+          referralLink,
+
+          totalReferrals:
+            user.referrals.length,
+
+          referrals:
+            user.referrals
+        }
+      });
+    } catch (error) {
+      console.error(
+        "Referral information error:",
+        error
+      );
+
+      res.status(401).json({
+        message:
+          "Invalid or expired token"
+      });
+    }
+  }
+);
 
 module.exports = router;

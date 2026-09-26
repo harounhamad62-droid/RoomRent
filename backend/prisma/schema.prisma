@@ -49,6 +49,12 @@ enum TransactionType {
   DEBIT
 }
 
+enum ReferralLevel {
+  A
+  B
+  C
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String
@@ -56,13 +62,26 @@ model User {
   phone     String?
   password  String
   role      UserRole @default(CUSTOMER)
+
+  // Unique code used by this user to invite others
+  referralCode String @unique
+
+  // The user who referred this user
+  referredById String?
+  referredBy   User? @relation("UserReferrals", fields: [referredById], references: [id])
+
+  // Users directly referred by this user
+  referrals User[] @relation("UserReferrals")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  bookings    Booking[]
-  purchases   PackagePurchase[]
-  transactions WalletTransaction[]
-  withdrawals  Withdrawal[]
+  bookings      Booking[]
+  purchases     PackagePurchase[]
+  transactions  WalletTransaction[]
+  withdrawals   Withdrawal[]
+  commissions   ReferralCommission[] @relation("CommissionReceiver")
+  sourceCommissions ReferralCommission[] @relation("CommissionSource")
 }
 
 model Room {
@@ -124,12 +143,12 @@ model Payment {
 // ===============================
 
 model Package {
-  id          String   @id @default(cuid())
-  name        String
-  price       Decimal
-  description String?
-  maxPurchases Int     @default(4)
-  active      Boolean  @default(true)
+  id           String   @id @default(cuid())
+  name         String
+  price        Decimal
+  description  String?
+  maxPurchases Int      @default(4)
+  active       Boolean  @default(true)
 
   purchases PackagePurchase[]
 
@@ -146,14 +165,20 @@ model PackagePurchase {
   status     PaymentStatus @default(PENDING)
 
   purchasedAt DateTime?
-cycleStartDate DateTime?
-cycleEndDate   DateTime?
-dailyRate      Decimal?
-totalCredited  Decimal  @default(0)
+
+  cycleStartDate DateTime?
+  cycleEndDate   DateTime?
+  dailyRate      Decimal?
+  totalCredited  Decimal @default(0)
+
   user    User    @relation(fields: [userId], references: [id])
   package Package @relation(fields: [packageId], references: [id])
 
   transactions WalletTransaction[]
+
+  // One package purchase can generate referral commissions,
+  // but each referral level is paid only once.
+  referralCommissions ReferralCommission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -164,19 +189,74 @@ totalCredited  Decimal  @default(0)
 // ===============================
 
 model WalletTransaction {
-  id        String          @id @default(cuid())
-  userId    String
+  id         String          @id @default(cuid())
+  userId     String
   purchaseId String?
 
-  type      TransactionType
-  amount    Decimal
-  reference String?        @unique
+  type        TransactionType
+  amount      Decimal
+  reference   String? @unique
   description String?
 
-  user     User            @relation(fields: [userId], references: [id])
-  purchase PackagePurchase? @relation(fields: [purchaseId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  purchase PackagePurchase? @relation(
+    fields: [purchaseId],
+    references: [id]
+  )
 
   createdAt DateTime @default(now())
+}
+
+// ===============================
+// REFERRAL COMMISSIONS
+// ===============================
+
+model ReferralCommission {
+  id String @id @default(cuid())
+
+  // User receiving the commission
+  receiverId String
+
+  // The customer whose package purchase generated commission
+  sourceUserId String
+
+  // Package purchase responsible for this commission
+  purchaseId String
+
+  level ReferralLevel
+
+  // Percentage used, e.g. 5, 2 or 1
+  rate Decimal
+
+  // Actual commission amount
+  amount Decimal
+
+  // Prevents duplicate commission for the same
+  // purchase and referral level.
+  reference String @unique
+
+  receiver User @relation(
+    "CommissionReceiver",
+    fields: [receiverId],
+    references: [id]
+  )
+
+  sourceUser User @relation(
+    "CommissionSource",
+    fields: [sourceUserId],
+    references: [id]
+  )
+
+  purchase PackagePurchase @relation(
+    fields: [purchaseId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt DateTime @default(now())
+
+  @@unique([purchaseId, level])
 }
 
 // ===============================
@@ -191,11 +271,10 @@ model Withdrawal {
   fee       Decimal
   netAmount Decimal
 
-  method    PaymentMethod
-  phone     String
+  method PaymentMethod
+  phone  String
 
-  status    WithdrawalStatus @default(PENDING)
-
+  status        WithdrawalStatus @default(PENDING)
   transactionId String?
   processedAt   DateTime?
 

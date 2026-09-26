@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const authRouter = require("./auth");
 
 const app = express();
 
@@ -13,6 +14,9 @@ app.get("/", (req, res) => {
     message: "Welcome to RoomRent API"
   });
 });
+
+// Authentication
+app.use("/api/auth", authRouter);
 
 const PORT = process.env.PORT || 5000;
 

@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const authRouter = require("./auth");
-
+const roomsRouter = require("./rooms");
 const app = express();
 
 app.use(cors());
@@ -17,7 +17,7 @@ app.get("/", (req, res) => {
 
 // Authentication
 app.use("/api/auth", authRouter);
-
+app.use("/api/rooms", roomsRouter);
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {

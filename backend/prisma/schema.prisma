@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum RoomStatus {
+  AVAILABLE
+  UNAVAILABLE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentMethod {
+  AIRTEL_MONEY
+  HALOPESA
+  TIGOPESA
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  password  String
+  role      UserRole @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookings Booking[]
+}
+
+model Room {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  location    String
+  price       Decimal
+  status      RoomStatus @default(AVAILABLE)
+  images      RoomImage[]
+  bookings    Booking[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model RoomImage {
+  id     String @id @default(cuid())
+  url    String
+  roomId String
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  userId      String
+  roomId      String
+  startDate   DateTime
+  endDate     DateTime
+  totalAmount Decimal
+  status      BookingStatus @default(PENDING)
+
+  user    User     @relation(fields: [userId], references: [id])
+  room    Room     @relation(fields: [roomId], references: [id])
+  payment Payment?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  bookingId     String        @unique
+  method        PaymentMethod
+  amount        Decimal
+  transactionId String?
+  status        PaymentStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+}

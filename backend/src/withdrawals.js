@@ -18,8 +18,22 @@ const allowedMethods = [
   "TIGOPESA"
 ];
 
+const allowedStatuses = [
+  "PENDING",
+  "PROCESSING",
+  "PAID",
+  "FAILED",
+  "CANCELLED"
+];
+
+const finalStatuses = [
+  "PAID",
+  "FAILED",
+  "CANCELLED"
+];
+
 // =====================================
-// GET WALLET BALANCE
+// USER WALLET BALANCE
 // =====================================
 router.get(
   "/balance",
@@ -31,7 +45,6 @@ router.get(
           where: {
             userId: req.user.id
           },
-
           select: {
             type: true,
             amount: true
@@ -82,7 +95,7 @@ router.get(
 );
 
 // =====================================
-// GET WALLET TRANSACTIONS
+// USER WALLET TRANSACTIONS
 // =====================================
 router.get(
   "/transactions",
@@ -127,7 +140,7 @@ router.get(
 );
 
 // =====================================
-// GET MY REFERRAL COMMISSIONS
+// USER REFERRAL COMMISSIONS
 // =====================================
 router.get(
   "/commissions",
@@ -225,11 +238,13 @@ router.post(
       ) {
         return res.status(400).json({
           message:
-            `Minimum withdrawal is TSh ${MIN_WITHDRAWAL}`
+            `Minimum withdrawal is TSh ${MIN_WITHDRAWAL.toLocaleString()}`
         });
       }
 
-      if (!allowedMethods.includes(method)) {
+      if (
+        !allowedMethods.includes(method)
+      ) {
         return res.status(400).json({
           message:
             "Unsupported withdrawal method"
@@ -239,9 +254,6 @@ router.post(
       const result =
         await prisma.$transaction(
           async (tx) => {
-            // =================================
-            // CALCULATE CURRENT BALANCE
-            // =================================
             const transactions =
               await tx.walletTransaction.findMany({
                 where: {
@@ -262,9 +274,7 @@ router.post(
               of transactions
             ) {
               const value =
-                Number(
-                  transaction.amount
-                );
+                Number(transaction.amount);
 
               if (
                 transaction.type ===
@@ -285,21 +295,14 @@ router.post(
               totalCredits -
               totalDebits;
 
-            // =================================
-            // CHECK AVAILABLE BALANCE
-            // =================================
             if (
-              numericAmount >
-              balance
+              numericAmount > balance
             ) {
               throw new Error(
                 `Insufficient balance. Available balance is TSh ${balance.toLocaleString()}`
               );
             }
 
-            // =================================
-            // CALCULATE FEE
-            // =================================
             const fee =
               numericAmount *
               WITHDRAWAL_FEE_RATE;
@@ -307,9 +310,6 @@ router.post(
             const netAmount =
               numericAmount - fee;
 
-            // =================================
-            // CREATE WITHDRAWAL
-            // =================================
             const withdrawal =
               await tx.withdrawal.create({
                 data: {
@@ -333,9 +333,6 @@ router.post(
                 }
               });
 
-            // =================================
-            // RESERVE BALANCE
-            // =================================
             await tx.walletTransaction.create({
               data: {
                 userId:
@@ -412,7 +409,7 @@ router.post(
 );
 
 // =====================================
-// GET MY WITHDRAWALS
+// USER'S WITHDRAWALS
 // =====================================
 router.get(
   "/my",
@@ -449,7 +446,243 @@ router.get(
 );
 
 // =====================================
-// GET ONE WITHDRAWAL
+// ADMIN: ALL WITHDRAWALS
+//
+// IMPORTANT:
+// This route comes BEFORE /:id
+// so /admin/all is not captured by /:id.
+// =====================================
+router.get(
+  "/admin/all",
+  authenticate,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const {
+        status,
+        search
+      } = req.query;
+
+      const where = {};
+
+      // -------------------------------
+      // STATUS FILTER
+      // -------------------------------
+      if (status) {
+        const normalizedStatus =
+          String(status)
+            .trim()
+            .toUpperCase();
+
+        if (
+          !allowedStatuses.includes(
+            normalizedStatus
+          )
+        ) {
+          return res.status(400).json({
+            message:
+              "Invalid withdrawal status"
+          });
+        }
+
+        where.status =
+          normalizedStatus;
+      }
+
+      // -------------------------------
+      // CUSTOMER SEARCH
+      // -------------------------------
+      if (search) {
+        const searchText =
+          String(search).trim();
+
+        if (searchText) {
+          where.user = {
+            OR: [
+              {
+                name: {
+                  contains:
+                    searchText,
+                  mode:
+                    "insensitive"
+                }
+              },
+
+              {
+                email: {
+                  contains:
+                    searchText,
+                  mode:
+                    "insensitive"
+                }
+              },
+
+              {
+                phone: {
+                  contains:
+                    searchText,
+                  mode:
+                    "insensitive"
+                }
+              }
+            ]
+          };
+        }
+      }
+
+      const withdrawals =
+        await prisma.withdrawal.findMany({
+          where,
+
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true
+              }
+            }
+          },
+
+          orderBy: {
+            createdAt: "desc"
+          }
+        });
+
+      res.json({
+        success: true,
+
+        filters: {
+          status:
+            status || null,
+
+          search:
+            search || null
+        },
+
+        count:
+          withdrawals.length,
+
+        withdrawals
+      });
+    } catch (error) {
+      console.error(
+        "Admin withdrawals error:",
+        error
+      );
+
+      res.status(500).json({
+        message:
+          "Failed to load withdrawals"
+      });
+    }
+  }
+);
+
+// =====================================
+// ADMIN: WITHDRAWAL SUMMARY
+// =====================================
+router.get(
+  "/admin/summary",
+  authenticate,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const withdrawals =
+        await prisma.withdrawal.findMany({
+          select: {
+            amount: true,
+            fee: true,
+            netAmount: true,
+            status: true
+          }
+        });
+
+      const summary = {
+        total: 0,
+        pending: 0,
+        processing: 0,
+        paid: 0,
+        failed: 0,
+        cancelled: 0,
+        totalAmount: 0,
+        totalFees: 0,
+        totalNetAmount: 0
+      };
+
+      for (
+        const withdrawal
+        of withdrawals
+      ) {
+        summary.total++;
+
+        const amount =
+          Number(withdrawal.amount);
+
+        const fee =
+          Number(withdrawal.fee);
+
+        const netAmount =
+          Number(
+            withdrawal.netAmount
+          );
+
+        summary.totalAmount +=
+          amount;
+
+        summary.totalFees +=
+          fee;
+
+        summary.totalNetAmount +=
+          netAmount;
+
+        switch (
+          withdrawal.status
+        ) {
+          case "PENDING":
+            summary.pending++;
+            break;
+
+          case "PROCESSING":
+            summary.processing++;
+            break;
+
+          case "PAID":
+            summary.paid++;
+            break;
+
+          case "FAILED":
+            summary.failed++;
+            break;
+
+          case "CANCELLED":
+            summary.cancelled++;
+            break;
+        }
+      }
+
+      res.json({
+        success: true,
+        currency: "TZS",
+        summary
+      });
+    } catch (error) {
+      console.error(
+        "Admin withdrawal summary error:",
+        error
+      );
+
+      res.status(500).json({
+        message:
+          "Failed to load withdrawal summary"
+      });
+    }
+  }
+);
+
+// =====================================
+// USER: SINGLE WITHDRAWAL
 // =====================================
 router.get(
   "/:id",
@@ -460,9 +693,7 @@ router.get(
         await prisma.withdrawal.findFirst({
           where: {
             id: req.params.id,
-
-            userId:
-              req.user.id
+            userId: req.user.id
           }
         });
 
@@ -492,52 +723,7 @@ router.get(
 );
 
 // =====================================
-// ADMIN - GET ALL WITHDRAWALS
-// =====================================
-router.get(
-  "/admin/all",
-  authenticate,
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const withdrawals =
-        await prisma.withdrawal.findMany({
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                phone: true
-              }
-            }
-          },
-
-          orderBy: {
-            createdAt: "desc"
-          }
-        });
-
-      res.json({
-        success: true,
-        withdrawals
-      });
-    } catch (error) {
-      console.error(
-        "Admin withdrawals error:",
-        error
-      );
-
-      res.status(500).json({
-        message:
-          "Failed to load withdrawals"
-      });
-    }
-  }
-);
-
-// =====================================
-// ADMIN - UPDATE WITHDRAWAL STATUS
+// ADMIN: UPDATE WITHDRAWAL STATUS
 // =====================================
 router.put(
   "/admin/:id/status",
@@ -550,16 +736,10 @@ router.put(
         transactionId
       } = req.body;
 
-      const allowedStatuses = [
-        "PENDING",
-        "PROCESSING",
-        "PAID",
-        "FAILED",
-        "CANCELLED"
-      ];
-
       if (
-        !allowedStatuses.includes(status)
+        !allowedStatuses.includes(
+          status
+        )
       ) {
         return res.status(400).json({
           message:
@@ -581,15 +761,10 @@ router.put(
         });
       }
 
-      // =================================
-      // PREVENT REPEATED FINAL STATUS
-      // =================================
-      const finalStatuses = [
-        "PAID",
-        "FAILED",
-        "CANCELLED"
-      ];
-
+      // ---------------------------------
+      // Do not modify a final withdrawal
+      // to another final status.
+      // ---------------------------------
       if (
         finalStatuses.includes(
           withdrawal.status
@@ -608,8 +783,7 @@ router.put(
             const updated =
               await tx.withdrawal.update({
                 where: {
-                  id:
-                    withdrawal.id
+                  id: withdrawal.id
                 },
 
                 data: {
@@ -618,7 +792,9 @@ router.put(
                   transactionId:
                     transactionId !==
                     undefined
-                      ? transactionId
+                      ? String(
+                          transactionId
+                        ).trim()
                       : withdrawal.transactionId,
 
                   processedAt:
@@ -630,13 +806,15 @@ router.put(
                 }
               });
 
-            // =================================
-            // REFUND RESERVED BALANCE
-            // =================================
+            // ---------------------------------
+            // REFUND WHEN WITHDRAWAL FAILS
+            // OR IS CANCELLED
+            // ---------------------------------
             if (
               (
                 status === "FAILED" ||
-                status === "CANCELLED"
+                status ===
+                  "CANCELLED"
               ) &&
               withdrawal.status !==
                 "FAILED" &&
@@ -647,32 +825,36 @@ router.put(
                 `WITHDRAWAL-REFUND-${withdrawal.id}`;
 
               const existingRefund =
-                await tx.walletTransaction.findUnique({
-                  where: {
-                    reference:
-                      refundReference
+                await tx.walletTransaction.findUnique(
+                  {
+                    where: {
+                      reference:
+                        refundReference
+                    }
                   }
-                });
+                );
 
               if (!existingRefund) {
-                await tx.walletTransaction.create({
-                  data: {
-                    userId:
-                      withdrawal.userId,
+                await tx.walletTransaction.create(
+                  {
+                    data: {
+                      userId:
+                        withdrawal.userId,
 
-                    type:
-                      "CREDIT",
+                      type:
+                        "CREDIT",
 
-                    amount:
-                      withdrawal.amount,
+                      amount:
+                        withdrawal.amount,
 
-                    reference:
-                      refundReference,
+                      reference:
+                        refundReference,
 
-                    description:
-                      `Withdrawal refund - ${withdrawal.id}`
+                      description:
+                        `Withdrawal refund - ${withdrawal.id}`
+                    }
                   }
-                });
+                );
               }
             }
 
@@ -689,7 +871,7 @@ router.put(
       });
     } catch (error) {
       console.error(
-        "Update withdrawal error:",
+        "Update withdrawal status error:",
         error
       );
 

@@ -146,7 +146,10 @@ model PackagePurchase {
   status     PaymentStatus @default(PENDING)
 
   purchasedAt DateTime?
-
+cycleStartDate DateTime?
+cycleEndDate   DateTime?
+dailyRate      Decimal?
+totalCredited  Decimal  @default(0)
   user    User    @relation(fields: [userId], references: [id])
   package Package @relation(fields: [packageId], references: [id])
 

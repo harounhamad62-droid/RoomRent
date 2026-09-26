@@ -36,6 +36,19 @@ enum PaymentStatus {
   FAILED
 }
 
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String
@@ -46,7 +59,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  bookings Booking[]
+  bookings    Booking[]
+  purchases   PackagePurchase[]
+  transactions WalletTransaction[]
+  withdrawals  Withdrawal[]
 }
 
 model Room {
@@ -56,17 +72,20 @@ model Room {
   location    String
   price       Decimal
   status      RoomStatus @default(AVAILABLE)
-  images      RoomImage[]
-  bookings    Booking[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+
+  images   RoomImage[]
+  bookings Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model RoomImage {
   id     String @id @default(cuid())
   url    String
   roomId String
-  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
 }
 
 model Booking {
@@ -93,8 +112,92 @@ model Payment {
   amount        Decimal
   transactionId String?
   status        PaymentStatus @default(PENDING)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
 
   booking Booking @relation(fields: [bookingId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ===============================
+// PACKAGES
+// ===============================
+
+model Package {
+  id          String   @id @default(cuid())
+  name        String
+  price       Decimal
+  description String?
+  maxPurchases Int     @default(4)
+  active      Boolean  @default(true)
+
+  purchases PackagePurchase[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PackagePurchase {
+  id        String   @id @default(cuid())
+  userId    String
+  packageId String
+
+  amountPaid Decimal
+  status     PaymentStatus @default(PENDING)
+
+  purchasedAt DateTime?
+
+  user    User    @relation(fields: [userId], references: [id])
+  package Package @relation(fields: [packageId], references: [id])
+
+  transactions WalletTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ===============================
+// WALLET / LEDGER
+// ===============================
+
+model WalletTransaction {
+  id        String          @id @default(cuid())
+  userId    String
+  purchaseId String?
+
+  type      TransactionType
+  amount    Decimal
+  reference String?        @unique
+  description String?
+
+  user     User            @relation(fields: [userId], references: [id])
+  purchase PackagePurchase? @relation(fields: [purchaseId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+// ===============================
+// WITHDRAWALS
+// ===============================
+
+model Withdrawal {
+  id        String           @id @default(cuid())
+  userId    String
+
+  amount    Decimal
+  fee       Decimal
+  netAmount Decimal
+
+  method    PaymentMethod
+  phone     String
+
+  status    WithdrawalStatus @default(PENDING)
+
+  transactionId String?
+  processedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
